@@ -9,16 +9,23 @@ import hre from "hardhat";
 import { parseEther, parseUnits, getAddress } from "viem";
 
 describe("OtterPadFundraiser", function () {
-  // We'll use a fixture to reuse the same setup in every test
+  // Constants for Uniswap addresses
+  const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6";
+  const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3";
+
   async function deployFundraiserFixture() {
     // Deploy mock tokens first
+
     const saleToken = await hre.viem.deployContract("MockERC20", [
       "SaleToken",
       "SALE",
+      18n,
     ]);
+
     const paymentToken = await hre.viem.deployContract("MockERC20", [
       "PaymentToken",
       "PAY",
+      18n,
     ]);
 
     const [deployer, foundersWallet, buyer1, buyer2] =
@@ -31,10 +38,12 @@ describe("OtterPadFundraiser", function () {
     const upfrontRakeBPS = 200n; // 2%
     const escrowRakeBPS = 300n; // 3%
 
-    // Deploy the fundraiser
+    // Deploy the fundraiser with new constructor parameters
     const fundraiser = await hre.viem.deployContract("OtterPadFundraiser", [
       saleToken.address,
       paymentToken.address,
+      UNISWAP_ROUTER,
+      UNISWAP_FACTORY,
       startPrice,
       endPrice,
       targetLiquidity,
@@ -54,8 +63,9 @@ describe("OtterPadFundraiser", function () {
       mintAmount,
     ]);
 
-    // Mint sale tokens to the contract
-    await saleToken.write.mint([fundraiser.address, parseEther("10000")]); // we need 5000 tokens for DEX and 5000 for sale
+    // Calculate required token amount using the contract's helper function
+    const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+    await saleToken.write.mint([fundraiser.address, requiredTokens]);
 
     const publicClient = await hre.viem.getPublicClient();
 
@@ -96,6 +106,8 @@ describe("OtterPadFundraiser", function () {
       expect(await fundraiser.read.paymentToken()).to.equal(
         getAddress(paymentToken.address)
       );
+      expect(await fundraiser.read.uniswapRouter()).to.equal(UNISWAP_ROUTER);
+      expect(await fundraiser.read.uniswapFactory()).to.equal(UNISWAP_FACTORY);
       expect(await fundraiser.read.startPrice()).to.equal(startPrice);
       expect(await fundraiser.read.endPrice()).to.equal(endPrice);
       expect(await fundraiser.read.targetLiquidity()).to.equal(targetLiquidity);
@@ -104,6 +116,11 @@ describe("OtterPadFundraiser", function () {
       expect(await fundraiser.read.foundersWallet()).to.equal(
         getAddress(foundersWallet.account.address)
       );
+    });
+
+    it("Should verify sufficient sale tokens", async function () {
+      const { fundraiser } = await loadFixture(deployFundraiserFixture);
+      expect(await fundraiser.read.hasSufficientSaleTokens()).to.equal(true);
     });
 
     it("Should start with correct initial state", async function () {
@@ -674,6 +691,181 @@ describe("OtterPadFundraiser", function () {
 
       await expect(fundraiser.write.buy([payment], { account: buyer1.account }))
         .to.be.rejected;
+    });
+  });
+
+  describe("checkSaleTokensRequired", function () {
+    it("Should calculate correct tokens for linear price curve", async function () {
+      const { fundraiser, targetLiquidity, startPrice, endPrice } =
+        await loadFixture(deployFundraiserFixture);
+
+      const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+
+      // Break down the calculation to verify each component
+      const upfrontRakeBPS = await fundraiser.read.upfrontRakeBPS();
+      const escrowRakeBPS = await fundraiser.read.escrowRakeBPS();
+      const netContributionBPS = 10000n - upfrontRakeBPS - escrowRakeBPS;
+
+      // Calculate actual contribution needed to reach target after rake
+      const actualContribution =
+        (targetLiquidity * 10000n) / netContributionBPS;
+
+      // Calculate tokens needed for sale using average price
+      const averagePrice = (startPrice + endPrice) / 2n;
+      const expectedTokensForSale =
+        (actualContribution * parseEther("1")) / averagePrice;
+
+      // Calculate tokens needed for DEX liquidity at end price
+      const expectedLiquidityTokens =
+        (targetLiquidity * parseEther("1")) / endPrice;
+
+      // Total required should match sum of sale and liquidity tokens
+      const expectedTotal = expectedTokensForSale + expectedLiquidityTokens;
+      expect(requiredTokens).to.equal(expectedTotal);
+    });
+
+    it("Should require more tokens with higher rake", async function () {
+      // Deploy two fundraisers with different rake percentages
+
+      const saleToken = await hre.viem.deployContract("MockERC20", [
+        "SaleToken",
+        "SALE",
+        18n,
+      ]);
+
+      const paymentToken = await hre.viem.deployContract("MockERC20", [
+        "PaymentToken",
+        "PAY",
+        18n,
+      ]);
+
+      const [deployer, foundersWallet] = await hre.viem.getWalletClients();
+
+      // First fundraiser with 5% total rake
+      const fundraiser1 = await hre.viem.deployContract("OtterPadFundraiser", [
+        saleToken.address,
+        paymentToken.address,
+        UNISWAP_ROUTER,
+        UNISWAP_FACTORY,
+        parseEther("0.1"), // startPrice
+        parseEther("0.3"), // endPrice
+        parseEther("100"), // targetLiquidity
+        200n, // upfrontRakeBPS (2%)
+        300n, // escrowRakeBPS (3%)
+        getAddress(foundersWallet.account.address),
+      ]);
+
+      // Second fundraiser with 10% total rake
+      const fundraiser2 = await hre.viem.deployContract("OtterPadFundraiser", [
+        saleToken.address,
+        paymentToken.address,
+        UNISWAP_ROUTER,
+        UNISWAP_FACTORY,
+        parseEther("0.1"), // startPrice
+        parseEther("0.3"), // endPrice
+        parseEther("100"), // targetLiquidity
+        400n, // upfrontRakeBPS (4%)
+        600n, // escrowRakeBPS (6%)
+        getAddress(foundersWallet.account.address),
+      ]);
+
+      const required1 = await fundraiser1.read.checkSaleTokensRequired();
+      const required2 = await fundraiser2.read.checkSaleTokensRequired();
+
+      // Higher rake should require more tokens
+      expect(required2 > required1).to.be.true;
+    });
+
+    it("Should calculate correctly with different decimals", async function () {
+      // Deploy tokens with different decimals
+
+      const saleToken6Dec = await hre.viem.deployContract("MockERC20", [
+        "SaleToken6",
+        "SALE6",
+        6n,
+      ]);
+
+      const paymentToken8Dec = await hre.viem.deployContract("MockERC20", [
+        "PaymentToken8",
+        "PAY8",
+        8n,
+      ]);
+
+      const [deployer, foundersWallet] = await hre.viem.getWalletClients();
+
+      const fundraiser = await hre.viem.deployContract("OtterPadFundraiser", [
+        saleToken6Dec.address,
+        paymentToken8Dec.address,
+        UNISWAP_ROUTER,
+        UNISWAP_FACTORY,
+        parseUnits("0.1", 8), // startPrice in payment token decimals
+        parseUnits("0.3", 8), // endPrice in payment token decimals
+        parseUnits("100", 8), // targetLiquidity in payment token decimals
+        200n, // upfrontRakeBPS
+        300n, // escrowRakeBPS
+        getAddress(foundersWallet.account.address),
+      ]);
+
+      const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+
+      // Verify the result is in sale token decimals (6)
+      expect(requiredTokens < parseUnits("1000000", 6)).to.be.true;
+      expect(requiredTokens > parseUnits("1", 6)).to.be.true;
+    });
+
+    it("Should handle steep price curves", async function () {
+      // Deploy fresh tokens for this test
+
+      const saleToken = await hre.viem.deployContract("MockERC20", [
+        "SaleToken",
+        "SALE",
+        18n,
+      ]);
+
+      const paymentToken = await hre.viem.deployContract("MockERC20", [
+        "PaymentToken",
+        "PAY",
+        18n,
+      ]);
+
+      const [deployer, foundersWallet] = await hre.viem.getWalletClients();
+
+      // Deploy fundraiser with very steep price curve (10x increase)
+      const fundraiser = await hre.viem.deployContract("OtterPadFundraiser", [
+        saleToken.address,
+        paymentToken.address,
+        UNISWAP_ROUTER,
+        UNISWAP_FACTORY,
+        parseEther("0.1"), // startPrice
+        parseEther("1.0"), // endPrice (10x higher)
+        parseEther("100"), // targetLiquidity
+        200n, // upfrontRakeBPS
+        300n, // escrowRakeBPS
+        getAddress(foundersWallet.account.address),
+      ]);
+
+      const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+
+      // With steep curve, liquidity tokens should be significantly less than sale tokens
+      const liquidityTokens =
+        (parseEther("100") * parseEther("1")) / parseEther("1.0");
+      expect(requiredTokens > liquidityTokens * 2n).to.be.true;
+    });
+
+    it("Should maintain correct ratio between sale and liquidity tokens", async function () {
+      const { fundraiser } = await loadFixture(deployFundraiserFixture);
+
+      const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+
+      // Calculate just the liquidity tokens portion
+      const targetLiquidity = await fundraiser.read.targetLiquidity();
+      const endPrice = await fundraiser.read.endPrice();
+      const liquidityTokens = (targetLiquidity * parseEther("1")) / endPrice;
+
+      // Sale tokens should be larger portion than liquidity tokens
+      // because average price is lower than end price
+      expect(requiredTokens > liquidityTokens * 2n).to.be.true;
+      expect(requiredTokens < liquidityTokens * 4n).to.be.true;
     });
   });
 });
