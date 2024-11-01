@@ -144,7 +144,13 @@ contract OtterPadFundraiser is ReentrancyGuard {
         return amount / 10**(fromDecimals - toDecimals);
     }
     
-    function calculateTokensReceived(uint256 contributionAmount) public view returns (uint256) {
+    function calculateTokensReceived(uint256 paymentAmount) public view returns (uint256) {
+        // Calculate contribution amount after fees
+        uint256 otterpadFee = (paymentAmount * OTTERPAD_FEE_BPS) / 10000;
+        uint256 upfrontAmount = (paymentAmount * upfrontRakeBPS) / 10000 - otterpadFee;
+        uint256 escrowAmount = (paymentAmount * escrowRakeBPS) / 10000;
+        uint256 contributionAmount = paymentAmount - upfrontAmount - escrowAmount - otterpadFee;
+        
         require(totalActiveContributions + contributionAmount <= targetLiquidity, "Exceeds target");
         
         // Integration using average price method for linear price curve
@@ -152,14 +158,14 @@ contract OtterPadFundraiser is ReentrancyGuard {
         uint256 priceAtEnd = startPrice + ((endPrice - startPrice) * (totalActiveContributions + contributionAmount) / targetLiquidity);
         uint256 averagePrice = (priceAtStart + priceAtEnd) / 2;
         
-        // Convert contribution amount to sale token decimals and adjust price accordingly
-        uint256 normalizedContribution = normalizeDecimals(
-            contributionAmount,
+        // Convert the ORIGINAL payment amount to sale token decimals
+        uint256 normalizedPayment = normalizeDecimals(
+            paymentAmount,
             paymentTokenDecimals,
             saleTokenDecimals
         );
         
-        return (normalizedContribution * (10**saleTokenDecimals)) / averagePrice;
+        return (normalizedPayment * (10**saleTokenDecimals)) / averagePrice;
     }
     
     function buy(uint256 paymentAmount) external nonReentrant {
@@ -175,7 +181,8 @@ contract OtterPadFundraiser is ReentrancyGuard {
         
         require(totalActiveContributions + contributionAmount <= targetLiquidity, "Exceeds target");
         
-        uint256 tokenAmount = calculateTokensReceived(contributionAmount);
+        // Calculate tokens based on the FULL payment amount, not the contribution amount
+        uint256 tokenAmount = calculateTokensReceived(paymentAmount);
         
         require(
             paymentToken.transferFrom(msg.sender, address(this), paymentAmount),
