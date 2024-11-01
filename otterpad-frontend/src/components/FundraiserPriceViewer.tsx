@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ethers } from "ethers";
 import { OtterPadFundraiser__factory } from "../../../typechain-types";
 import {
@@ -23,6 +23,7 @@ import {
   Tag,
   Popover,
 } from "antd";
+import debounce from "lodash/debounce";
 import {
   DollarOutlined,
   WalletOutlined,
@@ -278,14 +279,14 @@ const FundraiserViewer = () => {
   });
 
   // Contract operations
-  useEffect(() => {
-    if (buyAmount && estimatedTokens && parseFloat(estimatedTokens) > 0) {
-      const avgPrice = parseFloat(buyAmount) / parseFloat(estimatedTokens);
-      setAvgPricePerToken(avgPrice.toFixed(6));
-    } else {
-      setAvgPricePerToken("0");
-    }
-  }, [buyAmount, estimatedTokens]);
+  // useEffect(() => {
+  //   if (buyAmount && estimatedTokens && parseFloat(estimatedTokens) > 0) {
+  //     const avgPrice = parseFloat(buyAmount) / parseFloat(estimatedTokens);
+  //     setAvgPricePerToken(avgPrice.toFixed(6));
+  //   } else {
+  //     setAvgPricePerToken("0");
+  //   }
+  // }, [buyAmount, estimatedTokens]);
 
   const [purchaseData, setPurchaseData] = useState<Record<number, Purchase>>(
     {}
@@ -842,9 +843,84 @@ const FundraiserViewer = () => {
     }
   };
 
+  const debouncedCheckAllowance = useMemo(
+    () =>
+      debounce(async (amount: string) => {
+        if (!contractData || !userAddress || !publicClient || !amount) return;
+
+        try {
+          setTransactionState((prev) => ({
+            ...prev,
+            isCheckingAllowance: true,
+          }));
+          const amountBigInt = parseEther(amount);
+          const allowance = await publicClient.readContract({
+            address: contractData.paymentTokenAddress,
+            abi: ERC20_ABI,
+            functionName: "allowance",
+            args: [userAddress, CONTRACT_ADDRESS],
+          });
+
+          setCurrentAllowance(allowance);
+          setIsApproved(allowance >= amountBigInt);
+        } catch (error) {
+          console.error("Error checking allowance:", error);
+          setIsApproved(false);
+        } finally {
+          setTransactionState((prev) => ({
+            ...prev,
+            isCheckingAllowance: false,
+          }));
+        }
+      }, 1000),
+    [contractData?.paymentTokenAddress, userAddress, publicClient]
+  );
+
+  const debouncedCalculateEstimatedTokens = useMemo(
+    () =>
+      debounce((amount: string) => {
+        if (amount && contractData && tokenInfo.sale && tokenInfo.payment) {
+          const result = calculateEstimatedTokens(
+            amount,
+            contractData,
+            tokenInfo
+          );
+          setEstimatedTokens(result.estimatedTokens);
+          setAvgPricePerToken(result.avgPricePerToken);
+        }
+      }, 500),
+    [contractData, tokenInfo]
+  );
+
+  // Update handlers to use debounced functions
   useEffect(() => {
-    calculateEstimatedTokens(buyAmount, contractData, tokenInfo);
-  }, [buyAmount, contractData]);
+    if (buyAmount) {
+      debouncedCheckAllowance(buyAmount);
+      debouncedCalculateEstimatedTokens(buyAmount);
+    } else {
+      setEstimatedTokens("0");
+      setAvgPricePerToken("0");
+      setIsApproved(false);
+    }
+
+    // Cleanup
+    return () => {
+      debouncedCheckAllowance.cancel();
+      debouncedCalculateEstimatedTokens.cancel();
+    };
+  }, [buyAmount]);
+
+  // Remove the old separate useEffects for checkAllowance and calculateEstimatedTokens
+  // since they're now handled in the combined useEffect above
+
+  // Handler for input changes
+  const handleBuyAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Optional: Add immediate validation if needed
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      setBuyAmount(value);
+    }
+  };
 
   // Get user's payment token balance
   const { data: userPaymentTokenBalance } = useBalance({
@@ -938,32 +1014,27 @@ const FundraiserViewer = () => {
     }
   };
 
-  // Check allowance whenever buy amount changes
-  useEffect(() => {
-    checkAllowance();
-  }, [buyAmount, contractData?.paymentTokenAddress, userAddress]);
+  // useEffect(() => {
+  //   if (buyAmount && contractData && tokenInfo.sale && tokenInfo.payment) {
+  //     console.log("Input state:", {
+  //       buyAmount,
+  //       tokenInfo,
+  //       contractData: {
+  //         currentPrice: formatEther(contractData.currentPrice),
+  //         startPrice: formatEther(contractData.startPrice),
+  //         endPrice: formatEther(contractData.endPrice),
+  //       },
+  //     });
 
-  useEffect(() => {
-    if (buyAmount && contractData && tokenInfo.sale && tokenInfo.payment) {
-      console.log("Input state:", {
-        buyAmount,
-        tokenInfo,
-        contractData: {
-          currentPrice: formatEther(contractData.currentPrice),
-          startPrice: formatEther(contractData.startPrice),
-          endPrice: formatEther(contractData.endPrice),
-        },
-      });
-
-      const result = calculateEstimatedTokens(
-        buyAmount,
-        contractData,
-        tokenInfo
-      );
-      setEstimatedTokens(result.estimatedTokens);
-      setAvgPricePerToken(result.avgPricePerToken);
-    }
-  }, [buyAmount, contractData, tokenInfo]);
+  //     const result = calculateEstimatedTokens(
+  //       buyAmount,
+  //       contractData,
+  //       tokenInfo
+  //     );
+  //     setEstimatedTokens(result.estimatedTokens);
+  //     setAvgPricePerToken(result.avgPricePerToken);
+  //   }
+  // }, [buyAmount, contractData, tokenInfo]);
 
   // Update handle approve function
   const handleApprove = async () => {
@@ -1413,7 +1484,7 @@ const FundraiserViewer = () => {
         id="chart"
         style={{ flex: 1, maxHeight: "100vh", textAlign: "left" }}
       >
-        <h1 style={{ marginLeft: 16 }}>Otterpad Finance</h1>
+        <h1 style={{ marginLeft: 16, fontSize: "2rem" }}>Otterpad Finance</h1>
         <ReactApexCharts
           series={chartData.series}
           type="candlestick"
@@ -1467,7 +1538,7 @@ const FundraiserViewer = () => {
                 }}
               >
                 <div style={{ display: "flex", flex: "1" }}>
-                  <Title level={2} style={{ margin: 0 }}>
+                  <Title level={3} style={{ margin: 0 }}>
                     OtterPad Fundraiser
                   </Title>
                 </div>
@@ -1480,7 +1551,9 @@ const FundraiserViewer = () => {
               {/* Price and Progress Cards */}
               <Row gutter={[16, 16]} style={{ width: "100%", margin: 0 }}>
                 <Col xs={24} md={8} style={{ width: "100%" }}>
-                  <Card style={{ height: "100%", width: "100%" }}>
+                  <Card
+                    style={{ height: "100%", width: "100%", textAlign: "left" }}
+                  >
                     <Text strong>Current Price</Text>
                     <div
                       style={{
@@ -1489,6 +1562,7 @@ const FundraiserViewer = () => {
                         gap: "8px",
                         marginTop: "8px",
                         width: "100%",
+                        flexDirection: "column",
                       }}
                     >
                       <Title
@@ -1512,6 +1586,7 @@ const FundraiserViewer = () => {
                         alignItems: "center",
                         marginBottom: "16px",
                         width: "100%",
+                        textAlign: "left",
                       }}
                     >
                       <Text strong style={{ flex: "1" }}>
@@ -1598,7 +1673,7 @@ const FundraiserViewer = () => {
                           size="large"
                           placeholder="Enter amount"
                           value={buyAmount}
-                          onChange={(e) => setBuyAmount(e.target.value)}
+                          onChange={handleBuyAmountChange}
                           prefix={<DollarOutlined className="text-gray-500" />}
                           suffix="PAY"
                           className="flex-1"
@@ -1626,7 +1701,7 @@ const FundraiserViewer = () => {
                             <div style={{ width: "100%" }}>
                               <Statistic
                                 title="Estimated Tokens"
-                                value={Number(estimatedTokens).toFixed(6)}
+                                value={Number(estimatedTokens).toFixed(3)}
                                 suffix="SALE"
                               />
                             </div>
@@ -1635,7 +1710,7 @@ const FundraiserViewer = () => {
                             <div style={{ width: "100%" }}>
                               <Statistic
                                 title="Avg Price per Token"
-                                value={avgPricePerToken}
+                                value={Number(avgPricePerToken).toFixed(4)}
                                 suffix="PAY"
                               />
                             </div>
