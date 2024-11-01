@@ -62,7 +62,32 @@ interface TokenState {
   payment: TokenInfo | null;
 }
 
-const CONTRACT_ADDRESS = "0x40fb23A4316F255eb7C86FB1c8ea5E9a20A9Ba03" as const;
+interface Purchase {
+  paymentAmount: bigint;
+  contributionAmount: bigint;
+  tokenAmount: bigint;
+  purchaser: string;
+  isRefunded: boolean;
+  isRedeemed: boolean;
+  purchaseBlock: bigint;
+}
+
+type PurchaseResponse = readonly [
+  paymentAmount: bigint,
+  contributionAmount: bigint,
+  tokenAmount: bigint,
+  purchaser: `0x${string}`,
+  isRefunded: boolean,
+  isRedeemed: boolean,
+  purchaseBlock: bigint
+];
+
+interface RefundState {
+  isRefunding: boolean;
+  txHash?: `0x${string}`;
+}
+
+const CONTRACT_ADDRESS = "0x795069dd648350fACC557e788Cc3db4474616391" as const;
 const CONTRACT_ABI = OtterPadFundraiser__factory.abi;
 
 // Contract function result types
@@ -85,6 +110,7 @@ type ContractDataResult = {
   upfrontRakeBPS: bigint;
   escrowRakeBPS: bigint;
   OTTERPAD_FEE_BPS: bigint;
+  totalPaymentsIn: bigint;
 };
 const ERC20_ABI = [
   {
@@ -142,6 +168,7 @@ const FundraiserViewer = () => {
   const { token } = theme.useToken();
   const { address: userAddress, isConnected } = useAccount();
   const [estimatedTokens, setEstimatedTokens] = useState<string>("0");
+  const publicClient = usePublicClient();
 
   const [isPendingApproval, setIsPendingApproval] = useState(false);
   const [isPendingPurchase, setIsPendingPurchase] = useState(false);
@@ -168,6 +195,187 @@ const FundraiserViewer = () => {
       setAvgPricePerToken("0");
     }
   }, [buyAmount, estimatedTokens]);
+
+  const [purchaseData, setPurchaseData] = useState<Record<number, Purchase>>(
+    {}
+  );
+
+  // Replace single refund state with a map
+  const [refundStates, setRefundStates] = useState<Record<number, RefundState>>(
+    {}
+  );
+
+  // Add refund contract write hook
+  const { writeContract: refundOrder } = useWriteContract();
+
+  // Helper function to convert contract response to Purchase type
+  const convertToPurchase = (result: PurchaseResponse): Purchase => {
+    const [
+      paymentAmount,
+      contributionAmount,
+      tokenAmount,
+      purchaser,
+      isRefunded,
+      isRedeemed,
+      purchaseBlock,
+    ] = result;
+
+    return {
+      paymentAmount,
+      contributionAmount,
+      tokenAmount,
+      purchaser,
+      isRefunded,
+      isRedeemed,
+      purchaseBlock,
+    };
+  };
+
+  // Helper function to format token amounts
+  const formatTokenAmount = (
+    amount: bigint | undefined,
+    symbol: string | undefined
+  ): string => {
+    if (!amount || !symbol) return "0";
+    return `${Number(formatEther(amount)).toFixed(6)} ${symbol}`;
+  };
+
+  // Helper function to calculate average price for a purchase
+  const calculateAveragePriceForPurchase = (purchase: Purchase | undefined) => {
+    if (!purchase || !tokenInfo.payment || !tokenInfo.sale) return "0";
+
+    const paymentAmount = Number(formatEther(purchase.paymentAmount));
+    const tokenAmount = Number(formatEther(purchase.tokenAmount));
+
+    if (tokenAmount === 0) return "0";
+
+    return (paymentAmount / tokenAmount).toFixed(6);
+  };
+
+  // Handle refund action with order-specific state
+  const handleRefund = async (orderIndex: number) => {
+    if (!contractData || !refundOrder) return;
+
+    try {
+      // Update state for specific order
+      setRefundStates((prev) => ({
+        ...prev,
+        [orderIndex]: { isRefunding: true },
+      }));
+
+      refundOrder(
+        {
+          address: CONTRACT_ADDRESS,
+          abi: CONTRACT_ABI,
+          functionName: "refund",
+          args: [BigInt(orderIndex)],
+        },
+        {
+          onSuccess: (txHash) => {
+            // Store transaction hash in state
+            setRefundStates((prev) => ({
+              ...prev,
+              [orderIndex]: { isRefunding: true, txHash },
+            }));
+
+            api.info({
+              message: "Refund Initiated",
+              description: "Please wait while your refund is being processed",
+              duration: 5,
+            });
+          },
+          onError: (error) => {
+            console.error("Refund error:", error);
+            api.error({
+              message: "Refund Failed",
+              description:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to process refund",
+              duration: 5,
+            });
+
+            // Clear refund state for this order
+            setRefundStates((prev) => {
+              const newState = { ...prev };
+              delete newState[orderIndex];
+              return newState;
+            });
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Refund error:", error);
+      api.error({
+        message: "Refund Failed",
+        description:
+          error instanceof Error ? error.message : "Failed to process refund",
+        duration: 5,
+      });
+
+      // Clear refund state for this order
+      setRefundStates((prev) => {
+        const newState = { ...prev };
+        delete newState[orderIndex];
+        return newState;
+      });
+    }
+  };
+
+  const monitorRefundTransaction = (
+    orderIndex: number,
+    hash: `0x${string}`
+  ) => {
+    const { isLoading, isSuccess } = useWaitForTransactionReceipt({
+      hash,
+    });
+
+    useEffect(() => {
+      if (!isLoading && isSuccess) {
+        // Clear refund state on success
+        setRefundStates((prev) => {
+          const newState = { ...prev };
+          delete newState[orderIndex];
+          return newState;
+        });
+
+        api.success({
+          message: "Refund Successful",
+          description: `Order #${orderIndex} has been refunded successfully!`,
+        });
+      }
+    }, [isLoading, isSuccess, orderIndex]);
+
+    return { isLoading, isSuccess };
+  };
+
+  const RefundMonitor = ({
+    orderIndex,
+    hash,
+  }: {
+    orderIndex: number;
+    hash: `0x${string}`;
+  }) => {
+    const { isLoading, isSuccess } = monitorRefundTransaction(orderIndex, hash);
+    console.log(`isLoading=${isLoading}, isSuccess=${isSuccess}`);
+    return null; // This is just for monitoring, no UI needed
+  };
+
+  const RefundTransactionMonitors = () => {
+    return (
+      <>
+        {Object.entries(refundStates).map(([orderIndex, state]) =>
+          state.txHash ? (
+            <RefundMonitor
+              key={orderIndex}
+              orderIndex={Number(orderIndex)}
+              hash={state.txHash}
+            />
+          ) : null
+        )}
+      </>
+    );
+  };
 
   const calculateRemainingAmount = () => {
     if (!contractData) return "0";
@@ -198,26 +406,6 @@ const FundraiserViewer = () => {
       (remainingContribution * BigInt(10000)) / netContributionBPS;
 
     return formatEther(grossAmount);
-  };
-
-  const formatProgressDisplay = () => {
-    if (!contractData) return "";
-
-    const currentBalance = contractData.paymentTokenBalance;
-    const escrowAmount =
-      (currentBalance * contractData.escrowRakeBPS) / BigInt(10000);
-    const upfrontAmount =
-      (currentBalance *
-        (contractData.upfrontRakeBPS - contractData.OTTERPAD_FEE_BPS)) /
-      BigInt(10000);
-    const otterpadFee =
-      (currentBalance * contractData.OTTERPAD_FEE_BPS) / BigInt(10000);
-    const actualContribution =
-      currentBalance - escrowAmount - upfrontAmount - otterpadFee;
-
-    return `${formatEther(actualContribution)} / ${formatEther(
-      contractData.targetLiquidity
-    )} ${tokenInfo.payment?.symbol}`;
   };
 
   const handleMaxRemainClick = () => {
@@ -266,9 +454,16 @@ const FundraiserViewer = () => {
     );
   };
 
-  const { writeContract: approveToken, data: approvalHash } =
-    useWriteContract();
-  const { writeContract: buyTokens, data: buyTxHash } = useWriteContract();
+  const {
+    writeContract: approveToken,
+    data: approvalHash,
+    error: prepareApproveError,
+  } = useWriteContract();
+  const {
+    writeContract: buyTokens,
+    data: buyTxHash,
+    error: prepareBuyError,
+  } = useWriteContract();
   const { writeContract: redeemTokens, data: redeemTxHash } =
     useWriteContract();
 
@@ -301,10 +496,6 @@ const FundraiserViewer = () => {
         ...prev,
         isWaitingForPurchase: false,
       }));
-      api.success({
-        message: "Purchase Successful",
-        description: "Your token purchase was successful!",
-      });
       setBuyAmount("");
     }
   }, [isApprovalSuccess, isPurchaseSuccess]);
@@ -392,6 +583,11 @@ const FundraiserViewer = () => {
         abi: CONTRACT_ABI,
         functionName: "totalActiveContributions",
       },
+      {
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: "totalPaymentsIn",
+      },
       ...(userAddress
         ? [
             {
@@ -439,12 +635,57 @@ const FundraiserViewer = () => {
       escrowRakeBPS: successResults[13] as bigint,
       OTTERPAD_FEE_BPS: successResults[14] as bigint,
       totalActiveContributions: successResults[15] as bigint,
-      userAllocation: successResults[16] as bigint | undefined,
-      userOrders: successResults[17] as bigint[] | undefined,
+      totalPaymentsIn: successResults[16] as bigint,
+      userAllocation: successResults[17] as bigint | undefined,
+      userOrders: successResults[18] as bigint[] | undefined,
     };
   };
 
   const contractData = processContractData();
+
+  useEffect(() => {
+    const fetchPurchaseData = async () => {
+      if (
+        !contractData?.userOrders ||
+        contractData.userOrders.length === 0 ||
+        !publicClient
+      )
+        return;
+
+      try {
+        const purchases: Record<number, Purchase> = {};
+
+        const results = await Promise.all(
+          contractData.userOrders.map(
+            (orderIndex) =>
+              publicClient.readContract({
+                address: CONTRACT_ADDRESS,
+                abi: CONTRACT_ABI,
+                functionName: "purchases",
+                args: [BigInt(orderIndex)],
+              }) as Promise<PurchaseResponse>
+          )
+        );
+
+        results.forEach((result, i) => {
+          if (result && contractData.userOrders) {
+            purchases[Number(contractData.userOrders[i])] =
+              convertToPurchase(result);
+          }
+        });
+
+        setPurchaseData(purchases);
+      } catch (error) {
+        console.error("Error fetching purchase data:", error);
+        api.error({
+          message: "Failed to fetch purchase data",
+          description: "Please try refreshing the page",
+        });
+      }
+    };
+
+    fetchPurchaseData();
+  }, [contractData?.userOrders]);
 
   const calculateEstimatedTokens = (
     paymentAmount: string,
@@ -583,8 +824,6 @@ const FundraiserViewer = () => {
     fetchTokenInfo();
   }, [contractData?.saleTokenAddress, contractData?.paymentTokenAddress]);
 
-  const publicClient = usePublicClient();
-
   const checkAllowance = async () => {
     if (!contractData || !userAddress || !publicClient || !buyAmount) return;
 
@@ -635,8 +874,9 @@ const FundraiserViewer = () => {
     }
   }, [buyAmount, contractData, tokenInfo]);
 
+  // Update handle approve function
   const handleApprove = async () => {
-    if (!buyAmount || !contractData || !userAddress) return;
+    if (!buyAmount || !contractData || !userAddress || !approveToken) return;
 
     try {
       setTransactionState((prev) => ({
@@ -644,13 +884,11 @@ const FundraiserViewer = () => {
         isApproving: true,
       }));
 
-      const amount = parseEther(buyAmount);
-
-      await approveToken({
+      approveToken({
         address: contractData.paymentTokenAddress,
         abi: ERC20_ABI,
         functionName: "approve",
-        args: [CONTRACT_ADDRESS, amount],
+        args: [CONTRACT_ADDRESS, parseEther(buyAmount)],
       });
 
       setTransactionState((prev) => ({
@@ -680,9 +918,9 @@ const FundraiserViewer = () => {
     }
   };
 
-  // Handle buy action
+  // Update handle buy function
   const handleBuy = async () => {
-    if (!buyAmount || !contractData || !userAddress) return;
+    if (!buyAmount || !contractData || !userAddress || !buyTokens) return;
 
     try {
       setTransactionState((prev) => ({
@@ -690,7 +928,7 @@ const FundraiserViewer = () => {
         isPurchasing: true,
       }));
 
-      await buyTokens({
+      buyTokens({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "buy",
@@ -725,6 +963,51 @@ const FundraiserViewer = () => {
       }));
     }
   };
+
+  // Fetch purchase data for user orders
+  useEffect(() => {
+    const fetchPurchaseData = async () => {
+      if (
+        !contractData?.userOrders ||
+        contractData.userOrders.length === 0 ||
+        !publicClient
+      )
+        return;
+
+      try {
+        const purchases: Record<number, Purchase> = {};
+
+        const results = await Promise.all(
+          contractData.userOrders.map(
+            (orderIndex) =>
+              publicClient.readContract({
+                address: CONTRACT_ADDRESS,
+                abi: CONTRACT_ABI,
+                functionName: "purchases",
+                args: [BigInt(orderIndex)],
+              }) as Promise<PurchaseResponse>
+          )
+        );
+
+        results.forEach((result, i) => {
+          if (result && contractData.userOrders) {
+            purchases[Number(contractData.userOrders[i])] =
+              convertToPurchase(result);
+          }
+        });
+
+        setPurchaseData(purchases);
+      } catch (error) {
+        console.error("Error fetching purchase data:", error);
+        api.error({
+          message: "Failed to fetch purchase data",
+          description: "Please try refreshing the page",
+        });
+      }
+    };
+
+    fetchPurchaseData();
+  }, [contractData?.userOrders]);
 
   // Handle redeem action
   const handleRedeem = (orderIndex: number) => {
@@ -798,6 +1081,24 @@ const FundraiserViewer = () => {
     };
   };
 
+  // Add error handling for prepare hooks
+  useEffect(() => {
+    if (prepareApproveError) {
+      console.error("Prepare approve error:", prepareApproveError);
+      api.error({
+        message: "Approval Preparation Failed",
+        description: prepareApproveError.message,
+      });
+    }
+    if (prepareBuyError) {
+      console.error("Prepare buy error:", prepareBuyError);
+      api.error({
+        message: "Purchase Preparation Failed",
+        description: prepareBuyError.message,
+      });
+    }
+  }, [prepareApproveError, prepareBuyError]);
+
   // Transaction notifications
   useEffect(() => {
     if (buySuccess) {
@@ -867,29 +1168,97 @@ const FundraiserViewer = () => {
   const getEscrowInfo = () => {
     if (!contractData || !tokenInfo.payment) return "";
 
-    const escrowAmount = Number(formatEther(contractData.escrowedAmount));
-    const escrowPercentage = Number(contractData.escrowRakeBPS) / 100;
+    const totalPayments = Number(formatEther(contractData.totalPaymentsIn));
+    const netActive = Number(
+      formatEther(contractData.totalActiveContributions)
+    );
+
+    const escrowRate = Number(contractData.escrowRakeBPS) / 10000;
+    const upfrontRate = Number(contractData.upfrontRakeBPS) / 10000;
+    const activePayment = netActive / (1 - escrowRate - upfrontRate);
+
+    const escrowAmount = activePayment * escrowRate;
+    const upfrontAmount = Number(
+      formatEther(
+        (contractData.totalPaymentsIn * contractData.upfrontRakeBPS) /
+          BigInt(10000)
+      )
+    );
+    const refundedAmount = totalPayments - activePayment;
+    const towardsLiquidityAmount = netActive;
+
+    // Calculate percentages
+    // Escrow is % of active payment
+    const escrowPercentage =
+      activePayment > 0 ? (escrowAmount / activePayment) * 100 : 0;
+
+    // Upfront is % of historical total
     const upfrontPercentage =
-      (Number(contractData.upfrontRakeBPS) -
-        Number(contractData.OTTERPAD_FEE_BPS)) /
-      100;
-    const otterpadPercentage = Number(contractData.OTTERPAD_FEE_BPS) / 100;
+      totalPayments > 0 ? (upfrontAmount / totalPayments) * 100 : 0;
+
+    // Towards liquidity is % of active payment - use same base as escrow
+    const towardsLiquidityPercentage =
+      activePayment > 0 ? (towardsLiquidityAmount / activePayment) * 100 : 0;
+
+    // Refunded is % of historical total
+    const refundedPercentage =
+      totalPayments > 0 ? (refundedAmount / totalPayments) * 100 : 0;
 
     return (
       <>
         <label style={{ color: "white" }}>
-          The progress bar shows only funds allocated for DEX liquidity.
-          Additional amounts:
+          The progress bar shows funds allocated for DEX liquidity. Breakdown of
+          all payments:
         </label>
         <ul className="mt-2">
           <li>
-            Escrowed: {escrowAmount} {tokenInfo.payment.symbol} (
-            {escrowPercentage.toFixed(1)}%)
+            Team Escrow: {escrowAmount.toFixed(2)} {tokenInfo.payment.symbol} (
+            {escrowPercentage.toFixed(1)}% of active)
           </li>
-          <li>Upfront to team: {upfrontPercentage.toFixed(1)}%</li>
-          <li>OtterPad fee: {otterpadPercentage.toFixed(1)}%</li>
+          <li>
+            Team Upfront: {upfrontAmount.toFixed(2)} {tokenInfo.payment.symbol}{" "}
+            ({upfrontPercentage.toFixed(1)}% of historical)
+          </li>
+          <li>
+            Towards Liquidity: {towardsLiquidityAmount.toFixed(2)}{" "}
+            {tokenInfo.payment.symbol} ({towardsLiquidityPercentage.toFixed(1)}%
+            of active)
+          </li>
+          <li className="mt-2 text-yellow-500">
+            Refunded Amount: {refundedAmount.toFixed(2)}{" "}
+            {tokenInfo.payment.symbol} ({refundedPercentage.toFixed(1)}% of
+            historical)
+          </li>
+          <li>
+            Total Historical: {totalPayments.toFixed(2)}{" "}
+            {tokenInfo.payment.symbol}
+          </li>
         </ul>
       </>
+    );
+  };
+
+  const getContractBalanceInfo = () => {
+    if (!contractData || !tokenInfo.sale || !tokenInfo.payment) return "";
+
+    return (
+      <div className="space-y-2">
+        <p>Current token balances in the smart contract:</p>
+        <ul className="list-disc pl-4">
+          <li>
+            {formatEther(contractData.saleTokenBalance)} {tokenInfo.sale.symbol}
+          </li>
+          <li>
+            {formatEther(contractData.paymentTokenBalance)}{" "}
+            {tokenInfo.payment.symbol}
+          </li>
+        </ul>
+        <p className="text-sm text-gray-400 mt-2">
+          These are the raw balances of tokens currently held by the smart
+          contract. The payment token balance includes both liquidity and
+          escrowed amounts.
+        </p>
+      </div>
     );
   };
 
@@ -908,30 +1277,29 @@ const FundraiserViewer = () => {
   const getLiquidityProgress = () => {
     if (!contractData) return 0;
 
-    // Get current balance excluding escrow and upfront amounts
-    const currentBalance = contractData.paymentTokenBalance;
-    const escrowAmount =
-      (currentBalance * contractData.escrowRakeBPS) / BigInt(10000);
-    const upfrontAmount =
-      (currentBalance *
-        (contractData.upfrontRakeBPS - contractData.OTTERPAD_FEE_BPS)) /
-      BigInt(10000);
-    const otterpadFee =
-      (currentBalance * contractData.OTTERPAD_FEE_BPS) / BigInt(10000);
-
-    // Calculate actual contribution amount (excluding all rakes)
-    const actualContribution =
-      currentBalance - escrowAmount - upfrontAmount - otterpadFee;
+    // totalActiveContributions is already net of all fees and ready for liquidity
+    const liquidityContribution = contractData.totalActiveContributions;
 
     // Convert BigInt values to numbers for percentage calculation
-    const currentNet = Number(actualContribution);
-    const targetNet = Number(contractData.targetLiquidity);
+    const currentNet = Number(formatEther(liquidityContribution));
+    const targetNet = Number(formatEther(contractData.targetLiquidity));
 
     if (targetNet === 0) return 0;
 
     // Calculate percentage, capped at 100
     const progress = (currentNet / targetNet) * 100;
     return Math.min(Math.max(progress, 0), 100);
+  };
+
+  const formatProgressDisplay = () => {
+    if (!contractData || !tokenInfo.payment) return "";
+
+    // totalActiveContributions is already the amount for liquidity
+    return `${formatEther(
+      contractData.totalActiveContributions
+    )} / ${formatEther(contractData.targetLiquidity)} ${
+      tokenInfo.payment?.symbol
+    }`;
   };
 
   return (
@@ -960,12 +1328,7 @@ const FundraiserViewer = () => {
                   OtterPad Fundraiser
                 </Title>
                 {getStatusTag()}
-                <Popover
-                  content={`Sale Token Balance: ${formatEther(
-                    contractData.saleTokenBalance
-                  ).toLocaleString()} ${tokenInfo.sale.symbol}`}
-                  trigger="hover"
-                >
+                <Popover content={getContractBalanceInfo()} trigger="hover">
                   <InfoCircleOutlined />
                 </Popover>
               </Space>
@@ -1242,53 +1605,125 @@ const FundraiserViewer = () => {
                     <List
                       itemLayout="horizontal"
                       dataSource={contractData.userOrders}
-                      renderItem={(orderIndex) => (
-                        <List.Item
-                          actions={[
-                            <Button
-                              type="primary"
-                              icon={<GiftOutlined />}
-                              onClick={() => handleRedeem(Number(orderIndex))}
-                              loading={redeemLoading}
-                              disabled={!contractData.targetReached}
+                      renderItem={(orderIndex) => {
+                        const purchase = purchaseData[Number(orderIndex)];
+                        const avgPrice =
+                          calculateAveragePriceForPurchase(purchase);
+                        const refundState = refundStates[Number(orderIndex)];
+
+                        if (!purchase) return null;
+
+                        return (
+                          <List.Item
+                            actions={[
+                              <Button
+                                type="primary"
+                                icon={<GiftOutlined />}
+                                onClick={() => handleRedeem(Number(orderIndex))}
+                                loading={redeemLoading}
+                                disabled={
+                                  !contractData.targetReached ||
+                                  purchase.isRedeemed
+                                }
+                                title={
+                                  !contractData.targetReached
+                                    ? "Fundraising goal not reached"
+                                    : purchase.isRedeemed
+                                    ? "Already redeemed"
+                                    : ""
+                                }
+                              >
+                                Redeem
+                              </Button>,
+                              <Button
+                                type="default"
+                                danger
+                                icon={<RollbackOutlined />}
+                                onClick={() => handleRefund(Number(orderIndex))}
+                                loading={refundState?.isRefunding}
+                                disabled={
+                                  contractData.targetReached ||
+                                  contractData.isDeployedToUniswap ||
+                                  purchase.isRefunded ||
+                                  purchase.isRedeemed ||
+                                  refundState?.isRefunding
+                                }
+                                title={
+                                  contractData.targetReached
+                                    ? "Fundraising goal reached"
+                                    : purchase.isRefunded
+                                    ? "Already refunded"
+                                    : purchase.isRedeemed
+                                    ? "Already redeemed"
+                                    : ""
+                                }
+                              >
+                                {refundState?.isRefunding
+                                  ? "Refunding..."
+                                  : "Refund"}
+                              </Button>,
+                            ]}
+                          >
+                            <List.Item.Meta
+                              avatar={
+                                <WalletOutlined style={{ fontSize: 24 }} />
+                              }
                               title={
-                                !contractData.targetReached
-                                  ? "Fundraising goal not reached"
-                                  : ""
+                                <Tooltip
+                                  title={`Average price: ${avgPrice} ${tokenInfo.payment?.symbol} per ${tokenInfo.sale?.symbol}`}
+                                >
+                                  <span>
+                                    Bought{" "}
+                                    {formatTokenAmount(
+                                      purchase.tokenAmount,
+                                      tokenInfo.sale?.symbol
+                                    )}{" "}
+                                    for{" "}
+                                    {formatTokenAmount(
+                                      purchase.paymentAmount,
+                                      tokenInfo.payment?.symbol
+                                    )}
+                                  </span>
+                                </Tooltip>
+                              }
+                              description={
+                                purchase.isRedeemed
+                                  ? "Tokens redeemed"
+                                  : purchase.isRefunded
+                                  ? "Order refunded"
+                                  : refundState?.isRefunding
+                                  ? "Processing refund..."
+                                  : contractData.targetReached
+                                  ? "Click redeem to claim your tokens"
+                                  : "You can refund your order until the fundraising goal is reached"
+                              }
+                            />
+                            <Tag
+                              color={
+                                purchase.isRedeemed
+                                  ? "success"
+                                  : purchase.isRefunded
+                                  ? "default"
+                                  : refundState?.isRefunding
+                                  ? "processing"
+                                  : contractData.targetReached
+                                  ? "success" // Green when target reached and tokens are available for redemption
+                                  : "blue" // Blue when refund is available
                               }
                             >
-                              Redeem
-                            </Button>,
-                            <Button
-                              type="default"
-                              danger
-                              icon={<RollbackOutlined />}
-                              // onClick={() => handleRefund(Number(orderIndex))}
-                              disabled={
-                                contractData.targetReached ||
-                                contractData.isDeployedToUniswap
-                              }
-                              title={
-                                contractData.targetReached
-                                  ? "Fundraising goal reached"
-                                  : ""
-                              }
-                            >
-                              Refund
-                            </Button>,
-                          ]}
-                        >
-                          <List.Item.Meta
-                            avatar={<WalletOutlined style={{ fontSize: 24 }} />}
-                            title={`Order #${orderIndex.toString()}`}
-                            description={
-                              contractData.targetReached
-                                ? "Click redeem to claim your tokens"
-                                : "You can refund your order until the fundraising goal is reached"
-                            }
-                          />
-                        </List.Item>
-                      )}
+                              {purchase.isRedeemed
+                                ? "Redeemed"
+                                : purchase.isRefunded
+                                ? "Refunded"
+                                : refundState?.isRefunding
+                                ? "Refunding"
+                                : contractData.targetReached
+                                ? "Available to Redeem"
+                                : "Successful"}
+                            </Tag>
+                          </List.Item>
+                        );
+                      }}
                     />
                   ) : (
                     <Alert
@@ -1304,6 +1739,8 @@ const FundraiserViewer = () => {
           </Card>
         </div>
       </Content>
+
+      <RefundTransactionMonitors />
     </Layout>
   );
 };

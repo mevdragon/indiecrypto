@@ -149,7 +149,7 @@ contract OtterPadFundraiser is ReentrancyGuard {
         uint256 otterpadFee = (paymentAmount * OTTERPAD_FEE_BPS) / 10000;
         uint256 upfrontAmount = (paymentAmount * upfrontRakeBPS) / 10000 - otterpadFee;
         uint256 escrowAmount = (paymentAmount * escrowRakeBPS) / 10000;
-        uint256 contributionAmount = paymentAmount - otterpadFee - upfrontAmount - escrowAmount;
+        uint256 contributionAmount = paymentAmount - upfrontAmount - escrowAmount - otterpadFee;
         
         require(totalActiveContributions + contributionAmount <= targetLiquidity, "Exceeds target");
         
