@@ -49,6 +49,9 @@ import { Content } from "antd/es/layout/layout";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import TabPane from "antd/es/tabs/TabPane";
 import { getPublicClient, waitForTransaction } from "wagmi/actions";
+import ReactApexCharts from "react-apexcharts";
+import { ApexOptions } from "apexcharts";
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
 
@@ -156,6 +159,94 @@ const ERC20_ABI = [
     type: "function",
   },
 ] as const;
+
+const generateBullishData = () => {
+  const basePrice = 6000;
+  const data = [];
+  const startTime = new Date("2024-01-01").getTime();
+
+  for (let i = 0; i < 50; i++) {
+    const time = startTime + i * 1800000; // 30-minute intervals
+    const volatility = Math.random() * 25;
+    const trend = i * 1.8; // Slightly stronger upward trend
+
+    // Reduced probability of red candles (25%)
+    const shouldBeRed = Math.random() < 0.27;
+
+    let open, close;
+    if (shouldBeRed) {
+      open = basePrice + trend + Math.random() * 20;
+      close = open - Math.random() * 12; // Smaller red candles
+    } else {
+      open = basePrice + trend + Math.random() * 20;
+      close = open + Math.random() * 25; // Green candle (close higher than open)
+    }
+
+    const high = Math.max(open, close) + volatility;
+    const low = Math.min(open, close) - volatility;
+
+    data.push({
+      x: new Date(time),
+      y: [open, high, low, close],
+    });
+  }
+  return data;
+};
+
+const chartData = {
+  series: [
+    {
+      name: "candle",
+      data: generateBullishData(),
+    },
+  ],
+  options: {
+    chart: {
+      height: 350,
+      type: "candlestick",
+      id: "candlestick-fundraiser",
+    },
+    title: {
+      text: "Otterpad Fundraiser - TVL",
+      align: "left",
+    },
+    annotations: {
+      xaxis: [
+        {
+          x: "Oct 06 14:00",
+          borderColor: "#00E396",
+          label: {
+            borderColor: "#00E396",
+            style: {
+              fontSize: "12px",
+              color: "#fff",
+              background: "#00E396",
+            },
+            orientation: "horizontal",
+            offsetY: 7,
+            text: "Annotation Test",
+          },
+        },
+      ],
+    },
+    tooltip: {
+      enabled: true,
+    },
+    xaxis: {
+      type: "datetime",
+      labels: {
+        formatter: function (val: any) {
+          return dayjs(val).format("MMM DD HH:mm");
+        },
+      },
+    },
+    yaxis: {
+      tooltip: {
+        enabled: true,
+      },
+    },
+  } as ApexOptions,
+};
 
 const FundraiserViewer = () => {
   const [loading, setLoading] = useState(true);
@@ -1038,7 +1129,7 @@ const FundraiserViewer = () => {
     if (isCheckingAllowance) {
       return {
         text: "Checking Allowance...",
-        icon: <LoadingOutlined />,
+        icon: <LoadingOutlined style={{ marginRight: "5px" }} />,
         disabled: true,
         onClick: () => {},
       };
@@ -1047,7 +1138,7 @@ const FundraiserViewer = () => {
     if (isApproving || isWaitingForApproval) {
       return {
         text: isApproving ? "Awaiting Approval..." : "Confirming Approval...",
-        icon: <LoadingOutlined />,
+        icon: <LoadingOutlined style={{ marginRight: "5px" }} />,
         disabled: true,
         onClick: () => {},
       };
@@ -1058,7 +1149,7 @@ const FundraiserViewer = () => {
         text: isPurchasing
           ? "Confirming Purchase..."
           : "Processing Purchase...",
-        icon: <LoadingOutlined />,
+        icon: <LoadingOutlined style={{ marginRight: "5px" }} />,
         disabled: true,
         onClick: () => {},
       };
@@ -1067,7 +1158,7 @@ const FundraiserViewer = () => {
     if (!isApproved) {
       return {
         text: "Approve",
-        icon: <ShoppingCartOutlined />,
+        icon: <ShoppingCartOutlined style={{ marginRight: "5px" }} />,
         disabled: false,
         onClick: handleApprove,
       };
@@ -1075,7 +1166,7 @@ const FundraiserViewer = () => {
 
     return {
       text: "Buy Tokens",
-      icon: <ShoppingCartOutlined />,
+      icon: <ShoppingCartOutlined style={{ marginRight: "5px" }} />,
       disabled: false,
       onClick: handleBuy,
     };
@@ -1119,30 +1210,6 @@ const FundraiserViewer = () => {
     }
   }, [redeemSuccess]);
 
-  if (!isConnected) {
-    return (
-      <Layout
-        style={{ minHeight: "100vh", background: token.colorBgContainer }}
-      >
-        <Content style={{ padding: "50px 24px" }}>
-          <Card style={{ maxWidth: 500, margin: "0 auto" }}>
-            <Space
-              direction="vertical"
-              size="large"
-              style={{ width: "100%", textAlign: "center" }}
-            >
-              <Title level={3}>OtterPad Fundraiser</Title>
-              <Text type="secondary">
-                Connect your wallet to participate in the fundraiser
-              </Text>
-              <ConnectButton />
-            </Space>
-          </Card>
-        </Content>
-      </Layout>
-    );
-  }
-
   if (loading || !tokenInfo.sale || !tokenInfo.payment) {
     return (
       <Card style={{ textAlign: "center", padding: "50px" }}>
@@ -1184,7 +1251,7 @@ const FundraiserViewer = () => {
           BigInt(10000)
       )
     );
-    const refundedAmount = totalPayments - activePayment;
+    const refundedAmount = totalPayments - activePayment - upfrontAmount;
     const towardsLiquidityAmount = netActive;
 
     // Calculate percentages
@@ -1302,9 +1369,22 @@ const FundraiserViewer = () => {
     }`;
   };
 
-  return (
-    <Layout style={{ minHeight: "100vh", background: token.colorBgContainer }}>
-      {contextHolder}
+  const WalletConnector = () => {
+    if (isConnected) {
+      return (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "flex-end",
+          }}
+        >
+          <ConnectButton />
+        </div>
+      );
+    }
+
+    return (
       <div
         style={{
           display: "flex",
@@ -1314,433 +1394,425 @@ const FundraiserViewer = () => {
       >
         <ConnectButton />
       </div>
-      <Content style={{ padding: "24px" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          <Card>
-            {/* Header with Title, Status, and Connect Button */}
-            <Row
-              justify="space-between"
-              align="middle"
-              style={{ marginBottom: 24 }}
-            >
-              <Space size="middle">
-                <Title level={2} style={{ margin: 0 }}>
-                  OtterPad Fundraiser
-                </Title>
-                {getStatusTag()}
-                <Popover content={getContractBalanceInfo()} trigger="hover">
-                  <InfoCircleOutlined />
-                </Popover>
-              </Space>
-            </Row>
+    );
+  };
 
-            {/* First Row: Price and Progress Bar */}
-            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-              <Col xs={24} sm={8}>
-                <Card>
-                  <div>
+  return (
+    <Layout
+      style={{
+        minHeight: "100vh",
+        maxHeight: "100vh",
+        background: "#f5f5f5",
+        display: "flex",
+        flexDirection: "row",
+        minWidth: "100vw",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        id="chart"
+        style={{ flex: 1, maxHeight: "100vh", textAlign: "left" }}
+      >
+        <h1 style={{ marginLeft: 16 }}>Otterpad Finance</h1>
+        <ReactApexCharts
+          series={chartData.series}
+          type="candlestick"
+          height="80%"
+          options={chartData.options}
+        />
+      </div>
+      {/* Fixed width container wrapper */}
+      <div
+        style={{
+          width: "100%",
+          minWidth: "600px",
+          maxWidth: "600px",
+          padding: "16px",
+          position: "relative",
+        }}
+      >
+        {/* Wallet connector fixed position */}
+        <WalletConnector />
+
+        <Content
+          style={{
+            width: "100%",
+            marginTop: "64px",
+          }}
+        >
+          <Card
+            style={{
+              width: "100%",
+              borderRadius: "12px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              minHeight: "85vh",
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                flexDirection: "column",
+                gap: "24px",
+              }}
+            >
+              {/* Header with fixed width */}
+              <div
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "space-between",
+                  gap: "12px",
+                  flexWrap: "nowrap",
+                }}
+              >
+                <div style={{ display: "flex", flex: "1" }}>
+                  <Title level={2} style={{ margin: 0 }}>
+                    OtterPad Fundraiser
+                  </Title>
+                </div>
+                {getStatusTag()}
+                <Tooltip title={getContractBalanceInfo()}>
+                  <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                </Tooltip>
+              </div>
+
+              {/* Price and Progress Cards */}
+              <Row gutter={[16, 16]} style={{ width: "100%", margin: 0 }}>
+                <Col xs={24} md={8} style={{ width: "100%" }}>
+                  <Card style={{ height: "100%", width: "100%" }}>
                     <Text strong>Current Price</Text>
-                    <div className="flex items-baseline gap-2">
-                      <Title level={3} className="mb-0">
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "baseline",
+                        gap: "8px",
+                        marginTop: "8px",
+                        width: "100%",
+                      }}
+                    >
+                      <Title
+                        level={3}
+                        style={{ margin: 0, whiteSpace: "nowrap" }}
+                      >
                         {formatEther(contractData.currentPrice)} PAY
                       </Title>
-                      <Text type="secondary">
-                        End Price:{" "}
-                        {contractData.endPrice
-                          ? formatEther(contractData.endPrice)
-                          : "0"}{" "}
-                        PAY
+                      <Text type="secondary" style={{ whiteSpace: "nowrap" }}>
+                        End: {formatEther(contractData.endPrice)} PAY
                       </Text>
                     </div>
-                  </div>
-                </Card>
-              </Col>
-              <Col xs={24} sm={16}>
-                <Card>
-                  <div className="flex items-center justify-between mb-2">
-                    <Text strong>Progress to Liquidity Goal</Text>
-                    <Tooltip title={getEscrowInfo()} placement="topRight">
-                      <InfoCircleOutlined className="text-gray-400 cursor-help" />
-                    </Tooltip>
-                  </div>
-                  <Progress
-                    percent={getLiquidityProgress()}
-                    status="active"
-                    format={() => formatProgressDisplay()}
-                  />
-                </Card>
-              </Col>
-            </Row>
+                  </Card>
+                </Col>
+                <Col xs={24} md={16} style={{ width: "100%" }}>
+                  <Card style={{ height: "100%", width: "100%" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "16px",
+                        width: "100%",
+                      }}
+                    >
+                      <Text strong style={{ flex: "1" }}>
+                        Progress to Liquidity Goal
+                      </Text>
+                      <Tooltip title={getEscrowInfo()}>
+                        <InfoCircleOutlined
+                          style={{
+                            color: "#8c8c8c",
+                            cursor: "help",
+                            flexShrink: 0,
+                          }}
+                        />
+                      </Tooltip>
+                    </div>
+                    <Progress
+                      percent={getLiquidityProgress()}
+                      status="active"
+                      format={() => formatProgressDisplay()}
+                      style={{ marginBottom: 0 }}
+                    />
+                  </Card>
+                </Col>
+              </Row>
 
-            <Tabs defaultActiveKey="1" type="card">
-              <TabPane
-                tab={
-                  <span>
-                    <ShoppingCartOutlined />
-                    Buy Tokens
-                  </span>
-                }
-                key="1"
+              {/* Tabs Container */}
+              <Tabs
+                defaultActiveKey="1"
+                style={{
+                  width: "100%",
+                  background: "white",
+                  borderRadius: "8px",
+                }}
               >
-                <Card>
-                  <Space
-                    direction="vertical"
-                    size="large"
-                    style={{ width: "100%" }}
+                {/* Buy Tokens Tab */}
+                <TabPane
+                  tab={
+                    <span>
+                      <ShoppingCartOutlined />
+                      Buy Tokens
+                    </span>
+                  }
+                  key="1"
+                >
+                  <div
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "24px",
+                    }}
                   >
-                    {/* Input Section */}
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
+                    <div style={{ width: "100%" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "12px",
+                          width: "100%",
+                        }}
+                      >
                         <Text strong>
-                          Amount to Buy ({tokenInfo.payment.symbol})
-                        </Text>
-                        {!contractData.targetReached && (
-                          <Tooltip
-                            title={getMaxRemainTooltip()}
-                            placement="right"
-                          >
+                          Amount to Buy (PAY)
+                          <Tooltip title={getMaxRemainTooltip()}>
                             <Button
                               type="link"
                               size="small"
                               onClick={handleMaxRemainClick}
-                              className="text-gray-400 hover:text-blue-500 p-0 h-auto flex items-center gap-1"
+                              className="whitespace-nowrap bg-blue-500 hover:bg-blue-600 text-white"
                             >
-                              max remain
-                              <InfoCircleOutlined className="text-xs" />
+                              Max Remain
                             </Button>
                           </Tooltip>
-                        )}
-                        <Text type="secondary">
-                          Min: {formatEther(contractData.minimumPurchase)}{" "}
-                          {tokenInfo.payment.symbol} | Balance:{" "}
-                          {userPaymentTokenBalance?.formatted ?? "0"}{" "}
-                          {tokenInfo.payment.symbol}
+                        </Text>
+                        <Text type="secondary" style={{ whiteSpace: "nowrap" }}>
+                          Balance: {userPaymentTokenBalance?.formatted ?? "0"}{" "}
+                          PAY
                         </Text>
                       </div>
 
-                      <div className="relative">
+                      <div className="flex gap-2 w-full">
                         <Input
                           size="large"
                           placeholder="Enter amount"
                           value={buyAmount}
                           onChange={(e) => setBuyAmount(e.target.value)}
-                          prefix={<DollarOutlined className="text-gray-400" />}
-                          suffix={tokenInfo.payment.symbol}
-                          disabled={buyLoading}
+                          prefix={<DollarOutlined className="text-gray-500" />}
+                          suffix="PAY"
+                          className="flex-1"
                         />
-
-                        {parseFloat(buyAmount) > 0 && (
-                          <div className="mt-4 flex justify-between text-gray-500">
-                            <div>
-                              Total Cost:{" "}
-                              <span className="font-medium">
-                                {buyAmount} {tokenInfo.payment?.symbol}
-                              </span>
-                            </div>
-                            <div>
-                              Estimated Tokens:{" "}
-                              <span className="font-medium">
-                                {estimatedTokens
-                                  ? Number(estimatedTokens).toFixed(6)
-                                  : "0"}{" "}
-                                {tokenInfo.sale?.symbol}
-                              </span>
-                            </div>
-                            <div className="flex justify-end">
-                              <div>
-                                Avg Price per Token:{" "}
-                                <span className="font-medium">
-                                  {avgPricePerToken} {tokenInfo.payment?.symbol}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
+
+                      {parseFloat(buyAmount) > 0 && (
+                        <Row
+                          gutter={[16, 16]}
+                          style={{
+                            marginTop: "16px",
+                            width: "100%",
+                          }}
+                        >
+                          <Col xs={24} md={8}>
+                            <div style={{ width: "100%" }}>
+                              <Statistic
+                                title="Total Cost"
+                                value={buyAmount}
+                                suffix="PAY"
+                              />
+                            </div>
+                          </Col>
+                          <Col xs={24} md={8}>
+                            <div style={{ width: "100%" }}>
+                              <Statistic
+                                title="Estimated Tokens"
+                                value={Number(estimatedTokens).toFixed(6)}
+                                suffix="SALE"
+                              />
+                            </div>
+                          </Col>
+                          <Col xs={24} md={8}>
+                            <div style={{ width: "100%" }}>
+                              <Statistic
+                                title="Avg Price per Token"
+                                value={avgPricePerToken}
+                                suffix="PAY"
+                              />
+                            </div>
+                          </Col>
+                        </Row>
+                      )}
                     </div>
 
-                    {/* Warning Messages */}
-                    {parseFloat(buyAmount) >
-                      parseFloat(userPaymentTokenBalance?.formatted ?? "0") && (
-                      <Alert
-                        message="Insufficient Balance"
-                        description={`You don't have enough ${tokenInfo.payment.symbol} tokens to complete this purchase.`}
-                        type="warning"
-                        showIcon
-                      />
-                    )}
-
-                    {parseFloat(buyAmount) > 0 &&
-                      parseFloat(buyAmount) <
-                        parseFloat(
-                          formatEther(contractData.minimumPurchase)
-                        ) && (
-                        <Alert
-                          message="Below Minimum Purchase"
-                          description={`The minimum purchase amount is ${formatEther(
-                            contractData.minimumPurchase
-                          )} ${tokenInfo.payment.symbol}`}
-                          type="warning"
-                          showIcon
-                        />
-                      )}
-
-                    {/* Buy Button */}
-                    <div>
-                      <Button
-                        type="primary"
-                        size="large"
-                        icon={getButtonState().icon}
-                        onClick={getButtonState().onClick}
-                        disabled={
-                          getButtonState().disabled ||
-                          !buyAmount ||
-                          parseFloat(buyAmount) <
-                            parseFloat(
-                              formatEther(contractData.minimumPurchase)
-                            ) ||
-                          parseFloat(buyAmount) >
-                            parseFloat(
-                              userPaymentTokenBalance?.formatted ?? "0"
-                            )
-                        }
-                        block
-                      >
+                    <Button
+                      type="primary"
+                      size="large"
+                      icon={getButtonState().icon}
+                      onClick={getButtonState().onClick}
+                      disabled={getButtonState().disabled || !isConnected}
+                      style={{ width: "100%", height: "48px" }}
+                    >
+                      <label style={{ marginLeft: 10 }}>
                         {getButtonState().text}
-                      </Button>
+                      </label>
+                    </Button>
 
-                      {transactionState.isWaitingForApproval && (
-                        <Alert
-                          message="Approval In Progress"
-                          description="Please wait while your approval transaction is being confirmed..."
-                          type="info"
-                          showIcon
-                          icon={<LoadingOutlined />}
-                          style={{ marginTop: "1rem" }}
-                        />
-                      )}
-
-                      {transactionState.isWaitingForPurchase && (
-                        <Alert
-                          message="Purchase In Progress"
-                          description="Please wait while your purchase transaction is being confirmed..."
-                          type="info"
-                          showIcon
-                          icon={<LoadingOutlined />}
-                          style={{ marginTop: "1rem" }}
-                        />
-                      )}
-
-                      {(isApprovalSuccess || isPurchaseSuccess) && (
-                        <Alert
-                          message={
-                            isApprovalSuccess && !isPurchaseSuccess
-                              ? "Approval Successful"
-                              : isPurchaseSuccess
-                              ? "Purchase Successful"
-                              : ""
-                          }
-                          description={
-                            isApprovalSuccess && !isPurchaseSuccess
-                              ? "You can now proceed with your purchase"
-                              : isPurchaseSuccess
-                              ? "Your tokens have been purchased successfully!"
-                              : ""
-                          }
-                          type="success"
-                          showIcon
-                          icon={<CheckCircleOutlined />}
-                          style={{ marginTop: "1rem" }}
-                        />
-                      )}
-                    </div>
-
-                    {/* Disclaimers */}
-                    <Text type="secondary" className="text-center block">
-                      Make sure you have enough {tokenInfo.payment.symbol}{" "}
-                      tokens in your wallet.
-                      <br />
+                    <Text
+                      type="secondary"
+                      style={{
+                        textAlign: "center",
+                        width: "100%",
+                      }}
+                    >
+                      Make sure you have enough PAY tokens in your wallet.
                       Transaction will require approval from your wallet.
                     </Text>
-                  </Space>
-                </Card>
-              </TabPane>
+                  </div>
+                </TabPane>
 
-              <TabPane
-                tab={
-                  <span>
-                    <UserOutlined />
-                    My Orders
-                  </span>
-                }
-                key="2"
-              >
-                <Card>
-                  {/* User-specific stats */}
-                  <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-                    <Col xs={24} sm={12}>
-                      <Statistic
-                        title="Your Allocation"
-                        value={
-                          contractData.userAllocation
-                            ? formatEther(contractData.userAllocation)
-                            : "0"
-                        }
-                        suffix={tokenInfo.sale.symbol}
-                        prefix={<UserOutlined />}
-                      />
-                    </Col>
-                    <Col xs={24} sm={12}>
-                      <Statistic
-                        title="Your Balance"
-                        value={userPaymentTokenBalance?.formatted ?? "0"}
-                        suffix={tokenInfo.payment.symbol}
-                        prefix={<WalletOutlined />}
-                      />
-                    </Col>
-                  </Row>
+                {/* My Orders Tab */}
+                <TabPane
+                  tab={
+                    <span>
+                      <UserOutlined />
+                      My Orders
+                    </span>
+                  }
+                  key="2"
+                >
+                  <div
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "24px",
+                      overflowY: "scroll",
+                      height: "50vh",
+                    }}
+                  >
+                    <Row gutter={[16, 16]} style={{ width: "100%", margin: 0 }}>
+                      <Card style={{ width: "100%" }}>
+                        <Statistic
+                          title="Your Allocation"
+                          value={
+                            contractData.userAllocation
+                              ? formatEther(contractData.userAllocation)
+                              : "0"
+                          }
+                          suffix="SALE"
+                          prefix={<UserOutlined />}
+                        />
+                      </Card>
+                    </Row>
 
-                  {contractData.userOrders &&
-                  contractData.userOrders.length > 0 ? (
                     <List
+                      style={{ width: "100%" }}
                       itemLayout="horizontal"
-                      dataSource={contractData.userOrders}
+                      dataSource={contractData.userOrders || []}
                       renderItem={(orderIndex) => {
                         const purchase = purchaseData[Number(orderIndex)];
-                        const avgPrice =
-                          calculateAveragePriceForPurchase(purchase);
-                        const refundState = refundStates[Number(orderIndex)];
-
                         if (!purchase) return null;
 
                         return (
-                          <List.Item
-                            actions={[
-                              <Button
-                                type="primary"
-                                icon={<GiftOutlined />}
-                                onClick={() => handleRedeem(Number(orderIndex))}
-                                loading={redeemLoading}
-                                disabled={
-                                  !contractData.targetReached ||
-                                  purchase.isRedeemed
-                                }
-                                title={
-                                  !contractData.targetReached
-                                    ? "Fundraising goal not reached"
-                                    : purchase.isRedeemed
-                                    ? "Already redeemed"
-                                    : ""
-                                }
-                              >
-                                Redeem
-                              </Button>,
-                              <Button
-                                type="default"
-                                danger
-                                icon={<RollbackOutlined />}
-                                onClick={() => handleRefund(Number(orderIndex))}
-                                loading={refundState?.isRefunding}
-                                disabled={
-                                  contractData.targetReached ||
-                                  contractData.isDeployedToUniswap ||
-                                  purchase.isRefunded ||
-                                  purchase.isRedeemed ||
-                                  refundState?.isRefunding
-                                }
-                                title={
-                                  contractData.targetReached
-                                    ? "Fundraising goal reached"
-                                    : purchase.isRefunded
-                                    ? "Already refunded"
-                                    : purchase.isRedeemed
-                                    ? "Already redeemed"
-                                    : ""
-                                }
-                              >
-                                {refundState?.isRefunding
-                                  ? "Refunding..."
-                                  : "Refund"}
-                              </Button>,
-                            ]}
+                          <Card
+                            style={{
+                              width: "100%",
+                              marginBottom: "16px",
+                            }}
                           >
-                            <List.Item.Meta
-                              avatar={
-                                <WalletOutlined style={{ fontSize: 24 }} />
-                              }
-                              title={
-                                <Tooltip
-                                  title={`Average price: ${avgPrice} ${tokenInfo.payment?.symbol} per ${tokenInfo.sale?.symbol}`}
-                                >
-                                  <span>
-                                    Bought{" "}
-                                    {formatTokenAmount(
-                                      purchase.tokenAmount,
-                                      tokenInfo.sale?.symbol
-                                    )}{" "}
-                                    for{" "}
-                                    {formatTokenAmount(
-                                      purchase.paymentAmount,
-                                      tokenInfo.payment?.symbol
-                                    )}
-                                  </span>
-                                </Tooltip>
-                              }
-                              description={
-                                purchase.isRedeemed
-                                  ? "Tokens redeemed"
-                                  : purchase.isRefunded
-                                  ? "Order refunded"
-                                  : refundState?.isRefunding
-                                  ? "Processing refund..."
-                                  : contractData.targetReached
-                                  ? "Click redeem to claim your tokens"
-                                  : "You can refund your order until the fundraising goal is reached"
-                              }
-                            />
-                            <Tag
-                              color={
-                                purchase.isRedeemed
-                                  ? "success"
-                                  : purchase.isRefunded
-                                  ? "default"
-                                  : refundState?.isRefunding
-                                  ? "processing"
-                                  : contractData.targetReached
-                                  ? "success" // Green when target reached and tokens are available for redemption
-                                  : "blue" // Blue when refund is available
-                              }
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                width: "100%",
+                                gap: "16px",
+                              }}
                             >
-                              {purchase.isRedeemed
-                                ? "Redeemed"
-                                : purchase.isRefunded
-                                ? "Refunded"
-                                : refundState?.isRefunding
-                                ? "Refunding"
-                                : contractData.targetReached
-                                ? "Available to Redeem"
-                                : "Successful"}
-                            </Tag>
-                          </List.Item>
+                              <div
+                                style={{
+                                  flex: "1",
+                                  minWidth: 0,
+                                }}
+                              >
+                                <Title
+                                  level={5}
+                                  style={{
+                                    margin: 0,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  Bought{" "}
+                                  {formatTokenAmount(
+                                    purchase.tokenAmount,
+                                    "SALE"
+                                  )}
+                                </Title>
+                                <Text
+                                  type="secondary"
+                                  style={{
+                                    display: "block",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  for{" "}
+                                  {formatTokenAmount(
+                                    purchase.paymentAmount,
+                                    "PAY"
+                                  )}
+                                </Text>
+                              </div>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: "8px",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <Button
+                                  type="primary"
+                                  icon={<GiftOutlined />}
+                                  onClick={() =>
+                                    handleRedeem(Number(orderIndex))
+                                  }
+                                  disabled={
+                                    !contractData.targetReached ||
+                                    purchase.isRedeemed
+                                  }
+                                >
+                                  Redeem
+                                </Button>
+                                <Button
+                                  type="default"
+                                  danger
+                                  icon={<RollbackOutlined />}
+                                  onClick={() =>
+                                    handleRefund(Number(orderIndex))
+                                  }
+                                  disabled={
+                                    contractData.targetReached ||
+                                    purchase.isRefunded
+                                  }
+                                >
+                                  Refund
+                                </Button>
+                              </div>
+                            </div>
+                          </Card>
                         );
                       }}
                     />
-                  ) : (
-                    <Alert
-                      message="No Orders Found"
-                      description="You haven't made any purchases yet."
-                      type="info"
-                      showIcon
-                    />
-                  )}
-                </Card>
-              </TabPane>
-            </Tabs>
+                  </div>
+                </TabPane>
+              </Tabs>
+            </div>
           </Card>
-        </div>
-      </Content>
-
-      <RefundTransactionMonitors />
+        </Content>
+      </div>
     </Layout>
   );
 };
