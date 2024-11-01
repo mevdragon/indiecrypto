@@ -188,14 +188,31 @@ describe("OtterPadFundraiser", function () {
       const { fundraiser, targetLiquidity, startPrice, endPrice } =
         await loadFixture(deployFundraiserFixture);
 
-      const testAmount = parseEther("10");
+      const paymentAmount = parseEther("10");
+
+      // Calculate the contribution amount the same way the contract does
+      const OTTERPAD_FEE_BPS = 100n;
+      const upfrontRakeBPS = await fundraiser.read.upfrontRakeBPS();
+      const escrowRakeBPS = await fundraiser.read.escrowRakeBPS();
+
+      const otterpadFee = (paymentAmount * OTTERPAD_FEE_BPS) / 10000n;
+      const upfrontAmount =
+        (paymentAmount * upfrontRakeBPS) / 10000n - otterpadFee;
+      const escrowAmount = (paymentAmount * escrowRakeBPS) / 10000n;
+      const contributionAmount =
+        paymentAmount - otterpadFee - upfrontAmount - escrowAmount;
+
+      // Calculate price using contribution amount
       const expectedPrice =
-        startPrice + ((endPrice - startPrice) * testAmount) / targetLiquidity;
+        startPrice +
+        ((endPrice - startPrice) * contributionAmount) / targetLiquidity;
       const averagePrice = (startPrice + expectedPrice) / 2n;
-      const expectedTokens = (testAmount * parseEther("1")) / averagePrice;
+
+      // Calculate tokens using full payment amount
+      const expectedTokens = (paymentAmount * parseEther("1")) / averagePrice;
 
       const tokenAmount = await fundraiser.read.calculateTokensReceived([
-        testAmount,
+        paymentAmount,
       ]);
 
       expect(tokenAmount).to.equal(expectedTokens);

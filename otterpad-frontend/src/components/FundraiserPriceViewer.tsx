@@ -33,6 +33,8 @@ import {
   PieChartOutlined,
   LineChartOutlined,
   InfoCircleOutlined,
+  CheckCircleOutlined,
+  RollbackOutlined,
 } from "@ant-design/icons";
 import {
   useAccount,
@@ -40,11 +42,13 @@ import {
   useContractReads,
   useWaitForTransactionReceipt,
   useWriteContract,
+  usePublicClient,
 } from "wagmi";
 import { Address, formatEther, parseEther } from "viem";
 import { Content } from "antd/es/layout/layout";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import TabPane from "antd/es/tabs/TabPane";
+import { getPublicClient, waitForTransaction } from "wagmi/actions";
 
 const { Title, Text } = Typography;
 
@@ -58,7 +62,7 @@ interface TokenState {
   payment: TokenInfo | null;
 }
 
-const CONTRACT_ADDRESS = "0x317E7dadfcA1F92B02A377D6b78A14808d7f2EB4" as const;
+const CONTRACT_ADDRESS = "0x40fb23A4316F255eb7C86FB1c8ea5E9a20A9Ba03" as const;
 const CONTRACT_ABI = OtterPadFundraiser__factory.abi;
 
 // Contract function result types
@@ -68,6 +72,7 @@ type ContractDataResult = {
   endPrice: bigint;
   minimumPurchase: bigint;
   saleTokenBalance: bigint;
+  totalActiveContributions: bigint;
   paymentTokenBalance: bigint;
   escrowedAmount: bigint;
   targetReached: boolean;
@@ -81,6 +86,50 @@ type ContractDataResult = {
   escrowRakeBPS: bigint;
   OTTERPAD_FEE_BPS: bigint;
 };
+const ERC20_ABI = [
+  {
+    inputs: [
+      {
+        name: "owner",
+        type: "address",
+      },
+      {
+        name: "spender",
+        type: "address",
+      },
+    ],
+    name: "allowance",
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        name: "spender",
+        type: "address",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+      },
+    ],
+    name: "approve",
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
 
 const FundraiserViewer = () => {
   const [loading, setLoading] = useState(true);
@@ -93,6 +142,172 @@ const FundraiserViewer = () => {
   const { token } = theme.useToken();
   const { address: userAddress, isConnected } = useAccount();
   const [estimatedTokens, setEstimatedTokens] = useState<string>("0");
+
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
+  const [isPendingPurchase, setIsPendingPurchase] = useState(false);
+
+  const [isApproved, setIsApproved] = useState(false);
+  const [currentAllowance, setCurrentAllowance] = useState<bigint>(BigInt(0));
+
+  const [avgPricePerToken, setAvgPricePerToken] = useState<string>("0");
+
+  const [transactionState, setTransactionState] = useState({
+    isCheckingAllowance: false,
+    isApproving: false,
+    isWaitingForApproval: false,
+    isPurchasing: false,
+    isWaitingForPurchase: false,
+  });
+
+  // Contract operations
+  useEffect(() => {
+    if (buyAmount && estimatedTokens && parseFloat(estimatedTokens) > 0) {
+      const avgPrice = parseFloat(buyAmount) / parseFloat(estimatedTokens);
+      setAvgPricePerToken(avgPrice.toFixed(6));
+    } else {
+      setAvgPricePerToken("0");
+    }
+  }, [buyAmount, estimatedTokens]);
+
+  const calculateRemainingAmount = () => {
+    if (!contractData) return "0";
+
+    // Get current actual contribution amount (excluding rakes)
+    const currentBalance = contractData.paymentTokenBalance;
+    const escrowAmount =
+      (currentBalance * contractData.escrowRakeBPS) / BigInt(10000);
+    const upfrontAmount =
+      (currentBalance *
+        (contractData.upfrontRakeBPS - contractData.OTTERPAD_FEE_BPS)) /
+      BigInt(10000);
+    const otterpadFee =
+      (currentBalance * contractData.OTTERPAD_FEE_BPS) / BigInt(10000);
+    const actualContribution =
+      currentBalance - escrowAmount - upfrontAmount - otterpadFee;
+
+    // Calculate how much more we need in actual contributions
+    const remainingContribution =
+      contractData.targetLiquidity - actualContribution;
+    if (remainingContribution <= BigInt(0)) return "0";
+
+    // Calculate gross amount needed (before fees)
+    // Formula: grossAmount = netAmount / (1 - totalRakePercentage)
+    const netContributionBPS =
+      BigInt(10000) - contractData.upfrontRakeBPS - contractData.escrowRakeBPS;
+    const grossAmount =
+      (remainingContribution * BigInt(10000)) / netContributionBPS;
+
+    return formatEther(grossAmount);
+  };
+
+  const formatProgressDisplay = () => {
+    if (!contractData) return "";
+
+    const currentBalance = contractData.paymentTokenBalance;
+    const escrowAmount =
+      (currentBalance * contractData.escrowRakeBPS) / BigInt(10000);
+    const upfrontAmount =
+      (currentBalance *
+        (contractData.upfrontRakeBPS - contractData.OTTERPAD_FEE_BPS)) /
+      BigInt(10000);
+    const otterpadFee =
+      (currentBalance * contractData.OTTERPAD_FEE_BPS) / BigInt(10000);
+    const actualContribution =
+      currentBalance - escrowAmount - upfrontAmount - otterpadFee;
+
+    return `${formatEther(actualContribution)} / ${formatEther(
+      contractData.targetLiquidity
+    )} ${tokenInfo.payment?.symbol}`;
+  };
+
+  const handleMaxRemainClick = () => {
+    const remainingAmount = calculateRemainingAmount();
+    setBuyAmount(remainingAmount);
+    // Trigger calculations for estimated tokens and avg price
+    calculateEstimatedTokens(remainingAmount, contractData, tokenInfo);
+  };
+
+  // Helper function to format BPS values to percentage
+  const formatBPStoPercentage = (bps: bigint) => {
+    return (Number(bps) / 100).toFixed(2);
+  };
+
+  // Add tooltip content for max remain explanation
+  const getMaxRemainTooltip = () => {
+    if (!contractData) return "";
+
+    const remainingAmount = calculateRemainingAmount();
+    const netContributionBPS =
+      BigInt(10000) - contractData.upfrontRakeBPS - contractData.escrowRakeBPS;
+
+    return (
+      <div className="space-y-2">
+        <p>This amount accounts for all fees:</p>
+        <ul className="list-disc pl-4">
+          <li>
+            OtterPad Fee: {formatBPStoPercentage(contractData.OTTERPAD_FEE_BPS)}
+            %
+          </li>
+          <li>
+            Upfront Rake:{" "}
+            {formatBPStoPercentage(
+              contractData.upfrontRakeBPS - contractData.OTTERPAD_FEE_BPS
+            )}
+            %
+          </li>
+          <li>
+            Escrow Rake: {formatBPStoPercentage(contractData.escrowRakeBPS)}%
+          </li>
+        </ul>
+        <p className="mt-2">
+          Net contribution rate: {formatBPStoPercentage(netContributionBPS)}%
+        </p>
+      </div>
+    );
+  };
+
+  const { writeContract: approveToken, data: approvalHash } =
+    useWriteContract();
+  const { writeContract: buyTokens, data: buyTxHash } = useWriteContract();
+  const { writeContract: redeemTokens, data: redeemTxHash } =
+    useWriteContract();
+
+  // Add hooks for tracking transactions
+  const { isLoading: isApprovalLoading, isSuccess: isApprovalSuccess } =
+    useWaitForTransactionReceipt({
+      hash: approvalHash,
+    });
+
+  const { isLoading: isPurchaseLoading, isSuccess: isPurchaseSuccess } =
+    useWaitForTransactionReceipt({
+      hash: buyTxHash,
+    });
+
+  // Handle approval transaction status changes
+  useEffect(() => {
+    if (isApprovalSuccess) {
+      setTransactionState((prev) => ({
+        ...prev,
+        isWaitingForApproval: false,
+      }));
+      checkAllowance();
+      api.success({
+        message: "Approval Successful",
+        description: "You can now proceed with your purchase",
+      });
+    }
+    if (isPurchaseSuccess) {
+      setTransactionState((prev) => ({
+        ...prev,
+        isWaitingForPurchase: false,
+      }));
+      api.success({
+        message: "Purchase Successful",
+        description: "Your token purchase was successful!",
+      });
+      setBuyAmount("");
+    }
+  }, [isApprovalSuccess, isPurchaseSuccess]);
 
   // Batch contract reads with proper configuration
   const { data: contractResults, isError } = useContractReads({
@@ -172,6 +387,11 @@ const FundraiserViewer = () => {
         abi: CONTRACT_ABI,
         functionName: "OTTERPAD_FEE_BPS",
       },
+      {
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: "totalActiveContributions",
+      },
       ...(userAddress
         ? [
             {
@@ -218,62 +438,80 @@ const FundraiserViewer = () => {
       upfrontRakeBPS: successResults[12] as bigint,
       escrowRakeBPS: successResults[13] as bigint,
       OTTERPAD_FEE_BPS: successResults[14] as bigint,
-      userAllocation: successResults[15] as bigint | undefined,
-      userOrders: successResults[16] as bigint[] | undefined,
+      totalActiveContributions: successResults[15] as bigint,
+      userAllocation: successResults[16] as bigint | undefined,
+      userOrders: successResults[17] as bigint[] | undefined,
     };
   };
 
   const contractData = processContractData();
 
-  const calculateEstimatedTokens = (paymentAmount: string) => {
+  const calculateEstimatedTokens = (
+    paymentAmount: string,
+    contractData: ContractDataResult | null,
+    tokenInfo: TokenState
+  ) => {
     if (!contractData || !paymentAmount || isNaN(Number(paymentAmount))) {
-      setEstimatedTokens("0");
-      return;
+      return { estimatedTokens: "0", avgPricePerToken: "0" };
     }
 
     try {
       const paymentAmountBigInt = parseEther(paymentAmount);
 
-      // All calculations using BigInt
-      const bps = BigInt(10000);
-      const otterpadFee =
-        (paymentAmountBigInt * BigInt(contractData.OTTERPAD_FEE_BPS)) / bps;
-      const upfrontAmount =
-        (paymentAmountBigInt * contractData.upfrontRakeBPS) / bps - otterpadFee;
-      const escrowAmount =
-        (paymentAmountBigInt * contractData.escrowRakeBPS) / bps;
-      const contributionAmount =
-        paymentAmountBigInt - otterpadFee - upfrontAmount - escrowAmount;
-
-      const totalActive = contractData.paymentTokenBalance;
-      const targetLiquidity = contractData.targetLiquidity;
-
-      let priceAtStart = contractData.currentPrice;
-      let priceAtEnd: bigint;
-
       if (contractData.targetReached) {
-        priceAtEnd = priceAtStart;
-      } else {
-        const startPrice = BigInt(contractData.startPrice);
-        const endPrice = BigInt(contractData.endPrice);
-        const priceDiff = endPrice - startPrice;
-        const newTotal = totalActive + contributionAmount;
-        priceAtEnd = startPrice + (priceDiff * newTotal) / targetLiquidity;
+        // If target reached, use current price directly
+        const tokens =
+          (paymentAmountBigInt *
+            BigInt(10 ** (tokenInfo.sale?.decimals || 18))) /
+          contractData.currentPrice;
+        return {
+          estimatedTokens: formatEther(tokens),
+          avgPricePerToken: formatEther(contractData.currentPrice),
+        };
       }
 
-      const averagePrice = (priceAtStart + priceAtEnd) / BigInt(2);
-      const decimals = BigInt(10) ** BigInt(tokenInfo.sale?.decimals || 18);
-      const estimatedAmount = (contributionAmount * decimals) / averagePrice;
+      // Calculate price progression using net contribution
+      const otterpadFee =
+        (paymentAmountBigInt * contractData.OTTERPAD_FEE_BPS) / BigInt(10000);
+      const upfrontAmount =
+        (paymentAmountBigInt * contractData.upfrontRakeBPS) / BigInt(10000) -
+        otterpadFee;
+      const escrowAmount =
+        (paymentAmountBigInt * contractData.escrowRakeBPS) / BigInt(10000);
+      const netContribution =
+        paymentAmountBigInt - otterpadFee - upfrontAmount - escrowAmount;
 
-      setEstimatedTokens(formatEther(estimatedAmount));
+      // Get current price and calculate end price after this purchase
+      const startPrice = contractData.currentPrice;
+      const totalPriceDiff = contractData.endPrice - contractData.startPrice;
+
+      const newProgress =
+        contractData.totalActiveContributions + netContribution;
+      const priceAtEnd =
+        contractData.startPrice +
+        (totalPriceDiff * newProgress) / contractData.targetLiquidity;
+
+      // Use average price for this purchase
+      const averagePrice = (startPrice + priceAtEnd) / BigInt(2);
+
+      // Calculate tokens using full payment amount
+      const saleTokenDecimals =
+        BigInt(10) ** BigInt(tokenInfo.sale?.decimals || 18);
+      const estimatedTokens =
+        (paymentAmountBigInt * saleTokenDecimals) / averagePrice;
+
+      return {
+        estimatedTokens: formatEther(estimatedTokens),
+        avgPricePerToken: formatEther(averagePrice),
+      };
     } catch (error) {
       console.error("Error calculating estimated tokens:", error);
-      setEstimatedTokens("0");
+      return { estimatedTokens: "0", avgPricePerToken: "0" };
     }
   };
 
   useEffect(() => {
-    calculateEstimatedTokens(buyAmount);
+    calculateEstimatedTokens(buyAmount, contractData, tokenInfo);
   }, [buyAmount, contractData]);
 
   // Get user's payment token balance
@@ -284,11 +522,6 @@ const FundraiserViewer = () => {
       refetchInterval: 30000, // Refresh every 30 seconds
     },
   });
-
-  // Contract operations
-  const { writeContract: buyTokens, data: buyTxHash } = useWriteContract();
-  const { writeContract: redeemTokens, data: redeemTxHash } =
-    useWriteContract();
 
   // Transaction status
   const { isLoading: buyLoading, isSuccess: buySuccess } =
@@ -350,22 +583,146 @@ const FundraiserViewer = () => {
     fetchTokenInfo();
   }, [contractData?.saleTokenAddress, contractData?.paymentTokenAddress]);
 
-  // Handle buy action
-  const handleBuy = () => {
-    console.log("handleBuy > Buy amount:", buyAmount);
-    if (!buyAmount) return;
+  const publicClient = usePublicClient();
+
+  const checkAllowance = async () => {
+    if (!contractData || !userAddress || !publicClient || !buyAmount) return;
+
     try {
-      buyTokens({
+      setTransactionState((prev) => ({ ...prev, isCheckingAllowance: true }));
+      const amount = parseEther(buyAmount);
+      const allowance = await publicClient.readContract({
+        address: contractData.paymentTokenAddress,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [userAddress, CONTRACT_ADDRESS],
+      });
+
+      setCurrentAllowance(allowance);
+      setIsApproved(allowance >= amount);
+    } catch (error) {
+      console.error("Error checking allowance:", error);
+      setIsApproved(false);
+    } finally {
+      setTransactionState((prev) => ({ ...prev, isCheckingAllowance: false }));
+    }
+  };
+
+  // Check allowance whenever buy amount changes
+  useEffect(() => {
+    checkAllowance();
+  }, [buyAmount, contractData?.paymentTokenAddress, userAddress]);
+
+  useEffect(() => {
+    if (buyAmount && contractData && tokenInfo.sale && tokenInfo.payment) {
+      console.log("Input state:", {
+        buyAmount,
+        tokenInfo,
+        contractData: {
+          currentPrice: formatEther(contractData.currentPrice),
+          startPrice: formatEther(contractData.startPrice),
+          endPrice: formatEther(contractData.endPrice),
+        },
+      });
+
+      const result = calculateEstimatedTokens(
+        buyAmount,
+        contractData,
+        tokenInfo
+      );
+      setEstimatedTokens(result.estimatedTokens);
+      setAvgPricePerToken(result.avgPricePerToken);
+    }
+  }, [buyAmount, contractData, tokenInfo]);
+
+  const handleApprove = async () => {
+    if (!buyAmount || !contractData || !userAddress) return;
+
+    try {
+      setTransactionState((prev) => ({
+        ...prev,
+        isApproving: true,
+      }));
+
+      const amount = parseEther(buyAmount);
+
+      await approveToken({
+        address: contractData.paymentTokenAddress,
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [CONTRACT_ADDRESS, amount],
+      });
+
+      setTransactionState((prev) => ({
+        ...prev,
+        isApproving: false,
+        isWaitingForApproval: true,
+      }));
+
+      api.info({
+        message: "Approval Pending",
+        description: "Please wait while the approval is being processed",
+        duration: 5,
+      });
+    } catch (error) {
+      console.error("Approval error:", error);
+      api.error({
+        message: "Approval Failed",
+        description:
+          error instanceof Error ? error.message : "Failed to approve tokens",
+        duration: 5,
+      });
+      setTransactionState((prev) => ({
+        ...prev,
+        isApproving: false,
+        isWaitingForApproval: false,
+      }));
+    }
+  };
+
+  // Handle buy action
+  const handleBuy = async () => {
+    if (!buyAmount || !contractData || !userAddress) return;
+
+    try {
+      setTransactionState((prev) => ({
+        ...prev,
+        isPurchasing: true,
+      }));
+
+      await buyTokens({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "buy",
         args: [parseEther(buyAmount)],
       });
-    } catch (error) {
-      api.error({
-        message: "Transaction Failed",
-        description: "Failed to execute buy transaction",
+
+      setTransactionState((prev) => ({
+        ...prev,
+        isPurchasing: false,
+        isWaitingForPurchase: true,
+      }));
+
+      api.info({
+        message: "Purchase Pending",
+        description: "Please wait while your purchase is being processed",
+        duration: 5,
       });
+    } catch (error) {
+      console.error("Purchase error:", error);
+      api.error({
+        message: "Purchase Failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to complete purchase",
+        duration: 5,
+      });
+      setTransactionState((prev) => ({
+        ...prev,
+        isPurchasing: false,
+        isWaitingForPurchase: false,
+      }));
     }
   };
 
@@ -384,6 +741,61 @@ const FundraiserViewer = () => {
         description: "Failed to execute redeem transaction",
       });
     }
+  };
+
+  const getButtonState = () => {
+    const {
+      isCheckingAllowance,
+      isApproving,
+      isWaitingForApproval,
+      isPurchasing,
+      isWaitingForPurchase,
+    } = transactionState;
+
+    if (isCheckingAllowance) {
+      return {
+        text: "Checking Allowance...",
+        icon: <LoadingOutlined />,
+        disabled: true,
+        onClick: () => {},
+      };
+    }
+
+    if (isApproving || isWaitingForApproval) {
+      return {
+        text: isApproving ? "Awaiting Approval..." : "Confirming Approval...",
+        icon: <LoadingOutlined />,
+        disabled: true,
+        onClick: () => {},
+      };
+    }
+
+    if (isPurchasing || isWaitingForPurchase) {
+      return {
+        text: isPurchasing
+          ? "Confirming Purchase..."
+          : "Processing Purchase...",
+        icon: <LoadingOutlined />,
+        disabled: true,
+        onClick: () => {},
+      };
+    }
+
+    if (!isApproved) {
+      return {
+        text: "Approve",
+        icon: <ShoppingCartOutlined />,
+        disabled: false,
+        onClick: handleApprove,
+      };
+    }
+
+    return {
+      text: "Buy Tokens",
+      icon: <ShoppingCartOutlined />,
+      disabled: false,
+      onClick: handleBuy,
+    };
   };
 
   // Transaction notifications
@@ -496,17 +908,23 @@ const FundraiserViewer = () => {
   const getLiquidityProgress = () => {
     if (!contractData) return 0;
 
-    // Calculate net contribution (excluding escrowed amount)
-    const netContributionBPS =
-      BigInt(10000) - contractData.upfrontRakeBPS - contractData.escrowRakeBPS;
-
-    // Get current balance excluding escrow
+    // Get current balance excluding escrow and upfront amounts
     const currentBalance = contractData.paymentTokenBalance;
-    const escrowAmount = contractData.escrowedAmount;
-    const netBalance = currentBalance - escrowAmount;
+    const escrowAmount =
+      (currentBalance * contractData.escrowRakeBPS) / BigInt(10000);
+    const upfrontAmount =
+      (currentBalance *
+        (contractData.upfrontRakeBPS - contractData.OTTERPAD_FEE_BPS)) /
+      BigInt(10000);
+    const otterpadFee =
+      (currentBalance * contractData.OTTERPAD_FEE_BPS) / BigInt(10000);
+
+    // Calculate actual contribution amount (excluding all rakes)
+    const actualContribution =
+      currentBalance - escrowAmount - upfrontAmount - otterpadFee;
 
     // Convert BigInt values to numbers for percentage calculation
-    const currentNet = Number(netBalance);
+    const currentNet = Number(actualContribution);
     const targetNet = Number(contractData.targetLiquidity);
 
     if (targetNet === 0) return 0;
@@ -585,13 +1003,7 @@ const FundraiserViewer = () => {
                   <Progress
                     percent={getLiquidityProgress()}
                     status="active"
-                    format={(percent) => (
-                      <span>
-                        {formatEther(contractData.paymentTokenBalance)} /{" "}
-                        {formatEther(contractData.targetLiquidity)}{" "}
-                        {tokenInfo.payment?.symbol}
-                      </span>
-                    )}
+                    format={() => formatProgressDisplay()}
                   />
                 </Card>
               </Col>
@@ -619,6 +1031,22 @@ const FundraiserViewer = () => {
                         <Text strong>
                           Amount to Buy ({tokenInfo.payment.symbol})
                         </Text>
+                        {!contractData.targetReached && (
+                          <Tooltip
+                            title={getMaxRemainTooltip()}
+                            placement="right"
+                          >
+                            <Button
+                              type="link"
+                              size="small"
+                              onClick={handleMaxRemainClick}
+                              className="text-gray-400 hover:text-blue-500 p-0 h-auto flex items-center gap-1"
+                            >
+                              max remain
+                              <InfoCircleOutlined className="text-xs" />
+                            </Button>
+                          </Tooltip>
+                        )}
                         <Text type="secondary">
                           Min: {formatEther(contractData.minimumPurchase)}{" "}
                           {tokenInfo.payment.symbol} | Balance:{" "}
@@ -655,6 +1083,14 @@ const FundraiserViewer = () => {
                                 {tokenInfo.sale?.symbol}
                               </span>
                             </div>
+                            <div className="flex justify-end">
+                              <div>
+                                Avg Price per Token:{" "}
+                                <span className="font-medium">
+                                  {avgPricePerToken} {tokenInfo.payment?.symbol}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -687,32 +1123,74 @@ const FundraiserViewer = () => {
                       )}
 
                     {/* Buy Button */}
-                    <Button
-                      type="primary"
-                      size="large"
-                      icon={
-                        buyLoading ? (
-                          <LoadingOutlined />
-                        ) : (
-                          <ShoppingCartOutlined />
-                        )
-                      }
-                      onClick={handleBuy}
-                      disabled={
-                        !buyAmount ||
-                        buyLoading ||
-                        parseFloat(buyAmount) <
-                          parseFloat(
-                            formatEther(contractData.minimumPurchase)
-                          ) ||
-                        parseFloat(buyAmount) >
-                          parseFloat(userPaymentTokenBalance?.formatted ?? "0")
-                      }
-                      loading={buyLoading}
-                      block
-                    >
-                      {buyLoading ? "Processing..." : "Buy Tokens"}
-                    </Button>
+                    <div>
+                      <Button
+                        type="primary"
+                        size="large"
+                        icon={getButtonState().icon}
+                        onClick={getButtonState().onClick}
+                        disabled={
+                          getButtonState().disabled ||
+                          !buyAmount ||
+                          parseFloat(buyAmount) <
+                            parseFloat(
+                              formatEther(contractData.minimumPurchase)
+                            ) ||
+                          parseFloat(buyAmount) >
+                            parseFloat(
+                              userPaymentTokenBalance?.formatted ?? "0"
+                            )
+                        }
+                        block
+                      >
+                        {getButtonState().text}
+                      </Button>
+
+                      {transactionState.isWaitingForApproval && (
+                        <Alert
+                          message="Approval In Progress"
+                          description="Please wait while your approval transaction is being confirmed..."
+                          type="info"
+                          showIcon
+                          icon={<LoadingOutlined />}
+                          style={{ marginTop: "1rem" }}
+                        />
+                      )}
+
+                      {transactionState.isWaitingForPurchase && (
+                        <Alert
+                          message="Purchase In Progress"
+                          description="Please wait while your purchase transaction is being confirmed..."
+                          type="info"
+                          showIcon
+                          icon={<LoadingOutlined />}
+                          style={{ marginTop: "1rem" }}
+                        />
+                      )}
+
+                      {(isApprovalSuccess || isPurchaseSuccess) && (
+                        <Alert
+                          message={
+                            isApprovalSuccess && !isPurchaseSuccess
+                              ? "Approval Successful"
+                              : isPurchaseSuccess
+                              ? "Purchase Successful"
+                              : ""
+                          }
+                          description={
+                            isApprovalSuccess && !isPurchaseSuccess
+                              ? "You can now proceed with your purchase"
+                              : isPurchaseSuccess
+                              ? "Your tokens have been purchased successfully!"
+                              : ""
+                          }
+                          type="success"
+                          showIcon
+                          icon={<CheckCircleOutlined />}
+                          style={{ marginTop: "1rem" }}
+                        />
+                      )}
+                    </div>
 
                     {/* Disclaimers */}
                     <Text type="secondary" className="text-center block">
@@ -759,7 +1237,6 @@ const FundraiserViewer = () => {
                     </Col>
                   </Row>
 
-                  {/* Existing orders list */}
                   {contractData.userOrders &&
                   contractData.userOrders.length > 0 ? (
                     <List
@@ -773,15 +1250,42 @@ const FundraiserViewer = () => {
                               icon={<GiftOutlined />}
                               onClick={() => handleRedeem(Number(orderIndex))}
                               loading={redeemLoading}
+                              disabled={!contractData.targetReached}
+                              title={
+                                !contractData.targetReached
+                                  ? "Fundraising goal not reached"
+                                  : ""
+                              }
                             >
                               Redeem
+                            </Button>,
+                            <Button
+                              type="default"
+                              danger
+                              icon={<RollbackOutlined />}
+                              // onClick={() => handleRefund(Number(orderIndex))}
+                              disabled={
+                                contractData.targetReached ||
+                                contractData.isDeployedToUniswap
+                              }
+                              title={
+                                contractData.targetReached
+                                  ? "Fundraising goal reached"
+                                  : ""
+                              }
+                            >
+                              Refund
                             </Button>,
                           ]}
                         >
                           <List.Item.Meta
                             avatar={<WalletOutlined style={{ fontSize: 24 }} />}
                             title={`Order #${orderIndex.toString()}`}
-                            description="Click redeem to claim your tokens"
+                            description={
+                              contractData.targetReached
+                                ? "Click redeem to claim your tokens"
+                                : "You can refund your order until the fundraising goal is reached"
+                            }
                           />
                         </List.Item>
                       )}
