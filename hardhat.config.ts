@@ -2,6 +2,9 @@ import dotenv from "dotenv";
 dotenv.config();
 import type { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox-viem";
+import "@typechain/hardhat";
+import "@nomicfoundation/hardhat-ethers";
+import "@nomicfoundation/hardhat-chai-matchers";
 
 // Load environment variables from .env
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "";
