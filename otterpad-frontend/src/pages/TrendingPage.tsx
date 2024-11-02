@@ -115,7 +115,10 @@ const TrendingPage: React.FC = () => {
             }
             style={{ width: "100%" }}
           >
-            <Card.Meta title={item.title} />
+            <Card.Meta
+              title={item.title}
+              description={`${item.description.slice(0, 30)}...`}
+            />
           </Card>
         </Badge.Ribbon>
       </Link>
