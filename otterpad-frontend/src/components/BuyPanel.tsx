@@ -22,6 +22,8 @@ import {
   Progress,
   Tag,
   Popover,
+  message,
+  Divider,
 } from "antd";
 import debounce from "lodash/debounce";
 import {
@@ -36,6 +38,7 @@ import {
   InfoCircleOutlined,
   CheckCircleOutlined,
   RollbackOutlined,
+  ShareAltOutlined,
 } from "@ant-design/icons";
 import {
   useAccount,
@@ -1155,6 +1158,11 @@ const BuyPanel = ({
     }`;
   };
 
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    message.success("URL copied to clipboard!");
+  };
+
   return (
     <div
       style={{
@@ -1190,20 +1198,44 @@ const BuyPanel = ({
               style={{
                 width: "100%",
                 display: "flex",
-                alignItems: "space-between",
-                gap: "12px",
-                flexWrap: "nowrap",
+                flexDirection: "column-reverse",
               }}
             >
-              <div style={{ display: "flex", flex: "1" }}>
-                <Title level={3} style={{ margin: 0 }}>
-                  {contractData.title}
-                </Title>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {getStatusTag()}
+                <Button
+                  size="small"
+                  icon={<ShareAltOutlined />}
+                  onClick={handleShare}
+                >
+                  Share
+                </Button>
               </div>
-              {getStatusTag()}
-              <Tooltip title={getContractBalanceInfo()}>
-                <InfoCircleOutlined style={{ color: "#1890ff" }} />
-              </Tooltip>
+              <Divider />
+              <Title
+                level={2}
+                style={{
+                  margin: "10px 0px 20px 0px",
+                }}
+              >
+                {contractData.title}
+                <Tooltip title={getContractBalanceInfo()}>
+                  <InfoCircleOutlined
+                    style={{
+                      color: "#1890ff",
+                      fontSize: "1rem",
+                      marginLeft: 8,
+                    }}
+                  />
+                </Tooltip>
+              </Title>
             </div>
 
             {/* Price and Progress Cards */}

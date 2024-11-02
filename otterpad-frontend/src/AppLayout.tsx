@@ -47,11 +47,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         display: isDesktop ? "flex" : "none",
       }}
     >
-      <Link
-        to="/trending"
-        onClick={(e) => e.preventDefault()}
-        style={{ color: "#666", cursor: "not-allowed" }}
-      >
+      <Link to="/trending" style={{ color: "#666" }}>
         Trending
       </Link>
       <Link to="/create" style={{ color: "#666" }}>
@@ -59,10 +55,10 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
       </Link>
       <Link
         onClick={(e) => e.preventDefault()}
-        to="/history"
+        to="/help"
         style={{ color: "#666", cursor: "not-allowed" }}
       >
-        History
+        Help
       </Link>
     </Space>
   );
@@ -85,11 +81,11 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         <h1 style={{ margin: 0 }}>
           <Link
             to="/trending"
-            onClick={(e) => {
-              e.preventDefault();
-              window.location.href = "https://otterpad.cc";
+            style={{
+              fontSize: isDesktop ? "1.5rem" : "1.2rem",
+              fontWeight: "bold",
+              display: "flex",
             }}
-            style={{ fontSize: "1.5rem", fontWeight: "bold", display: "flex" }}
           >
             Otterpad.cc
           </Link>

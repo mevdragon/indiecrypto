@@ -7,6 +7,9 @@ import { Layout } from "antd";
 import { useAccount, useContractReads } from "wagmi";
 import { useMediaQuery } from "react-responsive";
 import { useParams } from "react-router-dom";
+import { getFactoryAddress } from "../config";
+import React from "react";
+import ChainWarning from "../components/ChainWarning";
 
 export const CONTRACT_ABI = OtterPadFund__factory.abi;
 
@@ -80,7 +83,10 @@ export const ERC20_ABI = [
 ] as const;
 
 const FundPage = () => {
-  const { contractAddress } = useParams<{ contractAddress: string }>();
+  const { chainIdDecimal, contractAddress } = useParams<{
+    chainIdDecimal: string;
+    contractAddress: string;
+  }>();
   const CONTRACT_ADDRESS = contractAddress as Address;
   const { address: userAddress, isConnected } = useAccount();
   const isDesktop = useMediaQuery({ minWidth: 1024 });
@@ -204,6 +210,16 @@ const FundPage = () => {
     },
   });
 
+  React.useEffect(() => {
+    try {
+      getFactoryAddress(chainIdDecimal!);
+    } catch (error) {
+      console.error(error);
+      // Optionally redirect to a 404 or error page
+      // navigate('/404');
+    }
+  }, [chainIdDecimal]);
+
   // Process contract results into typed data
   const processContractData = (): ContractDataResult | null => {
     if (!contractResults) return null;
@@ -240,6 +256,9 @@ const FundPage = () => {
   const contractData = processContractData();
   return (
     <AppLayout>
+      <div style={{ padding: "0px 16px 0px 16px" }}>
+        <ChainWarning requiredChainId={chainIdDecimal!} />
+      </div>
       <Layout
         style={{
           minHeight: "100%",

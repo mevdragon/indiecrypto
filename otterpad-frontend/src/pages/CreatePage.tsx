@@ -10,6 +10,7 @@ import {
   Switch,
   Tooltip,
   Space,
+  Select,
 } from "antd";
 import {
   useAccount,
@@ -25,6 +26,8 @@ import { useMediaQuery } from "react-responsive";
 import { OtterPadFactory__factory } from "../typechain-types";
 import { v4 as uuidv4 } from "uuid";
 import { OtterpadInfo } from "../components/Charts";
+import { getFactoryAddress, SUPPORTED_CHAINS } from "../config";
+import ChainWarning from "../components/ChainWarning";
 
 interface FundForm {
   title: string;
@@ -47,6 +50,9 @@ interface FundForm {
 const CONTRACT_ADDRESS = "0xf56759Df56bA0fe7294c75715E8eD2d2b065577F" as const;
 
 const CreatePage: React.FC = () => {
+  const [selectedChain, setSelectedChain] = React.useState(
+    SUPPORTED_CHAINS[0].chainIdDecimal
+  );
   const [form] = Form.useForm<FundForm>();
   const { isConnected } = useAccount();
   const isDesktop = useMediaQuery({ minWidth: 1024 });
@@ -56,6 +62,7 @@ const CreatePage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [txHash, setTxHash] = React.useState<`0x${string}`>();
   const publicClient = usePublicClient();
+  const [metadata, setMetadata] = React.useState<OtterpadInfo | null>(null);
 
   const { writeContractAsync } = useWriteContract();
 
@@ -67,7 +74,7 @@ const CreatePage: React.FC = () => {
     hash: txHash,
   });
 
-  const saveMetadataToDatabase = async (fundId: string, info: OtterpadInfo) => {
+  const saveMetadataToDatabase = async (info: OtterpadInfo) => {
     try {
       const response = await fetch(
         "https://api.legions.bot/api/w/officex/jobs/run_wait_result/f/f/officex/otterpad_rest_api?token=ixJCgjvjwtok1RyDjxeaWC1igjaoNWwF&payload=e30%3D",
@@ -79,10 +86,7 @@ const CreatePage: React.FC = () => {
           },
           body: JSON.stringify({
             route: "POST/fund",
-            payload: {
-              id: fundId,
-              ...info,
-            },
+            payload: info,
           }),
         }
       );
@@ -100,6 +104,7 @@ const CreatePage: React.FC = () => {
 
   const handleCreateFund = async (values: FundForm) => {
     try {
+      const factoryAddress = getFactoryAddress(selectedChain);
       const fundId = uuidv4();
       setIsSubmitting(true);
 
@@ -117,9 +122,12 @@ const CreatePage: React.FC = () => {
             : [],
           website: values.website || "",
           twitter: values.twitter || "",
+          chain_id_decimals: selectedChain,
+          contract_address: "",
+          otterpad_url: "",
         };
-
-        await saveMetadataToDatabase(fundId, otterpadInfo);
+        // @ts-ignore
+        setMetadata({ ...otterpadInfo, uid: fundId });
 
         // Use the complete URL with fund parameter
         richInfoUrl = `https://app.legions.bot/webhook/0c5cc860-244a-477c-a264-5a4602681d18?fund=${fundId}`;
@@ -134,7 +142,7 @@ const CreatePage: React.FC = () => {
       });
 
       const hash = await writeContractAsync({
-        address: CONTRACT_ADDRESS as Address,
+        address: factoryAddress as Address,
         abi: OtterPadFactory__factory.abi,
         functionName: "createFundraiser",
         args: [
@@ -209,8 +217,15 @@ const CreatePage: React.FC = () => {
               duration: 3,
             });
 
+            if (metadata) {
+              await saveMetadataToDatabase({
+                ...metadata,
+                contract_address: fundAddress,
+                otterpad_url: `https://buy.otterpad.cc/fund/${selectedChain}/${fundAddress}`,
+              });
+            }
             // Navigate to the fund page with the new address
-            navigate(`/fund/${fundAddress}`);
+            navigate(`/fund/${selectedChain}/${fundAddress}`);
           } else {
             throw new Error("Could not find fund creation event");
           }
@@ -281,6 +296,28 @@ const CreatePage: React.FC = () => {
               upfrontRakeBPS: 100,
             }}
           >
+            <Form.Item
+              label={
+                <Space>
+                  Network
+                  <Tooltip title="Select the blockchain network">
+                    <InfoCircleOutlined />
+                  </Tooltip>
+                </Space>
+              }
+              name="chainId"
+              initialValue={selectedChain}
+              rules={[{ required: true, message: "Please select a network!" }]}
+            >
+              <Select
+                onChange={(value) => setSelectedChain(value)}
+                options={SUPPORTED_CHAINS.map((chain) => ({
+                  label: chain.chain,
+                  value: chain.chainIdDecimal,
+                }))}
+              />
+            </Form.Item>
+            <ChainWarning requiredChainId={selectedChain} />
             <Form.Item
               label={
                 <Space>
@@ -494,7 +531,7 @@ const CreatePage: React.FC = () => {
                 label={
                   <Space>
                     URL to Metadata
-                    <Tooltip title="Custom URL for additional fund information. This should be a JSON file you control and is retrievable by public GET request. Should take shape of { title, description, website, twitter, media: url[] }">
+                    <Tooltip title="Custom URL for additional fund information. This should be a JSON file you control and is retrievable by public GET request. Should take shape of { title: string, description: string, website: url, twitter: url, media: url[], chain_id_decimals: string }">
                       <InfoCircleOutlined />
                     </Tooltip>
                   </Space>

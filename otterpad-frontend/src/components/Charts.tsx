@@ -69,6 +69,12 @@ export interface OtterpadInfo {
   media: string[];
   website: string;
   twitter: string;
+  chain_id_decimals: string;
+  contract_address: string;
+  otterpad_url: string;
+  safety_badge?: boolean;
+  priority?: number;
+  CreatedAt?: string;
 }
 
 const Charts = ({
@@ -160,6 +166,7 @@ const Charts = ({
       }
 
       const data = (await response.json()) as OtterpadInfo;
+      console.log("metadata", data);
       setOtterpadInfo(data);
       return data;
     } catch (error) {
