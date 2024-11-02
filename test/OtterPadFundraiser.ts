@@ -8,6 +8,10 @@ import { expect } from "chai";
 import hre from "hardhat";
 import { parseEther, parseUnits, getAddress } from "viem";
 
+const title = "Crypto Project";
+const richInfoUrl =
+  "https://api.legions.bot/api/w/officex/capture_u/f/officex/otterpad_rest_api";
+
 describe("OtterPadFundraiser", function () {
   // Constants for Uniswap addresses
   const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6";
@@ -40,6 +44,8 @@ describe("OtterPadFundraiser", function () {
 
     // Deploy the fundraiser with new constructor parameters
     const fundraiser = await hre.viem.deployContract("OtterPadFundraiser", [
+      title,
+      richInfoUrl,
       saleToken.address,
       paymentToken.address,
       UNISWAP_ROUTER,
@@ -772,6 +778,8 @@ describe("OtterPadFundraiser", function () {
 
       // First fundraiser with 5% total rake
       const fundraiser1 = await hre.viem.deployContract("OtterPadFundraiser", [
+        title,
+        richInfoUrl,
         saleToken.address,
         paymentToken.address,
         UNISWAP_ROUTER,
@@ -786,6 +794,8 @@ describe("OtterPadFundraiser", function () {
 
       // Second fundraiser with 10% total rake
       const fundraiser2 = await hre.viem.deployContract("OtterPadFundraiser", [
+        title,
+        richInfoUrl,
         saleToken.address,
         paymentToken.address,
         UNISWAP_ROUTER,
@@ -823,6 +833,8 @@ describe("OtterPadFundraiser", function () {
       const [deployer, foundersWallet] = await hre.viem.getWalletClients();
 
       const fundraiser = await hre.viem.deployContract("OtterPadFundraiser", [
+        title,
+        richInfoUrl,
         saleToken6Dec.address,
         paymentToken8Dec.address,
         UNISWAP_ROUTER,
@@ -861,6 +873,8 @@ describe("OtterPadFundraiser", function () {
 
       // Deploy fundraiser with very steep price curve (10x increase)
       const fundraiser = await hre.viem.deployContract("OtterPadFundraiser", [
+        title,
+        richInfoUrl,
         saleToken.address,
         paymentToken.address,
         UNISWAP_ROUTER,

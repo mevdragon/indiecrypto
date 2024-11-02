@@ -47,6 +47,9 @@ contract OtterPadFundraiser is ReentrancyGuard {
     uint256 public totalTokensAllocated;
     uint256 public totalActiveContributions;
     uint256 public totalPaymentsIn;
+
+    string public title;
+    string public richInfoUrl;
     
     mapping(uint256 => Purchase) public purchases;
     mapping(address => uint256[]) public userOrderIndices;
@@ -80,6 +83,8 @@ contract OtterPadFundraiser is ReentrancyGuard {
     );
     
     constructor(
+        string memory _title,
+        string memory _richInfoUrl,
         address _saleToken,
         address _paymentToken,
         address _uniswapRouter,
@@ -91,6 +96,7 @@ contract OtterPadFundraiser is ReentrancyGuard {
         uint256 _escrowRakeBPS,
         address _foundersWallet
     ) {
+        require(bytes(_title).length > 0, "Invalid title");
         require(_startPrice > 0 && _endPrice > 0 && _endPrice > _startPrice, "Invalid prices");
         require(_targetLiquidity > 0, "Invalid target funding");
         require(_upfrontRakeBPS >= OTTERPAD_FEE_BPS, "Upfront rake must be >= OtterPad fee");
@@ -100,6 +106,8 @@ contract OtterPadFundraiser is ReentrancyGuard {
         require(_saleToken != _paymentToken, "Tokens must be different");
         require(_uniswapRouter != address(0) && _uniswapFactory != address(0), "Invalid Uniswap addresses");
         
+        title = _title;
+        richInfoUrl = _richInfoUrl;
         saleToken = IERC20Metadata(_saleToken);
         paymentToken = IERC20Metadata(_paymentToken);
         uniswapRouter = IUniswapV2Router02(_uniswapRouter);

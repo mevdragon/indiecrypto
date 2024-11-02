@@ -65,6 +65,8 @@ export default buildModule("OtterPadFundraiserModule", (m) => {
 
   // Deploy the fundraiser
   const fundraiser = m.contract("OtterPadFundraiser", [
+    "Crypto Project", // title
+    "https://api.legions.bot/api/w/officex/capture_u/f/officex/otterpad_rest_api", // richInfoUrl
     saleTokenAddress, // useMockTokens ? mockSaleToken : saleTokenAddress,
     paymentTokenAddress, // useMockTokens ? mockPaymentToken : paymentTokenAddress,
     UNISWAP_ROUTER,
