@@ -7,11 +7,12 @@ import { RainbowKitProvider, getDefaultWallets } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { sepolia } from "wagmi/chains";
-import { ConfigProvider } from "antd";
+import { Alert, ConfigProvider } from "antd";
 import "@rainbow-me/rainbowkit/styles.css";
 import FundPage from "./pages/FundPage";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import CreatePage from "./pages/CreatePage";
+import Marquee from "react-fast-marquee";
 import TrendingPage from "./pages/TrendingPage";
 
 // Create wagmi config

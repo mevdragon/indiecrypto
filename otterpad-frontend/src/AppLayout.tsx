@@ -1,10 +1,11 @@
 import React from "react";
 import { UserOutlined } from "@ant-design/icons";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Space } from "antd";
+import { Alert, Space } from "antd";
 import Layout, { Content, Header } from "antd/es/layout/layout";
 import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
+import Marquee from "react-fast-marquee";
 
 // Topbar component
 const Topbar = ({ children }: { children: React.ReactNode }) => (
@@ -76,34 +77,80 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   );
 
   return (
-    <Layout style={{ backgroundColor: "#f5f5f5", width: "100vw" }}>
-      <Topbar>
-        <h1 style={{ margin: 0 }}>
-          <Link
-            to="/trending"
+    <div>
+      <Alert
+        message={
+          <Marquee pauseOnHover gradient={false}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-around",
+              }}
+            >
+              <span>
+                Be careful when buying cryptocurrency! Always do proper due
+                diligence.{" "}
+                <a href="/help" style={{ padding: "0px 10px" }}>
+                  Learn More
+                </a>
+              </span>
+              <span>
+                OtterPad is permissionless, which means anyone can fundraise
+                from the public internet. Beware of scams{" "}
+                <a href="/help" style={{ padding: "0px 10px" }}>
+                  Learn More
+                </a>
+              </span>
+            </div>
+          </Marquee>
+        }
+        type="warning"
+        banner
+        closable={false}
+      />
+      <Layout style={{ backgroundColor: "#f5f5f5", width: "100vw" }}>
+        <Topbar>
+          <h1 style={{ margin: 0 }}>
+            <Link
+              to="/trending"
+              style={{
+                fontSize: isDesktop ? "1.5rem" : "1.2rem",
+                fontWeight: "bold",
+                display: "flex",
+              }}
+            >
+              Otterpad.cc
+            </Link>
+          </h1>
+          <div
             style={{
-              fontSize: isDesktop ? "1.5rem" : "1.2rem",
-              fontWeight: "bold",
               display: "flex",
+              alignItems: "center",
+              gap: "16px",
             }}
           >
-            Otterpad.cc
-          </Link>
-        </h1>
+            <NavigationLinks />
+            <MobileNavigationLinks />
+            <WalletConnector />
+          </div>
+        </Topbar>
+        <Content>{children}</Content>
         <div
           style={{
             display: "flex",
+            flexDirection: "row",
+            justifyContent: "center",
             alignItems: "center",
-            gap: "16px",
+            margin: "64px 10px 32px 10px",
+            color: "rgba(0,0,0,0.3)",
+            fontWeight: 500,
           }}
         >
-          <NavigationLinks />
-          <MobileNavigationLinks />
-          <WalletConnector />
+          Copyright 2024 Otter Finance | admin@otterpad.cc
         </div>
-      </Topbar>
-      <Content>{children}</Content>
-    </Layout>
+      </Layout>
+    </div>
   );
 };
 

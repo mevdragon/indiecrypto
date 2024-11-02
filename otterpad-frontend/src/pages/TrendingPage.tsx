@@ -87,11 +87,12 @@ const TrendingPage: React.FC = () => {
   });
 
   const renderItem = (item: OtterpadInfo) => (
-    <List.Item>
+    <List.Item style={{ width: "100%", minWidth: "280px", maxWidth: "350px" }}>
       <Link
         to={`/fund/${item.chain_id_decimals}/${item.contract_address}`}
         target="_blank"
         rel="noopener noreferrer"
+        style={{ width: "100%", display: "block" }}
       >
         <Badge.Ribbon
           text="Verified"
@@ -111,9 +112,9 @@ const TrendingPage: React.FC = () => {
                 }}
               />
             }
-            className="w-full"
+            style={{ width: "100%" }}
           >
-            <Card.Meta title={item.title} description={item.description} />
+            <Card.Meta title={item.title} />
           </Card>
         </Badge.Ribbon>
       </Link>
@@ -124,7 +125,6 @@ const TrendingPage: React.FC = () => {
     <AppLayout>
       <Layout
         style={{
-          minHeight: "100%",
           background: "#f5f5f5",
           padding: "16px 16px 16px 16px",
           display: "flex",
@@ -135,7 +135,7 @@ const TrendingPage: React.FC = () => {
         }}
       >
         <h1 style={{ fontSize: "1.7rem", color: "rgba(0,0,0,0.75)" }}>
-          Trending
+          Trending Projects
         </h1>
         <Input.Search
           placeholder="Search by contract address or title..."
@@ -159,6 +159,11 @@ const TrendingPage: React.FC = () => {
             }}
             dataSource={filteredList}
             renderItem={renderItem}
+            style={{
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+            }}
           />
         </Skeleton>
       </Layout>
