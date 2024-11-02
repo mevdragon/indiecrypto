@@ -12,6 +12,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 import FundPage from "./pages/FundPage";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import CreatePage from "./pages/CreatePage";
+import TrendingPage from "./pages/TrendingPage";
 
 // Create wagmi config
 const config = createConfig({
@@ -48,19 +49,14 @@ function App() {
                 />
 
                 {/* Main routes */}
-                <Route
-                  path="/trending"
-                  element={
-                    <Navigate
-                      to="/fund/0x0a0329F0B8EB742CC0d03ee8c592E58B6d351584"
-                      replace
-                    />
-                  }
-                />
+                <Route path="/trending" element={<TrendingPage />} />
                 <Route path="/create" element={<CreatePage />} />
 
                 {/* Fundraiser routes with dynamic parameter */}
-                <Route path="/fund/:contractAddress" element={<FundPage />} />
+                <Route
+                  path="/fund/:chainIdDecimal/:contractAddress"
+                  element={<FundPage />}
+                />
 
                 {/* Catch all route - optional */}
                 <Route path="*" element={<Navigate to="/trending" replace />} />
