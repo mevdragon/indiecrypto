@@ -2,6 +2,7 @@
   "name": "otterpad-contracts",
   "scripts": {
     "build": "npx hardhat compile",
+    "types": "npx hardhat typechain",
     "test": "npx hardhat test"
   },
   "devDependencies": {

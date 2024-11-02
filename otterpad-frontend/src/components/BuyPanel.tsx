@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { ethers } from "ethers";
-import { OtterPadFundraiser__factory } from "../../../typechain-types";
+import { OtterPadFund__factory } from "../../../typechain-types";
 import {
   Card,
   Typography,
@@ -50,11 +50,7 @@ import { Content } from "antd/es/layout/layout";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import TabPane from "antd/es/tabs/TabPane";
 import { getPublicClient, waitForTransaction } from "wagmi/actions";
-import {
-  CONTRACT_ABI,
-  ContractDataResult,
-  ERC20_ABI,
-} from "../pages/FundraiserPage";
+import { CONTRACT_ABI, ContractDataResult, ERC20_ABI } from "../pages/FundPage";
 import { useMediaQuery } from "react-responsive";
 
 const { Title, Text } = Typography;

@@ -70,9 +70,13 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.MockUniswapV2Router02__factory>;
     getContractFactory(
-      name: "OtterPadFundraiser",
+      name: "OtterPadFactory",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.OtterPadFundraiser__factory>;
+    ): Promise<Contracts.OtterPadFactory__factory>;
+    getContractFactory(
+      name: "OtterPadFund",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.OtterPadFund__factory>;
     getContractFactory(
       name: "ReentrantToken",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -149,10 +153,15 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.MockUniswapV2Router02>;
     getContractAt(
-      name: "OtterPadFundraiser",
+      name: "OtterPadFactory",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
-    ): Promise<Contracts.OtterPadFundraiser>;
+    ): Promise<Contracts.OtterPadFactory>;
+    getContractAt(
+      name: "OtterPadFund",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.OtterPadFund>;
     getContractAt(
       name: "ReentrantToken",
       address: string | ethers.Addressable,
@@ -216,9 +225,13 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.MockUniswapV2Router02>;
     deployContract(
-      name: "OtterPadFundraiser",
+      name: "OtterPadFactory",
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.OtterPadFundraiser>;
+    ): Promise<Contracts.OtterPadFactory>;
+    deployContract(
+      name: "OtterPadFund",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.OtterPadFund>;
     deployContract(
       name: "ReentrantToken",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -295,10 +308,15 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.MockUniswapV2Router02>;
     deployContract(
-      name: "OtterPadFundraiser",
+      name: "OtterPadFactory",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.OtterPadFundraiser>;
+    ): Promise<Contracts.OtterPadFactory>;
+    deployContract(
+      name: "OtterPadFund",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.OtterPadFund>;
     deployContract(
       name: "ReentrantToken",
       args: any[],

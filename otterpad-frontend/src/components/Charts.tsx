@@ -2,7 +2,7 @@ import { ApexOptions } from "apexcharts";
 import { Address } from "viem";
 import ReactApexCharts from "react-apexcharts";
 import dayjs from "dayjs";
-import { ContractDataResult } from "../pages/FundraiserPage";
+import { ContractDataResult } from "../pages/FundPage";
 import {
   Button,
   Carousel,

@@ -2,11 +2,11 @@
  * 
  * 
 # Using mock tokens (default)
-npx hardhat ignition deploy ./ignition/modules/OtterPadFundraiser.ts
-npx hardhat ignition deploy ./ignition/modules/OtterPadFundraiser.ts --network sepolia
+npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts
+npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --network sepolia
 
 # Using existing tokens
-npx hardhat ignition deploy ./ignition/modules/OtterPadFundraiser.ts --parameters '{
+npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --parameters '{
   "useMockTokens": false,
   "saleToken": "0x...",
   "paymentToken": "0x...",

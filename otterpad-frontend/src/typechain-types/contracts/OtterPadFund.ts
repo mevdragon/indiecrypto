@@ -23,7 +23,7 @@ import type {
   TypedContractMethod,
 } from "../common";
 
-export interface OtterPadFundraiserInterface extends Interface {
+export interface OtterPadFundInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "OTTERPAD_DAO"
@@ -467,11 +467,11 @@ export namespace TokensRedeemedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export interface OtterPadFundraiser extends BaseContract {
-  connect(runner?: ContractRunner | null): OtterPadFundraiser;
+export interface OtterPadFund extends BaseContract {
+  connect(runner?: ContractRunner | null): OtterPadFund;
   waitForDeployment(): Promise<this>;
 
-  interface: OtterPadFundraiserInterface;
+  interface: OtterPadFundInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,

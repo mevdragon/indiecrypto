@@ -3,5 +3,6 @@
 /* eslint-disable */
 export * as mockErc20Sol from "./MockERC20.sol";
 export { Lock__factory } from "./Lock__factory";
-export { OtterPadFundraiser__factory } from "./OtterPadFundraiser__factory";
+export { OtterPadFactory__factory } from "./OtterPadFactory__factory";
+export { OtterPadFund__factory } from "./OtterPadFund__factory";
 export { ReentrantToken__factory } from "./ReentrantToken__factory";

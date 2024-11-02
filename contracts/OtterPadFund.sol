@@ -1,4 +1,4 @@
-// OtterPadFundraiser.sol
+// OtterPadFund.sol
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
-contract OtterPadFundraiser is ReentrancyGuard {
+contract OtterPadFund is ReentrancyGuard {
     struct Purchase {
         uint256 paymentAmount;      // Total amount paid by user
         uint256 contributionAmount; // Amount after otterpad fee and upfront rake

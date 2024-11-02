@@ -12,7 +12,7 @@ const title = "Crypto Project";
 const richInfoUrl =
   "https://api.legions.bot/api/w/officex/capture_u/f/officex/otterpad_rest_api";
 
-describe("OtterPadFundraiser", function () {
+describe("OtterPadFund", function () {
   // Constants for Uniswap addresses
   const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6";
   const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3";
@@ -43,7 +43,7 @@ describe("OtterPadFundraiser", function () {
     const escrowRakeBPS = 300n; // 3%
 
     // Deploy the fundraiser with new constructor parameters
-    const fundraiser = await hre.viem.deployContract("OtterPadFundraiser", [
+    const fundraiser = await hre.viem.deployContract("OtterPadFund", [
       title,
       richInfoUrl,
       saleToken.address,
@@ -162,7 +162,7 @@ describe("OtterPadFundraiser", function () {
 
       // Get fundraiser contract instance for buyer1
       const buyer1Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFundraiser",
+        "OtterPadFund",
         fundraiser.address,
         { client: { wallet: buyer1 } }
       );
@@ -252,7 +252,7 @@ describe("OtterPadFundraiser", function () {
 
       // Make purchase
       const buyer1Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFundraiser",
+        "OtterPadFund",
         fundraiser.address,
         { client: { wallet: buyer1 } }
       );
@@ -297,7 +297,7 @@ describe("OtterPadFundraiser", function () {
       ]);
 
       const buyer1Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFundraiser",
+        "OtterPadFund",
         fundraiser.address,
         { client: { wallet: buyer1 } }
       );
@@ -347,7 +347,7 @@ describe("OtterPadFundraiser", function () {
       ]);
 
       const buyer1Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFundraiser",
+        "OtterPadFund",
         fundraiser.address,
         { client: { wallet: buyer1 } }
       );
@@ -381,7 +381,7 @@ describe("OtterPadFundraiser", function () {
       ]);
 
       const buyer1Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFundraiser",
+        "OtterPadFund",
         fundraiser.address,
         { client: { wallet: buyer1 } }
       );
@@ -440,7 +440,7 @@ describe("OtterPadFundraiser", function () {
       ]);
 
       const buyer1Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFundraiser",
+        "OtterPadFund",
         fundraiser.address,
         { client: { wallet: buyer1 } }
       );
@@ -476,7 +476,7 @@ describe("OtterPadFundraiser", function () {
       ]);
 
       const buyer1Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFundraiser",
+        "OtterPadFund",
         fundraiser.address,
         { client: { wallet: buyer1 } }
       );
@@ -529,7 +529,7 @@ describe("OtterPadFundraiser", function () {
 
       // Get fundraiser contract instance for buyer1
       const buyer1Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFundraiser",
+        "OtterPadFund",
         fundraiser.address,
         { client: { wallet: buyer1 } }
       );
@@ -569,7 +569,7 @@ describe("OtterPadFundraiser", function () {
       ]);
 
       const buyer1Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFundraiser",
+        "OtterPadFund",
         fundraiser.address,
         { client: { wallet: buyer1 } }
       );
@@ -612,7 +612,7 @@ describe("OtterPadFundraiser", function () {
       ]);
 
       const buyer1Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFundraiser",
+        "OtterPadFund",
         fundraiser.address,
         { client: { wallet: buyer1 } }
       );
@@ -632,7 +632,7 @@ describe("OtterPadFundraiser", function () {
       ]);
 
       const buyer2Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFundraiser",
+        "OtterPadFund",
         fundraiser.address,
         { client: { wallet: buyer2 } }
       );
@@ -658,7 +658,7 @@ describe("OtterPadFundraiser", function () {
       await buyer1PaymentToken.write.approve([fundraiser.address, payment1]);
 
       const buyer1Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFundraiser",
+        "OtterPadFund",
         fundraiser.address,
         { client: { wallet: buyer1 } }
       );
@@ -675,7 +675,7 @@ describe("OtterPadFundraiser", function () {
       await buyer2PaymentToken.write.approve([fundraiser.address, payment2]);
 
       const buyer2Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFundraiser",
+        "OtterPadFund",
         fundraiser.address,
         { client: { wallet: buyer2 } }
       );
@@ -777,7 +777,7 @@ describe("OtterPadFundraiser", function () {
       const [deployer, foundersWallet] = await hre.viem.getWalletClients();
 
       // First fundraiser with 5% total rake
-      const fundraiser1 = await hre.viem.deployContract("OtterPadFundraiser", [
+      const fundraiser1 = await hre.viem.deployContract("OtterPadFund", [
         title,
         richInfoUrl,
         saleToken.address,
@@ -793,7 +793,7 @@ describe("OtterPadFundraiser", function () {
       ]);
 
       // Second fundraiser with 10% total rake
-      const fundraiser2 = await hre.viem.deployContract("OtterPadFundraiser", [
+      const fundraiser2 = await hre.viem.deployContract("OtterPadFund", [
         title,
         richInfoUrl,
         saleToken.address,
@@ -832,7 +832,7 @@ describe("OtterPadFundraiser", function () {
 
       const [deployer, foundersWallet] = await hre.viem.getWalletClients();
 
-      const fundraiser = await hre.viem.deployContract("OtterPadFundraiser", [
+      const fundraiser = await hre.viem.deployContract("OtterPadFund", [
         title,
         richInfoUrl,
         saleToken6Dec.address,
@@ -872,7 +872,7 @@ describe("OtterPadFundraiser", function () {
       const [deployer, foundersWallet] = await hre.viem.getWalletClients();
 
       // Deploy fundraiser with very steep price curve (10x increase)
-      const fundraiser = await hre.viem.deployContract("OtterPadFundraiser", [
+      const fundraiser = await hre.viem.deployContract("OtterPadFund", [
         title,
         richInfoUrl,
         saleToken.address,

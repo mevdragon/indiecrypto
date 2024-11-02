@@ -9,8 +9,9 @@ import { WagmiProvider, createConfig, http } from "wagmi";
 import { sepolia } from "wagmi/chains";
 import { ConfigProvider } from "antd";
 import "@rainbow-me/rainbowkit/styles.css";
-import FundraiserPage from "./pages/FundraiserPage";
+import FundPage from "./pages/FundPage";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import CreatePage from "./pages/CreatePage";
 
 // Create wagmi config
 const config = createConfig({
@@ -56,21 +57,10 @@ function App() {
                     />
                   }
                 />
-                <Route
-                  path="/create"
-                  element={
-                    <Navigate
-                      to="/fund/0x0a0329F0B8EB742CC0d03ee8c592E58B6d351584"
-                      replace
-                    />
-                  }
-                />
+                <Route path="/create" element={<CreatePage />} />
 
                 {/* Fundraiser routes with dynamic parameter */}
-                <Route
-                  path="/fund/:contractAddress"
-                  element={<FundraiserPage />}
-                />
+                <Route path="/fund/:contractAddress" element={<FundPage />} />
 
                 {/* Catch all route - optional */}
                 <Route path="*" element={<Navigate to="/trending" replace />} />
