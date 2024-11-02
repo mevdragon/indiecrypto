@@ -50,9 +50,12 @@ import { Content } from "antd/es/layout/layout";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import TabPane from "antd/es/tabs/TabPane";
 import { getPublicClient, waitForTransaction } from "wagmi/actions";
-import ReactApexCharts from "react-apexcharts";
-import { ApexOptions } from "apexcharts";
-import dayjs from "dayjs";
+import {
+  CONTRACT_ABI,
+  ContractDataResult,
+  ERC20_ABI,
+} from "../pages/FundraiserPage";
+import { useMediaQuery } from "react-responsive";
 
 const { Title, Text } = Typography;
 
@@ -91,165 +94,15 @@ interface RefundState {
   txHash?: `0x${string}`;
 }
 
-const CONTRACT_ADDRESS = "0x795069dd648350fACC557e788Cc3db4474616391" as const;
-const CONTRACT_ABI = OtterPadFundraiser__factory.abi;
-
-// Contract function result types
-type ContractDataResult = {
-  currentPrice: bigint;
-  startPrice: bigint;
-  endPrice: bigint;
-  minimumPurchase: bigint;
-  saleTokenBalance: bigint;
-  totalActiveContributions: bigint;
-  paymentTokenBalance: bigint;
-  escrowedAmount: bigint;
-  targetReached: boolean;
-  isDeployedToUniswap: boolean;
-  saleTokenAddress: Address;
-  paymentTokenAddress: Address;
-  userAllocation?: bigint;
-  userOrders?: bigint[];
-  targetLiquidity: bigint;
-  upfrontRakeBPS: bigint;
-  escrowRakeBPS: bigint;
-  OTTERPAD_FEE_BPS: bigint;
-  totalPaymentsIn: bigint;
-};
-const ERC20_ABI = [
-  {
-    inputs: [
-      {
-        name: "owner",
-        type: "address",
-      },
-      {
-        name: "spender",
-        type: "address",
-      },
-    ],
-    name: "allowance",
-    outputs: [
-      {
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        name: "spender",
-        type: "address",
-      },
-      {
-        name: "amount",
-        type: "uint256",
-      },
-    ],
-    name: "approve",
-    outputs: [
-      {
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
-
-const generateBullishData = () => {
-  const basePrice = 6000;
-  const data = [];
-  const startTime = new Date("2024-01-01").getTime();
-
-  for (let i = 0; i < 50; i++) {
-    const time = startTime + i * 1800000; // 30-minute intervals
-    const volatility = Math.random() * 25;
-    const trend = i * 1.8; // Slightly stronger upward trend
-
-    // Reduced probability of red candles (25%)
-    const shouldBeRed = Math.random() < 0.27;
-
-    let open, close;
-    if (shouldBeRed) {
-      open = basePrice + trend + Math.random() * 20;
-      close = open - Math.random() * 12; // Smaller red candles
-    } else {
-      open = basePrice + trend + Math.random() * 20;
-      close = open + Math.random() * 25; // Green candle (close higher than open)
-    }
-
-    const high = Math.max(open, close) + volatility;
-    const low = Math.min(open, close) - volatility;
-
-    data.push({
-      x: new Date(time),
-      y: [open, high, low, close],
-    });
-  }
-  return data;
-};
-
-const chartData = {
-  series: [
-    {
-      name: "candle",
-      data: generateBullishData(),
-    },
-  ],
-  options: {
-    chart: {
-      height: 350,
-      type: "candlestick",
-      id: "candlestick-fundraiser",
-    },
-    title: {
-      text: "Otterpad Fundraiser - TVL",
-      align: "left",
-    },
-    annotations: {
-      xaxis: [
-        {
-          x: "Oct 06 14:00",
-          borderColor: "#00E396",
-          label: {
-            borderColor: "#00E396",
-            style: {
-              fontSize: "12px",
-              color: "#fff",
-              background: "#00E396",
-            },
-            orientation: "horizontal",
-            offsetY: 7,
-            text: "Annotation Test",
-          },
-        },
-      ],
-    },
-    tooltip: {
-      enabled: true,
-    },
-    xaxis: {
-      type: "datetime",
-      labels: {
-        formatter: function (val: any) {
-          return dayjs(val).format("MMM DD HH:mm");
-        },
-      },
-    },
-    yaxis: {
-      tooltip: {
-        enabled: true,
-      },
-    },
-  } as ApexOptions,
-};
-
-const FundraiserViewer = () => {
+const BuyPanel = ({
+  address,
+  contractData,
+}: {
+  address: Address;
+  contractData: ContractDataResult | null;
+}) => {
+  const CONTRACT_ADDRESS = address;
+  const isDesktop = useMediaQuery({ minWidth: 1024 });
   const [loading, setLoading] = useState(true);
   const [tokenInfo, setTokenInfo] = useState<TokenState>({
     sale: null,
@@ -257,13 +110,9 @@ const FundraiserViewer = () => {
   });
   const [buyAmount, setBuyAmount] = useState("");
   const [api, contextHolder] = notification.useNotification();
-  const { token } = theme.useToken();
   const { address: userAddress, isConnected } = useAccount();
   const [estimatedTokens, setEstimatedTokens] = useState<string>("0");
   const publicClient = usePublicClient();
-
-  const [isPendingApproval, setIsPendingApproval] = useState(false);
-  const [isPendingPurchase, setIsPendingPurchase] = useState(false);
 
   const [isApproved, setIsApproved] = useState(false);
   const [currentAllowance, setCurrentAllowance] = useState<bigint>(BigInt(0));
@@ -591,149 +440,6 @@ const FundraiserViewer = () => {
       setBuyAmount("");
     }
   }, [isApprovalSuccess, isPurchaseSuccess]);
-
-  // Batch contract reads with proper configuration
-  const { data: contractResults, isError } = useContractReads({
-    contracts: [
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "getCurrentPrice",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "startPrice",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "endPrice",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "getMinimumPurchase",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "getSaleTokenBalance",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "getPaymentTokenBalance",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "getEscrowedAmount",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "targetReached",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "isDeployedToUniswap",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "saleToken",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "paymentToken",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "targetLiquidity",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "upfrontRakeBPS",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "escrowRakeBPS",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "OTTERPAD_FEE_BPS",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "totalActiveContributions",
-      },
-      {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "totalPaymentsIn",
-      },
-      ...(userAddress
-        ? [
-            {
-              address: CONTRACT_ADDRESS,
-              abi: CONTRACT_ABI,
-              functionName: "getAllocation",
-              args: [userAddress],
-            },
-            {
-              address: CONTRACT_ADDRESS,
-              abi: CONTRACT_ABI,
-              functionName: "getUserOrderIndices",
-              args: [userAddress],
-            },
-          ]
-        : []),
-    ],
-    query: {
-      refetchInterval: 30000, // Refresh every 30 seconds
-    },
-  });
-
-  // Process contract results into typed data
-  const processContractData = (): ContractDataResult | null => {
-    if (!contractResults) return null;
-
-    const successResults = contractResults.map((result) =>
-      result.status === "success" ? result.result : undefined
-    );
-
-    return {
-      currentPrice: successResults[0] as bigint,
-      startPrice: successResults[1] as bigint,
-      endPrice: successResults[2] as bigint,
-      minimumPurchase: successResults[3] as bigint,
-      saleTokenBalance: successResults[4] as bigint,
-      paymentTokenBalance: successResults[5] as bigint,
-      escrowedAmount: successResults[6] as bigint,
-      targetReached: successResults[7] as boolean,
-      isDeployedToUniswap: successResults[8] as boolean,
-      saleTokenAddress: successResults[9] as Address,
-      paymentTokenAddress: successResults[10] as Address,
-      targetLiquidity: successResults[11] as bigint,
-      upfrontRakeBPS: successResults[12] as bigint,
-      escrowRakeBPS: successResults[13] as bigint,
-      OTTERPAD_FEE_BPS: successResults[14] as bigint,
-      totalActiveContributions: successResults[15] as bigint,
-      totalPaymentsIn: successResults[16] as bigint,
-      userAllocation: successResults[17] as bigint | undefined,
-      userOrders: successResults[18] as bigint[] | undefined,
-    };
-  };
-
-  const contractData = processContractData();
 
   useEffect(() => {
     const fetchPurchaseData = async () => {
@@ -1283,14 +989,27 @@ const FundraiserViewer = () => {
 
   if (loading || !tokenInfo.sale || !tokenInfo.payment) {
     return (
-      <Card style={{ textAlign: "center", padding: "50px" }}>
+      <Card
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+          minWidth: "550px",
+          maxWidth: "550px",
+          padding: "50px",
+          height: "75vh",
+        }}
+      >
         <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
-        <div style={{ marginTop: "20px" }}>Loading token information...</div>
+        <div style={{ marginTop: "20px" }}>
+          Loading fundraiser information...
+        </div>
       </Card>
     );
   }
 
-  if (isError || !contractData) {
+  if (!contractData) {
     return (
       <Card>
         <Alert
@@ -1440,456 +1159,393 @@ const FundraiserViewer = () => {
     }`;
   };
 
-  const WalletConnector = () => {
-    if (isConnected) {
-      return (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "flex-end",
-          }}
-        >
-          <ConnectButton />
-        </div>
-      );
-    }
-
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "flex-end",
-        }}
-      >
-        <ConnectButton />
-      </div>
-    );
-  };
-
   return (
-    <Layout
+    <div
       style={{
-        minHeight: "100vh",
-        maxHeight: "100vh",
-        background: "#f5f5f5",
-        display: "flex",
-        flexDirection: "row",
-        minWidth: "100vw",
-        justifyContent: "center",
+        width: "100%",
+        minWidth: isDesktop ? "550px" : "100%",
+        maxWidth: isDesktop ? "550px" : "100%",
+        position: "relative",
       }}
     >
-      <div
-        id="chart"
-        style={{ flex: 1, maxHeight: "100vh", textAlign: "left" }}
-      >
-        <h1 style={{ marginLeft: 16, fontSize: "2rem" }}>Otterpad Finance</h1>
-        <ReactApexCharts
-          series={chartData.series}
-          type="candlestick"
-          height="80%"
-          options={chartData.options}
-        />
-      </div>
-      {/* Fixed width container wrapper */}
-      <div
+      <Content
         style={{
           width: "100%",
-          minWidth: "600px",
-          maxWidth: "600px",
-          padding: "16px",
-          position: "relative",
         }}
       >
-        {/* Wallet connector fixed position */}
-        <WalletConnector />
-
-        <Content
+        <Card
           style={{
             width: "100%",
-            marginTop: "64px",
+            borderRadius: "12px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            minHeight: "75vh",
           }}
         >
-          <Card
+          <div
             style={{
               width: "100%",
-              borderRadius: "12px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-              minHeight: "85vh",
+              display: "flex",
+              flexDirection: "column",
+              gap: "24px",
             }}
           >
+            {/* Header with fixed width */}
             <div
               style={{
                 width: "100%",
                 display: "flex",
-                flexDirection: "column",
-                gap: "24px",
+                alignItems: "space-between",
+                gap: "12px",
+                flexWrap: "nowrap",
               }}
             >
-              {/* Header with fixed width */}
-              <div
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "space-between",
-                  gap: "12px",
-                  flexWrap: "nowrap",
-                }}
-              >
-                <div style={{ display: "flex", flex: "1" }}>
-                  <Title level={3} style={{ margin: 0 }}>
-                    OtterPad Fundraiser
-                  </Title>
-                </div>
-                {getStatusTag()}
-                <Tooltip title={getContractBalanceInfo()}>
-                  <InfoCircleOutlined style={{ color: "#1890ff" }} />
-                </Tooltip>
+              <div style={{ display: "flex", flex: "1" }}>
+                <Title level={3} style={{ margin: 0 }}>
+                  {contractData.title}
+                </Title>
               </div>
+              {getStatusTag()}
+              <Tooltip title={getContractBalanceInfo()}>
+                <InfoCircleOutlined style={{ color: "#1890ff" }} />
+              </Tooltip>
+            </div>
 
-              {/* Price and Progress Cards */}
-              <Row gutter={[16, 16]} style={{ width: "100%", margin: 0 }}>
-                <Col xs={24} md={8} style={{ width: "100%" }}>
-                  <Card
-                    style={{ height: "100%", width: "100%", textAlign: "left" }}
+            {/* Price and Progress Cards */}
+            <Row gutter={[16, 16]} style={{ width: "100%", margin: 0 }}>
+              <Col xs={24} md={8} style={{ width: "100%" }}>
+                <Card
+                  style={{ height: "100%", width: "100%", textAlign: "left" }}
+                >
+                  <Text strong>Current Price</Text>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: "8px",
+                      marginTop: "8px",
+                      width: "100%",
+                      flexDirection: "column",
+                    }}
                   >
-                    <Text strong>Current Price</Text>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: "8px",
-                        marginTop: "8px",
-                        width: "100%",
-                        flexDirection: "column",
-                      }}
+                    <Title
+                      level={3}
+                      style={{ margin: 0, whiteSpace: "nowrap" }}
                     >
-                      <Title
-                        level={3}
-                        style={{ margin: 0, whiteSpace: "nowrap" }}
-                      >
-                        {formatEther(contractData.currentPrice)} PAY
-                      </Title>
-                      <Text type="secondary" style={{ whiteSpace: "nowrap" }}>
-                        End: {formatEther(contractData.endPrice)} PAY
-                      </Text>
-                    </div>
-                  </Card>
-                </Col>
-                <Col xs={24} md={16} style={{ width: "100%" }}>
-                  <Card style={{ height: "100%", width: "100%" }}>
+                      {formatEther(contractData.currentPrice)} PAY
+                    </Title>
+                    <Text type="secondary" style={{ whiteSpace: "nowrap" }}>
+                      End: {formatEther(contractData.endPrice)} PAY
+                    </Text>
+                  </div>
+                </Card>
+              </Col>
+              <Col xs={24} md={16} style={{ width: "100%" }}>
+                <Card style={{ height: "100%", width: "100%" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "16px",
+                      width: "100%",
+                      textAlign: "left",
+                    }}
+                  >
+                    <Text strong style={{ flex: "1" }}>
+                      Progress to Liquidity Goal
+                    </Text>
+                    <Tooltip title={getEscrowInfo()}>
+                      <InfoCircleOutlined
+                        style={{
+                          color: "#8c8c8c",
+                          cursor: "help",
+                          flexShrink: 0,
+                        }}
+                      />
+                    </Tooltip>
+                  </div>
+                  <Progress
+                    percent={getLiquidityProgress()}
+                    status="active"
+                    format={() => formatProgressDisplay()}
+                    style={{ marginBottom: 0 }}
+                  />
+                </Card>
+              </Col>
+            </Row>
+
+            {/* Tabs Container */}
+            <Tabs
+              defaultActiveKey="1"
+              style={{
+                width: "100%",
+                background: "white",
+                borderRadius: "8px",
+              }}
+            >
+              {/* Buy Tokens Tab */}
+              <TabPane
+                tab={
+                  <span>
+                    <ShoppingCartOutlined />
+                    Buy Tokens
+                  </span>
+                }
+                key="1"
+              >
+                <div
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "24px",
+                  }}
+                >
+                  <div style={{ width: "100%" }}>
                     <div
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        marginBottom: "16px",
+                        marginBottom: "12px",
                         width: "100%",
-                        textAlign: "left",
                       }}
                     >
-                      <Text strong style={{ flex: "1" }}>
-                        Progress to Liquidity Goal
+                      <Text strong>
+                        Amount to Buy (PAY)
+                        <Tooltip title={getMaxRemainTooltip()}>
+                          <Button
+                            type="link"
+                            size="small"
+                            onClick={handleMaxRemainClick}
+                            className="whitespace-nowrap bg-blue-500 hover:bg-blue-600 text-white"
+                          >
+                            Max Remain
+                          </Button>
+                        </Tooltip>
                       </Text>
-                      <Tooltip title={getEscrowInfo()}>
-                        <InfoCircleOutlined
-                          style={{
-                            color: "#8c8c8c",
-                            cursor: "help",
-                            flexShrink: 0,
-                          }}
-                        />
-                      </Tooltip>
+                      <Text type="secondary" style={{ whiteSpace: "nowrap" }}>
+                        Balance: {userPaymentTokenBalance?.formatted ?? "0"} PAY
+                      </Text>
                     </div>
-                    <Progress
-                      percent={getLiquidityProgress()}
-                      status="active"
-                      format={() => formatProgressDisplay()}
-                      style={{ marginBottom: 0 }}
-                    />
-                  </Card>
-                </Col>
-              </Row>
 
-              {/* Tabs Container */}
-              <Tabs
-                defaultActiveKey="1"
-                style={{
-                  width: "100%",
-                  background: "white",
-                  borderRadius: "8px",
-                }}
-              >
-                {/* Buy Tokens Tab */}
-                <TabPane
-                  tab={
-                    <span>
-                      <ShoppingCartOutlined />
-                      Buy Tokens
-                    </span>
-                  }
-                  key="1"
-                >
-                  <div
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "24px",
-                    }}
-                  >
-                    <div style={{ width: "100%" }}>
-                      <div
+                    <div className="flex gap-2 w-full">
+                      <Input
+                        size="large"
+                        placeholder="Enter amount"
+                        value={buyAmount}
+                        onChange={handleBuyAmountChange}
+                        prefix={<DollarOutlined className="text-gray-500" />}
+                        suffix="PAY"
+                        className="flex-1"
+                      />
+                    </div>
+
+                    {parseFloat(buyAmount) > 0 && (
+                      <Row
+                        gutter={[16, 16]}
                         style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: "12px",
+                          marginTop: "16px",
                           width: "100%",
                         }}
                       >
-                        <Text strong>
-                          Amount to Buy (PAY)
-                          <Tooltip title={getMaxRemainTooltip()}>
-                            <Button
-                              type="link"
-                              size="small"
-                              onClick={handleMaxRemainClick}
-                              className="whitespace-nowrap bg-blue-500 hover:bg-blue-600 text-white"
-                            >
-                              Max Remain
-                            </Button>
-                          </Tooltip>
-                        </Text>
-                        <Text type="secondary" style={{ whiteSpace: "nowrap" }}>
-                          Balance: {userPaymentTokenBalance?.formatted ?? "0"}{" "}
-                          PAY
-                        </Text>
-                      </div>
-
-                      <div className="flex gap-2 w-full">
-                        <Input
-                          size="large"
-                          placeholder="Enter amount"
-                          value={buyAmount}
-                          onChange={handleBuyAmountChange}
-                          prefix={<DollarOutlined className="text-gray-500" />}
-                          suffix="PAY"
-                          className="flex-1"
-                        />
-                      </div>
-
-                      {parseFloat(buyAmount) > 0 && (
-                        <Row
-                          gutter={[16, 16]}
-                          style={{
-                            marginTop: "16px",
-                            width: "100%",
-                          }}
-                        >
-                          <Col xs={24} md={8}>
-                            <div style={{ width: "100%" }}>
-                              <Statistic
-                                title="Total Cost"
-                                value={buyAmount}
-                                suffix="PAY"
-                              />
-                            </div>
-                          </Col>
-                          <Col xs={24} md={8}>
-                            <div style={{ width: "100%" }}>
-                              <Statistic
-                                title="Estimated Tokens"
-                                value={Number(estimatedTokens).toFixed(3)}
-                                suffix="SALE"
-                              />
-                            </div>
-                          </Col>
-                          <Col xs={24} md={8}>
-                            <div style={{ width: "100%" }}>
-                              <Statistic
-                                title="Avg Price per Token"
-                                value={Number(avgPricePerToken).toFixed(4)}
-                                suffix="PAY"
-                              />
-                            </div>
-                          </Col>
-                        </Row>
-                      )}
-                    </div>
-
-                    <Button
-                      type="primary"
-                      size="large"
-                      icon={getButtonState().icon}
-                      onClick={getButtonState().onClick}
-                      disabled={getButtonState().disabled || !isConnected}
-                      style={{ width: "100%", height: "48px" }}
-                    >
-                      <label style={{ marginLeft: 10 }}>
-                        {getButtonState().text}
-                      </label>
-                    </Button>
-
-                    <Text
-                      type="secondary"
-                      style={{
-                        textAlign: "center",
-                        width: "100%",
-                      }}
-                    >
-                      Make sure you have enough PAY tokens in your wallet.
-                      Transaction will require approval from your wallet.
-                    </Text>
+                        <Col xs={24} md={8}>
+                          <div style={{ width: "100%" }}>
+                            <Statistic
+                              title="Total Cost"
+                              value={buyAmount}
+                              suffix="PAY"
+                            />
+                          </div>
+                        </Col>
+                        <Col xs={24} md={8}>
+                          <div style={{ width: "100%" }}>
+                            <Statistic
+                              title="Estimated Tokens"
+                              value={Number(estimatedTokens).toFixed(3)}
+                              suffix="SALE"
+                            />
+                          </div>
+                        </Col>
+                        <Col xs={24} md={8}>
+                          <div style={{ width: "100%" }}>
+                            <Statistic
+                              title="Avg Price per Token"
+                              value={Number(avgPricePerToken).toFixed(4)}
+                              suffix="PAY"
+                            />
+                          </div>
+                        </Col>
+                      </Row>
+                    )}
                   </div>
-                </TabPane>
 
-                {/* My Orders Tab */}
-                <TabPane
-                  tab={
-                    <span>
-                      <UserOutlined />
-                      My Orders
-                    </span>
-                  }
-                  key="2"
-                >
-                  <div
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={getButtonState().icon}
+                    onClick={getButtonState().onClick}
+                    disabled={getButtonState().disabled || !isConnected}
+                    style={{ width: "100%", height: "48px" }}
+                  >
+                    <label style={{ marginLeft: 10 }}>
+                      {getButtonState().text}
+                    </label>
+                  </Button>
+
+                  <Text
+                    type="secondary"
                     style={{
+                      textAlign: "center",
                       width: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "24px",
-                      overflowY: "scroll",
-                      height: "50vh",
                     }}
                   >
-                    <Row gutter={[16, 16]} style={{ width: "100%", margin: 0 }}>
-                      <Card style={{ width: "100%" }}>
-                        <Statistic
-                          title="Your Allocation"
-                          value={
-                            contractData.userAllocation
-                              ? formatEther(contractData.userAllocation)
-                              : "0"
-                          }
-                          suffix="SALE"
-                          prefix={<UserOutlined />}
-                        />
-                      </Card>
-                    </Row>
+                    Make sure you have enough PAY tokens in your wallet.
+                    Transaction will require approval from your wallet.
+                  </Text>
+                </div>
+              </TabPane>
 
-                    <List
-                      style={{ width: "100%" }}
-                      itemLayout="horizontal"
-                      dataSource={contractData.userOrders || []}
-                      renderItem={(orderIndex) => {
-                        const purchase = purchaseData[Number(orderIndex)];
-                        if (!purchase) return null;
+              {/* My Orders Tab */}
+              <TabPane
+                tab={
+                  <span>
+                    <UserOutlined />
+                    My Orders
+                  </span>
+                }
+                key="2"
+              >
+                <div
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "24px",
+                    overflowY: "scroll",
+                    height: "40vh",
+                  }}
+                >
+                  <Row gutter={[16, 16]} style={{ width: "100%", margin: 0 }}>
+                    <Card style={{ width: "100%" }}>
+                      <Statistic
+                        title="Your Allocation"
+                        value={
+                          contractData.userAllocation
+                            ? formatEther(contractData.userAllocation)
+                            : "0"
+                        }
+                        suffix="SALE"
+                        prefix={<UserOutlined />}
+                      />
+                    </Card>
+                  </Row>
 
-                        return (
-                          <Card
+                  <List
+                    style={{ width: "100%" }}
+                    itemLayout="horizontal"
+                    dataSource={contractData.userOrders || []}
+                    renderItem={(orderIndex) => {
+                      const purchase = purchaseData[Number(orderIndex)];
+                      if (!purchase) return null;
+
+                      return (
+                        <Card
+                          style={{
+                            width: "100%",
+                            marginBottom: "16px",
+                          }}
+                        >
+                          <div
                             style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
                               width: "100%",
-                              marginBottom: "16px",
+                              gap: "16px",
                             }}
                           >
                             <div
                               style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                width: "100%",
-                                gap: "16px",
+                                flex: "1",
+                                minWidth: 0,
                               }}
                             >
-                              <div
+                              <Title
+                                level={5}
                                 style={{
-                                  flex: "1",
-                                  minWidth: 0,
+                                  margin: 0,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
                                 }}
                               >
-                                <Title
-                                  level={5}
-                                  style={{
-                                    margin: 0,
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
-                                  Bought{" "}
-                                  {formatTokenAmount(
-                                    purchase.tokenAmount,
-                                    "SALE"
-                                  )}
-                                </Title>
-                                <Text
-                                  type="secondary"
-                                  style={{
-                                    display: "block",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
-                                  for{" "}
-                                  {formatTokenAmount(
-                                    purchase.paymentAmount,
-                                    "PAY"
-                                  )}
-                                </Text>
-                              </div>
-                              <div
+                                Bought{" "}
+                                {formatTokenAmount(
+                                  purchase.tokenAmount,
+                                  "SALE"
+                                )}
+                              </Title>
+                              <Text
+                                type="secondary"
                                 style={{
-                                  display: "flex",
-                                  gap: "8px",
-                                  flexShrink: 0,
+                                  display: "block",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
                                 }}
                               >
-                                <Button
-                                  type="primary"
-                                  icon={<GiftOutlined />}
-                                  onClick={() =>
-                                    handleRedeem(Number(orderIndex))
-                                  }
-                                  disabled={
-                                    !contractData.targetReached ||
-                                    purchase.isRedeemed
-                                  }
-                                >
-                                  Redeem
-                                </Button>
-                                <Button
-                                  type="default"
-                                  danger
-                                  icon={<RollbackOutlined />}
-                                  onClick={() =>
-                                    handleRefund(Number(orderIndex))
-                                  }
-                                  disabled={
-                                    contractData.targetReached ||
-                                    purchase.isRefunded
-                                  }
-                                >
-                                  Refund
-                                </Button>
-                              </div>
+                                for{" "}
+                                {formatTokenAmount(
+                                  purchase.paymentAmount,
+                                  "PAY"
+                                )}
+                              </Text>
                             </div>
-                          </Card>
-                        );
-                      }}
-                    />
-                  </div>
-                </TabPane>
-              </Tabs>
-            </div>
-          </Card>
-        </Content>
-      </div>
-    </Layout>
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "8px",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Button
+                                type="primary"
+                                icon={<GiftOutlined />}
+                                onClick={() => handleRedeem(Number(orderIndex))}
+                                disabled={
+                                  !contractData.targetReached ||
+                                  purchase.isRedeemed
+                                }
+                              >
+                                Redeem
+                              </Button>
+                              <Button
+                                type="default"
+                                danger
+                                icon={<RollbackOutlined />}
+                                onClick={() => handleRefund(Number(orderIndex))}
+                                disabled={
+                                  contractData.targetReached ||
+                                  purchase.isRefunded
+                                }
+                              >
+                                Refund
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    }}
+                  />
+                </div>
+              </TabPane>
+            </Tabs>
+          </div>
+        </Card>
+      </Content>
+    </div>
   );
 };
 
-export default FundraiserViewer;
+export default BuyPanel;

@@ -50,10 +50,12 @@ export interface OtterPadFundraiserInterface extends Interface {
       | "recoverStuckTokens"
       | "redeem"
       | "refund"
+      | "richInfoUrl"
       | "saleToken"
       | "startPrice"
       | "targetLiquidity"
       | "targetReached"
+      | "title"
       | "totalActiveContributions"
       | "totalPaymentsIn"
       | "totalTokensAllocated"
@@ -163,6 +165,10 @@ export interface OtterPadFundraiserInterface extends Interface {
     functionFragment: "refund",
     values: [BigNumberish]
   ): string;
+  encodeFunctionData(
+    functionFragment: "richInfoUrl",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "saleToken", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "startPrice",
@@ -176,6 +182,7 @@ export interface OtterPadFundraiserInterface extends Interface {
     functionFragment: "targetReached",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "title", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "totalActiveContributions",
     values?: undefined
@@ -286,6 +293,10 @@ export interface OtterPadFundraiserInterface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "redeem", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "refund", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "richInfoUrl",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "saleToken", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "startPrice", data: BytesLike): Result;
   decodeFunctionResult(
@@ -296,6 +307,7 @@ export interface OtterPadFundraiserInterface extends Interface {
     functionFragment: "targetReached",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "title", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "totalActiveContributions",
     data: BytesLike
@@ -505,7 +517,7 @@ export interface OtterPadFundraiser extends BaseContract {
   buy: TypedContractMethod<[paymentAmount: BigNumberish], [void], "nonpayable">;
 
   calculateTokensReceived: TypedContractMethod<
-    [contributionAmount: BigNumberish],
+    [paymentAmount: BigNumberish],
     [bigint],
     "view"
   >;
@@ -572,6 +584,8 @@ export interface OtterPadFundraiser extends BaseContract {
 
   refund: TypedContractMethod<[orderIndex: BigNumberish], [void], "nonpayable">;
 
+  richInfoUrl: TypedContractMethod<[], [string], "view">;
+
   saleToken: TypedContractMethod<[], [string], "view">;
 
   startPrice: TypedContractMethod<[], [bigint], "view">;
@@ -579,6 +593,8 @@ export interface OtterPadFundraiser extends BaseContract {
   targetLiquidity: TypedContractMethod<[], [bigint], "view">;
 
   targetReached: TypedContractMethod<[], [boolean], "view">;
+
+  title: TypedContractMethod<[], [string], "view">;
 
   totalActiveContributions: TypedContractMethod<[], [bigint], "view">;
 
@@ -613,7 +629,7 @@ export interface OtterPadFundraiser extends BaseContract {
   ): TypedContractMethod<[paymentAmount: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "calculateTokensReceived"
-  ): TypedContractMethod<[contributionAmount: BigNumberish], [bigint], "view">;
+  ): TypedContractMethod<[paymentAmount: BigNumberish], [bigint], "view">;
   getFunction(
     nameOrSignature: "checkSaleTokensRequired"
   ): TypedContractMethod<[], [bigint], "view">;
@@ -693,6 +709,9 @@ export interface OtterPadFundraiser extends BaseContract {
     nameOrSignature: "refund"
   ): TypedContractMethod<[orderIndex: BigNumberish], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "richInfoUrl"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
     nameOrSignature: "saleToken"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
@@ -704,6 +723,9 @@ export interface OtterPadFundraiser extends BaseContract {
   getFunction(
     nameOrSignature: "targetReached"
   ): TypedContractMethod<[], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "title"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "totalActiveContributions"
   ): TypedContractMethod<[], [bigint], "view">;
