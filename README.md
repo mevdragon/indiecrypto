@@ -10,4 +10,5 @@
 
 <img width="1387" alt="Group 455 (1)" src="https://github.com/user-attachments/assets/7775b787-9af3-4b3b-bcdf-cc85c6219f47">
 
-<img width="1512" alt="image" src="https://github.com/user-attachments/assets/817e7e1a-bc14-4bf5-aa80-e9ee109e9370">
+![image](https://github.com/user-attachments/assets/af3cc2ee-19ff-4cff-85cf-537c5cefdbe2)
+
