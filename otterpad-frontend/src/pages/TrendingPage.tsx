@@ -110,6 +110,7 @@ const TrendingPage: React.FC = () => {
                   const target = e.target as HTMLImageElement;
                   target.src = DEFAULT_IMAGE;
                 }}
+                style={{ width: "100%", height: "200px", objectFit: "cover" }}
               />
             }
             style={{ width: "100%" }}
@@ -135,7 +136,7 @@ const TrendingPage: React.FC = () => {
         }}
       >
         <h1 style={{ fontSize: "1.7rem", color: "rgba(0,0,0,0.75)" }}>
-          Trending Projects
+          Trending
         </h1>
         <Input.Search
           placeholder="Search by contract address or title..."
