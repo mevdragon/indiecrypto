@@ -144,6 +144,7 @@ const Charts = ({
     const url = contractData?.richInfoUrl;
     // const url = `https://api.legions.bot/api/w/officex/capture_u/f/officex/otterpad_rest_api?fund=${"a837fc4a-fdf2-4646-b682-68439ea59e0d"}"`;
     console.log(url);
+    console.log(address);
     if (!url) return;
 
     try {

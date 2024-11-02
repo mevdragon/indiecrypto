@@ -494,7 +494,7 @@ const CreatePage: React.FC = () => {
                 label={
                   <Space>
                     URL to Metadata
-                    <Tooltip title="Custom URL for additional fund information. This should be a JSON file you control and is retrievable by public GET request. Should take shape of { title, description, website, twitter, media: string[] }">
+                    <Tooltip title="Custom URL for additional fund information. This should be a JSON file you control and is retrievable by public GET request. Should take shape of { title, description, website, twitter, media: url[] }">
                       <InfoCircleOutlined />
                     </Tooltip>
                   </Space>
