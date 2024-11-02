@@ -63,7 +63,7 @@ const carouselSettings: CarouselProps = {
   effect: "fade",
 };
 
-interface OtterpadInfo {
+export interface OtterpadInfo {
   title: string;
   description: string;
   media: string[];
@@ -79,6 +79,7 @@ const Charts = ({
   contractData: ContractDataResult | null;
 }) => {
   console.log(address);
+  console.log(contractData);
 
   const [otterpadInfo, setOtterpadInfo] = useState<OtterpadInfo | null>(null);
 
@@ -137,20 +138,20 @@ const Charts = ({
     } as ApexOptions,
   };
 
-  async function fetchOtterpadInfo(address: Address): Promise<OtterpadInfo> {
-    const url =
-      "https://api.legions.bot/api/w/officex/jobs/run_wait_result/f/f/officex/otterpad_rest_api?token=ixJCgjvjwtok1RyDjxeaWC1igjaoNWwF&payload=e30%3D";
-
-    // const url =
-    //   "https://api.legions.bot/api/w/officex/capture_u/f/officex/otterpad_rest_api";
+  async function fetchOtterpadInfo(
+    address: Address
+  ): Promise<OtterpadInfo | undefined> {
+    const url = contractData?.richInfoUrl;
+    // const url = `https://api.legions.bot/api/w/officex/capture_u/f/officex/otterpad_rest_api?fund=${"a837fc4a-fdf2-4646-b682-68439ea59e0d"}"`;
+    console.log(url);
+    if (!url) return;
 
     try {
       const response = await fetch(url, {
-        method: "POST",
+        method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ route: "/fund", payload: { address } }),
       });
 
       if (!response.ok) {
@@ -171,7 +172,7 @@ const Charts = ({
 
   useEffect(() => {
     fetchOtterpadInfo(address);
-  }, [address]);
+  }, [address, contractData?.richInfoUrl]);
 
   return (
     <div

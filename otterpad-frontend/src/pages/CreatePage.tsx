@@ -24,6 +24,7 @@ import AppLayout from "../AppLayout";
 import { useMediaQuery } from "react-responsive";
 import { OtterPadFactory__factory } from "../typechain-types";
 import { v4 as uuidv4 } from "uuid";
+import { OtterpadInfo } from "../components/Charts";
 
 interface FundForm {
   title: string;
@@ -66,13 +67,65 @@ const CreatePage: React.FC = () => {
     hash: txHash,
   });
 
+  const saveMetadataToDatabase = async (fundId: string, info: OtterpadInfo) => {
+    try {
+      const response = await fetch(
+        "https://api.legions.bot/api/w/officex/jobs/run_wait_result/f/f/officex/otterpad_rest_api?token=ixJCgjvjwtok1RyDjxeaWC1igjaoNWwF&payload=e30%3D",
+        // "https://api.legions.bot/api/w/officex/capture_u/f/officex/otterpad_rest_api",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            route: "POST/fund",
+            payload: {
+              id: fundId,
+              ...info,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to save metadata");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error saving metadata:", error);
+      throw error;
+    }
+  };
+
   const handleCreateFund = async (values: FundForm) => {
     try {
+      const fundId = uuidv4();
       setIsSubmitting(true);
 
-      const richInfoUrl = values.useCustomRichInfo
-        ? values.richInfoUrl!
-        : "https://api.legions.bot/api/w/officex/jobs/run_wait_result/f/f/officex/otterpad_rest_api?token=ixJCgjvjwtok1RyDjxeaWC1igjaoNWwF&payload=e30%3D";
+      let richInfoUrl: string;
+      console.log(`values`, values);
+      if (values.richInfoUrl) {
+        richInfoUrl = values.richInfoUrl!;
+      } else {
+        // First save the metadata
+        const otterpadInfo: OtterpadInfo = {
+          title: values.title,
+          description: values.description || "",
+          media: values.media
+            ? values.media.split(",").map((url) => url.trim())
+            : [],
+          website: values.website || "",
+          twitter: values.twitter || "",
+        };
+
+        await saveMetadataToDatabase(fundId, otterpadInfo);
+
+        // Use the complete URL with fund parameter
+        richInfoUrl = `https://app.legions.bot/webhook/0c5cc860-244a-477c-a264-5a4602681d18?fund=${fundId}`;
+      }
+
+      console.log(`richInfoUrl`, richInfoUrl);
 
       messageApi.loading({
         content: "Please confirm the transaction in your wallet...",
@@ -212,7 +265,7 @@ const CreatePage: React.FC = () => {
         }}
       >
         <Card
-          title="Create New Fund"
+          title="Create Crypto Fundraiser"
           style={{
             width: isDesktop ? "600px" : "100%",
             maxWidth: "100%",
@@ -242,7 +295,7 @@ const CreatePage: React.FC = () => {
                 { required: true, message: "Please input the fund title!" },
               ]}
             >
-              <Input placeholder="My Awesome Fund" />
+              <Input placeholder="Crypto Project" />
             </Form.Item>
 
             <Form.Item
@@ -312,7 +365,7 @@ const CreatePage: React.FC = () => {
               label={
                 <Space>
                   Start Price
-                  <Tooltip title="Initial token price at the start of the fundraiser">
+                  <Tooltip title="Initial token price at the start of the fundraiser in wei">
                     <InfoCircleOutlined />
                   </Tooltip>
                 </Space>
@@ -329,7 +382,7 @@ const CreatePage: React.FC = () => {
               label={
                 <Space>
                   End Price
-                  <Tooltip title="Final token price at the end of the fundraiser">
+                  <Tooltip title="Final token price at the end of the fundraiser in wei">
                     <InfoCircleOutlined />
                   </Tooltip>
                 </Space>
@@ -360,7 +413,7 @@ const CreatePage: React.FC = () => {
               label={
                 <Space>
                   Target Liquidity
-                  <Tooltip title="Target amount of liquidity to be raised">
+                  <Tooltip title="Target amount of liquidity to be raised in wei">
                     <InfoCircleOutlined />
                   </Tooltip>
                 </Space>
@@ -380,7 +433,7 @@ const CreatePage: React.FC = () => {
               label={
                 <Space>
                   Upfront Rake (BPS)
-                  <Tooltip title="Initial fee in basis points (100 = 1%)">
+                  <Tooltip title="Initial fee in basis points (100 = 1%). Minimum is 100">
                     <InfoCircleOutlined />
                   </Tooltip>
                 </Space>
@@ -402,7 +455,7 @@ const CreatePage: React.FC = () => {
               label={
                 <Space>
                   Escrow Rake (BPS)
-                  <Tooltip title="Escrow fee in basis points (100 = 1%)">
+                  <Tooltip title="Escrow fee in basis points (100 = 1%). Minimum is 0">
                     <InfoCircleOutlined />
                   </Tooltip>
                 </Space>
@@ -421,7 +474,7 @@ const CreatePage: React.FC = () => {
             </Form.Item>
 
             <Form.Item
-              label="Use Custom Rich Info"
+              label="Custom Metadata"
               style={{
                 display: "flex",
                 flexDirection: "row",
@@ -431,7 +484,7 @@ const CreatePage: React.FC = () => {
               <Switch
                 checked={useCustomInfo}
                 onChange={handleCustomInfoChange}
-                checkedChildren="Custom Rich Info URL"
+                checkedChildren="Custom Metadata"
                 unCheckedChildren="Standard Info"
               />
             </Form.Item>
@@ -440,8 +493,8 @@ const CreatePage: React.FC = () => {
               <Form.Item
                 label={
                   <Space>
-                    Rich Info URL
-                    <Tooltip title="Custom URL for additional fund information">
+                    URL to Metadata
+                    <Tooltip title="Custom URL for additional fund information. This should be a JSON file you control and is retrievable by public GET request. Should take shape of { title, description, website, twitter, media: string[] }">
                       <InfoCircleOutlined />
                     </Tooltip>
                   </Space>
@@ -507,14 +560,14 @@ const CreatePage: React.FC = () => {
                   label={
                     <Space>
                       Twitter
-                      <Tooltip title="Twitter handle (without @)">
+                      <Tooltip title="Twitter url such as https://x.com/username">
                         <InfoCircleOutlined />
                       </Tooltip>
                     </Space>
                   }
                   name="twitter"
                 >
-                  <Input placeholder="username" />
+                  <Input placeholder="https://x.com/username" />
                 </Form.Item>
               </>
             )}
