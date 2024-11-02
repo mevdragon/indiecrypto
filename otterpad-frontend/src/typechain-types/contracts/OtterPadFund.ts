@@ -399,17 +399,23 @@ export namespace RefundedEvent {
   export type InputTuple = [
     purchaser: AddressLike,
     contributionAmount: BigNumberish,
-    orderIndex: BigNumberish
+    orderIndex: BigNumberish,
+    netActiveContributions: BigNumberish,
+    timestamp: BigNumberish
   ];
   export type OutputTuple = [
     purchaser: string,
     contributionAmount: bigint,
-    orderIndex: bigint
+    orderIndex: bigint,
+    netActiveContributions: bigint,
+    timestamp: bigint
   ];
   export interface OutputObject {
     purchaser: string;
     contributionAmount: bigint;
     orderIndex: bigint;
+    netActiveContributions: bigint;
+    timestamp: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -423,14 +429,18 @@ export namespace TokensPurchasedEvent {
     paymentAmount: BigNumberish,
     contributionAmount: BigNumberish,
     tokenAmount: BigNumberish,
-    orderIndex: BigNumberish
+    orderIndex: BigNumberish,
+    netActiveContributions: BigNumberish,
+    timestamp: BigNumberish
   ];
   export type OutputTuple = [
     purchaser: string,
     paymentAmount: bigint,
     contributionAmount: bigint,
     tokenAmount: bigint,
-    orderIndex: bigint
+    orderIndex: bigint,
+    netActiveContributions: bigint,
+    timestamp: bigint
   ];
   export interface OutputObject {
     purchaser: string;
@@ -438,6 +448,8 @@ export namespace TokensPurchasedEvent {
     contributionAmount: bigint;
     tokenAmount: bigint;
     orderIndex: bigint;
+    netActiveContributions: bigint;
+    timestamp: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -829,7 +841,7 @@ export interface OtterPadFund extends BaseContract {
       PaymentReceivedEvent.OutputObject
     >;
 
-    "Refunded(address,uint256,uint256)": TypedContractEvent<
+    "Refunded(address,uint256,uint256,uint256,uint256)": TypedContractEvent<
       RefundedEvent.InputTuple,
       RefundedEvent.OutputTuple,
       RefundedEvent.OutputObject
@@ -840,7 +852,7 @@ export interface OtterPadFund extends BaseContract {
       RefundedEvent.OutputObject
     >;
 
-    "TokensPurchased(address,uint256,uint256,uint256,uint256)": TypedContractEvent<
+    "TokensPurchased(address,uint256,uint256,uint256,uint256,uint256,uint256)": TypedContractEvent<
       TokensPurchasedEvent.InputTuple,
       TokensPurchasedEvent.OutputTuple,
       TokensPurchasedEvent.OutputObject

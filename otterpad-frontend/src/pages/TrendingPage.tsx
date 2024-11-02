@@ -139,7 +139,7 @@ const TrendingPage: React.FC = () => {
         }}
       >
         <h1 style={{ fontSize: "1.7rem", color: "rgba(0,0,0,0.75)" }}>
-          Trending
+          Trending Indie Crypto
         </h1>
         <Input.Search
           placeholder="Search by contract address or title..."

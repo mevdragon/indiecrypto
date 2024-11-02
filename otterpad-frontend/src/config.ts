@@ -10,7 +10,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Sepolia Testnet",
     chainIdDecimal: "11155111",
-    factoryAddress: "0xf56759Df56bA0fe7294c75715E8eD2d2b065577F",
+    factoryAddress: "0x48a6c448ba932C5e02216ac0dF268b9BD27C9676",
     isDisabled: false,
   },
   {

@@ -28,7 +28,7 @@ const queryClient = new QueryClient();
 
 // Setup RainbowKit
 const { wallets } = getDefaultWallets({
-  appName: "OtterPad Fundraiser",
+  appName: "IndieCrypto",
   projectId: "YOUR_PROJECT_ID", // Get from WalletConnect
 });
 

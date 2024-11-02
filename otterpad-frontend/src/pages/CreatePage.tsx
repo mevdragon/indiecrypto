@@ -221,7 +221,7 @@ const CreatePage: React.FC = () => {
               await saveMetadataToDatabase({
                 ...metadata,
                 contract_address: fundAddress,
-                otterpad_url: `https://buy.otterpad.cc/fund/${selectedChain}/${fundAddress}`,
+                otterpad_url: `https://buy.indiecrypto.club/fund/${selectedChain}/${fundAddress}`,
               });
             }
             // Navigate to the fund page with the new address
