@@ -36,7 +36,9 @@ export type { MockUniswapV2Factory } from "./contracts/MockERC20.sol/MockUniswap
 export { MockUniswapV2Factory__factory } from "./factories/contracts/MockERC20.sol/MockUniswapV2Factory__factory";
 export type { MockUniswapV2Router02 } from "./contracts/MockERC20.sol/MockUniswapV2Router02";
 export { MockUniswapV2Router02__factory } from "./factories/contracts/MockERC20.sol/MockUniswapV2Router02__factory";
-export type { OtterPadFundraiser } from "./contracts/OtterPadFundraiser";
-export { OtterPadFundraiser__factory } from "./factories/contracts/OtterPadFundraiser__factory";
+export type { OtterPadFactory } from "./contracts/OtterPadFactory";
+export { OtterPadFactory__factory } from "./factories/contracts/OtterPadFactory__factory";
+export type { OtterPadFund } from "./contracts/OtterPadFund";
+export { OtterPadFund__factory } from "./factories/contracts/OtterPadFund__factory";
 export type { ReentrantToken } from "./contracts/ReentrantToken";
 export { ReentrantToken__factory } from "./factories/contracts/ReentrantToken__factory";

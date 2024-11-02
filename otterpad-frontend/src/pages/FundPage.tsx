@@ -1,14 +1,14 @@
 import { Address } from "viem";
 import AppLayout from "../AppLayout";
 import BuyPanel from "../components/BuyPanel";
-import { OtterPadFundraiser__factory } from "../typechain-types";
+import { OtterPadFund__factory } from "../typechain-types";
 import Charts from "../components/Charts";
 import { Layout } from "antd";
 import { useAccount, useContractReads } from "wagmi";
 import { useMediaQuery } from "react-responsive";
 import { useParams } from "react-router-dom";
 
-export const CONTRACT_ABI = OtterPadFundraiser__factory.abi;
+export const CONTRACT_ABI = OtterPadFund__factory.abi;
 
 // Contract function result types
 export type ContractDataResult = {
@@ -79,7 +79,7 @@ export const ERC20_ABI = [
   },
 ] as const;
 
-const FundraiserPage = () => {
+const FundPage = () => {
   const { contractAddress } = useParams<{ contractAddress: string }>();
   const CONTRACT_ADDRESS = contractAddress as Address;
   const { address: userAddress, isConnected } = useAccount();
@@ -261,4 +261,4 @@ const FundraiserPage = () => {
   );
 };
 
-export default FundraiserPage;
+export default FundPage;

@@ -54,11 +54,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
       >
         Trending
       </Link>
-      <Link
-        to="/create"
-        onClick={(e) => e.preventDefault()}
-        style={{ color: "#666", cursor: "not-allowed" }}
-      >
+      <Link to="/create" style={{ color: "#666" }}>
         Create
       </Link>
       <Link
@@ -74,11 +70,9 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const MobileNavigationLinks = () => (
     <Link
       to="/create"
-      onClick={(e) => e.preventDefault()}
       style={{
         color: "#666",
         display: isDesktop ? "none" : "block",
-        cursor: "not-allowed",
       }}
     >
       Create
