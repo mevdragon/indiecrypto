@@ -97,7 +97,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             }}
             style={{ fontSize: "1.5rem", fontWeight: "bold", display: "flex" }}
           >
-            Otterpad
+            Otterpad.cc
           </Link>
         </h1>
         <div
