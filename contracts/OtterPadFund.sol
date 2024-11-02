@@ -59,7 +59,9 @@ contract OtterPadFund is ReentrancyGuard {
         uint256 paymentAmount, 
         uint256 contributionAmount,
         uint256 tokenAmount,
-        uint256 indexed orderIndex
+        uint256 indexed orderIndex,
+        uint256 netActiveContributions,
+        uint256 timestamp
     );
     event TokensRedeemed(
         address indexed purchaser,
@@ -69,7 +71,9 @@ contract OtterPadFund is ReentrancyGuard {
     event Refunded(
         address indexed purchaser, 
         uint256 contributionAmount, 
-        uint256 indexed orderIndex
+        uint256 indexed orderIndex,
+        uint256 netActiveContributions,
+        uint256 timestamp
     );
     event DeployedToUniswap(address pair, uint256 liquidity);
     event EscrowReleased(uint256 amount, address foundersWallet);
@@ -228,7 +232,7 @@ contract OtterPadFund is ReentrancyGuard {
         totalActiveContributions += contributionAmount;
         totalPaymentsIn += paymentAmount;
         
-        emit TokensPurchased(msg.sender, paymentAmount, contributionAmount, tokenAmount, orderIndex);
+        emit TokensPurchased(msg.sender, paymentAmount, contributionAmount, tokenAmount, orderIndex, totalActiveContributions, block.timestamp);
         
         if (totalActiveContributions >= targetLiquidity) {
             targetReached = true;
@@ -265,7 +269,7 @@ contract OtterPadFund is ReentrancyGuard {
         
         require(paymentToken.transfer(msg.sender, purchase.contributionAmount), "Refund failed");
         
-        emit Refunded(msg.sender, purchase.contributionAmount, orderIndex);
+        emit Refunded(msg.sender, purchase.contributionAmount, orderIndex, totalActiveContributions, block.timestamp);
     }
 
     function hasSufficientSaleTokens() external view returns (bool) {

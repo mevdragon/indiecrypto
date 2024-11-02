@@ -91,7 +91,11 @@ const FundPage = () => {
   const { address: userAddress, isConnected } = useAccount();
   const isDesktop = useMediaQuery({ minWidth: 1024 });
   // Batch contract reads with proper configuration
-  const { data: contractResults, isError } = useContractReads({
+  const {
+    data: contractResults,
+    isError,
+    refetch: refetchContractDetails,
+  } = useContractReads({
     contracts: [
       {
         address: CONTRACT_ADDRESS,
@@ -206,7 +210,11 @@ const FundPage = () => {
         : []),
     ],
     query: {
-      refetchInterval: 30000, // Refresh every 30 seconds
+      refetchInterval: 60000, // Refresh every 60 seconds
+      // Add refetchTrigger to the query dependencies
+      refetchOnReconnect: true,
+      refetchOnMount: true,
+      enabled: true,
     },
   });
 
@@ -273,7 +281,11 @@ const FundPage = () => {
           justifyContent: isDesktop ? "center" : "flex-start",
         }}
       >
-        <BuyPanel address={CONTRACT_ADDRESS} contractData={contractData} />
+        <BuyPanel
+          address={CONTRACT_ADDRESS}
+          contractData={contractData}
+          refetchContractDetails={refetchContractDetails}
+        />
         <Charts address={CONTRACT_ADDRESS} contractData={contractData} />
       </Layout>
     </AppLayout>

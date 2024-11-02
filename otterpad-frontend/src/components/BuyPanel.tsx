@@ -91,14 +91,19 @@ type PurchaseResponse = readonly [
 interface RefundState {
   isRefunding: boolean;
   txHash?: `0x${string}`;
+  isLoading?: boolean;
+  isSuccess?: boolean;
+  error?: Error;
 }
 
 const BuyPanel = ({
   address,
   contractData,
+  refetchContractDetails,
 }: {
   address: Address;
   contractData: ContractDataResult | null;
+  refetchContractDetails: () => void;
 }) => {
   const CONTRACT_ADDRESS = address;
   const isDesktop = useMediaQuery({ minWidth: 1024 });
@@ -125,6 +130,36 @@ const BuyPanel = ({
     isPurchasing: false,
     isWaitingForPurchase: false,
   });
+
+  const [refundTxs, setRefundTxs] = useState<Record<number, `0x${string}`>>({});
+
+  // Single waitForTransactionReceipt hook that watches the latest refund tx
+  const { isLoading: isRefundLoading, isSuccess: isRefundSuccess } =
+    useWaitForTransactionReceipt({
+      hash: Object.values(refundTxs)[0],
+    });
+
+  useEffect(() => {
+    if (isRefundSuccess) {
+      const orderIndex = Number(Object.keys(refundTxs)[0]);
+
+      // Clear the completed transaction
+      setRefundTxs((prev) => {
+        const { [orderIndex]: _, ...rest } = prev;
+        return rest;
+      });
+
+      // Show success message
+      api.success({
+        message: "Refund Successful",
+        description: `Order #${orderIndex} has been refunded successfully!`,
+        duration: 5,
+      });
+      message.success("Refund Successful");
+      // Refresh contract details
+      refetchContractDetails();
+    }
+  }, [isRefundSuccess]);
 
   // Contract operations
   // useEffect(() => {
@@ -192,17 +227,11 @@ const BuyPanel = ({
     return (paymentAmount / tokenAmount).toFixed(6);
   };
 
-  // Handle refund action with order-specific state
+  // Simplified handle refund function
   const handleRefund = async (orderIndex: number) => {
     if (!contractData || !refundOrder) return;
 
     try {
-      // Update state for specific order
-      setRefundStates((prev) => ({
-        ...prev,
-        [orderIndex]: { isRefunding: true },
-      }));
-
       refundOrder(
         {
           address: CONTRACT_ADDRESS,
@@ -212,10 +241,9 @@ const BuyPanel = ({
         },
         {
           onSuccess: (txHash) => {
-            // Store transaction hash in state
-            setRefundStates((prev) => ({
+            setRefundTxs((prev) => ({
               ...prev,
-              [orderIndex]: { isRefunding: true, txHash },
+              [orderIndex]: txHash,
             }));
 
             api.info({
@@ -234,13 +262,6 @@ const BuyPanel = ({
                   : "Failed to process refund",
               duration: 5,
             });
-
-            // Clear refund state for this order
-            setRefundStates((prev) => {
-              const newState = { ...prev };
-              delete newState[orderIndex];
-              return newState;
-            });
           },
         }
       );
@@ -252,69 +273,7 @@ const BuyPanel = ({
           error instanceof Error ? error.message : "Failed to process refund",
         duration: 5,
       });
-
-      // Clear refund state for this order
-      setRefundStates((prev) => {
-        const newState = { ...prev };
-        delete newState[orderIndex];
-        return newState;
-      });
     }
-  };
-
-  const monitorRefundTransaction = (
-    orderIndex: number,
-    hash: `0x${string}`
-  ) => {
-    const { isLoading, isSuccess } = useWaitForTransactionReceipt({
-      hash,
-    });
-
-    useEffect(() => {
-      if (!isLoading && isSuccess) {
-        // Clear refund state on success
-        setRefundStates((prev) => {
-          const newState = { ...prev };
-          delete newState[orderIndex];
-          return newState;
-        });
-
-        api.success({
-          message: "Refund Successful",
-          description: `Order #${orderIndex} has been refunded successfully!`,
-        });
-      }
-    }, [isLoading, isSuccess, orderIndex]);
-
-    return { isLoading, isSuccess };
-  };
-
-  const RefundMonitor = ({
-    orderIndex,
-    hash,
-  }: {
-    orderIndex: number;
-    hash: `0x${string}`;
-  }) => {
-    const { isLoading, isSuccess } = monitorRefundTransaction(orderIndex, hash);
-    console.log(`isLoading=${isLoading}, isSuccess=${isSuccess}`);
-    return null; // This is just for monitoring, no UI needed
-  };
-
-  const RefundTransactionMonitors = () => {
-    return (
-      <>
-        {Object.entries(refundStates).map(([orderIndex, state]) =>
-          state.txHash ? (
-            <RefundMonitor
-              key={orderIndex}
-              orderIndex={Number(orderIndex)}
-              hash={state.txHash}
-            />
-          ) : null
-        )}
-      </>
-    );
   };
 
   const calculateRemainingAmount = () => {
@@ -437,6 +396,12 @@ const BuyPanel = ({
         isWaitingForPurchase: false,
       }));
       setBuyAmount("");
+      api.success({
+        message: "Purchase Successful",
+        description: "Your token purchase was successful!",
+      });
+      message.success("Purchase Successful");
+      refetchContractDetails();
     }
   }, [isApprovalSuccess, isPurchaseSuccess]);
 
@@ -635,12 +600,6 @@ const BuyPanel = ({
       refetchInterval: 30000, // Refresh every 30 seconds
     },
   });
-
-  // Transaction status
-  const { isLoading: buyLoading, isSuccess: buySuccess } =
-    useWaitForTransactionReceipt({
-      hash: buyTxHash,
-    });
 
   const { isLoading: redeemLoading, isSuccess: redeemSuccess } =
     useWaitForTransactionReceipt({
@@ -963,19 +922,9 @@ const BuyPanel = ({
         message: "Purchase Preparation Failed",
         description: prepareBuyError.message,
       });
+      message.error(`Purchase Failed: ${prepareBuyError.message}`);
     }
   }, [prepareApproveError, prepareBuyError]);
-
-  // Transaction notifications
-  useEffect(() => {
-    if (buySuccess) {
-      api.success({
-        message: "Purchase Successful",
-        description: "Your token purchase was successful!",
-      });
-      setBuyAmount("");
-    }
-  }, [buySuccess]);
 
   useEffect(() => {
     if (redeemSuccess) {
@@ -1476,7 +1425,7 @@ const BuyPanel = ({
                     renderItem={(orderIndex) => {
                       const purchase = purchaseData[Number(orderIndex)];
                       if (!purchase) return null;
-
+                      const isRefunding = Number(orderIndex) in refundTxs;
                       return (
                         <Card
                           style={{
@@ -1553,9 +1502,11 @@ const BuyPanel = ({
                                 danger
                                 icon={<RollbackOutlined />}
                                 onClick={() => handleRefund(Number(orderIndex))}
+                                loading={isRefunding || isRefundLoading}
                                 disabled={
                                   contractData.targetReached ||
-                                  purchase.isRefunded
+                                  purchase.isRefunded ||
+                                  isRefunding
                                 }
                               >
                                 Refund

@@ -96,7 +96,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                 </a>
               </span>
               <span>
-                OtterPad is permissionless, which means anyone can fundraise
+                IndieCrypto is permissionless, which means anyone can fundraise
                 from the public internet. Beware of scams{" "}
                 <a href="/help" style={{ padding: "0px 10px" }}>
                   Learn More
@@ -120,7 +120,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                 display: "flex",
               }}
             >
-              Otterpad.cc
+              Indie Crypto
             </Link>
           </h1>
           <div
@@ -147,7 +147,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             fontWeight: 500,
           }}
         >
-          Copyright 2024 Otter Finance | admin@otterpad.cc
+          Copyright 2024 Indie Crypto Club | admin@otterpad.cc
         </div>
       </Layout>
     </div>
