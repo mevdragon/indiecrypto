@@ -998,7 +998,7 @@ const BuyPanel = ({
           minWidth: "550px",
           maxWidth: "550px",
           padding: "50px",
-          height: "75vh",
+          height: "80vh",
         }}
       >
         <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
@@ -1178,7 +1178,7 @@ const BuyPanel = ({
             width: "100%",
             borderRadius: "12px",
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            minHeight: "75vh",
+            minHeight: "80vh",
           }}
         >
           <div

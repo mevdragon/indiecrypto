@@ -242,8 +242,8 @@ const FundraiserPage = () => {
     <AppLayout>
       <Layout
         style={{
-          minHeight: "100vh",
-          maxHeight: "100vh",
+          minHeight: "100%",
+          maxHeight: "100%",
           background: "#f5f5f5",
           display: "flex",
           minWidth: "100vw",

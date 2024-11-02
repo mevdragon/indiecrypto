@@ -47,8 +47,24 @@ function App() {
                 />
 
                 {/* Main routes */}
-                <Route path="/trending" element={<p>trending</p>} />
-                <Route path="/create" element={<p>create</p>} />
+                <Route
+                  path="/trending"
+                  element={
+                    <Navigate
+                      to="/fund/0x0a0329F0B8EB742CC0d03ee8c592E58B6d351584"
+                      replace
+                    />
+                  }
+                />
+                <Route
+                  path="/create"
+                  element={
+                    <Navigate
+                      to="/fund/0x0a0329F0B8EB742CC0d03ee8c592E58B6d351584"
+                      replace
+                    />
+                  }
+                />
 
                 {/* Fundraiser routes with dynamic parameter */}
                 <Route

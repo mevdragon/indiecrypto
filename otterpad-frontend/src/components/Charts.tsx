@@ -3,9 +3,26 @@ import { Address } from "viem";
 import ReactApexCharts from "react-apexcharts";
 import dayjs from "dayjs";
 import { ContractDataResult } from "../pages/FundraiserPage";
-import { Tabs } from "antd";
+import {
+  Button,
+  Carousel,
+  Space,
+  Tabs,
+  Image,
+  Typography,
+  CarouselProps,
+} from "antd";
 import TabPane from "antd/es/tabs/TabPane";
-import { ShoppingCartOutlined } from "@ant-design/icons";
+import {
+  AreaChartOutlined,
+  GlobalOutlined,
+  LineChartOutlined,
+  ShoppingCartOutlined,
+  TwitterOutlined,
+} from "@ant-design/icons";
+import { useEffect, useState } from "react";
+
+const { Title, Paragraph } = Typography;
 
 const generateBullishData = () => {
   const basePrice = 6000;
@@ -40,6 +57,20 @@ const generateBullishData = () => {
   return data;
 };
 
+const carouselSettings: CarouselProps = {
+  autoplay: true,
+  dots: true,
+  effect: "fade",
+};
+
+interface OtterpadInfo {
+  title: string;
+  description: string;
+  media: string[];
+  website: string;
+  twitter: string;
+}
+
 const Charts = ({
   address,
   contractData,
@@ -48,6 +79,9 @@ const Charts = ({
   contractData: ContractDataResult | null;
 }) => {
   console.log(address);
+
+  const [otterpadInfo, setOtterpadInfo] = useState<OtterpadInfo | null>(null);
+
   const chartData = {
     series: [
       {
@@ -102,6 +136,43 @@ const Charts = ({
       },
     } as ApexOptions,
   };
+
+  async function fetchOtterpadInfo(address: Address): Promise<OtterpadInfo> {
+    const url =
+      "https://api.legions.bot/api/w/officex/jobs/run_wait_result/f/f/officex/otterpad_rest_api?token=ixJCgjvjwtok1RyDjxeaWC1igjaoNWwF&payload=e30%3D";
+
+    // const url =
+    //   "https://api.legions.bot/api/w/officex/capture_u/f/officex/otterpad_rest_api";
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ route: "/fund", payload: { address } }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = (await response.json()) as OtterpadInfo;
+      setOtterpadInfo(data);
+      return data;
+    } catch (error) {
+      throw new Error(
+        `Failed to fetch Otterpad info: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  }
+
+  useEffect(() => {
+    fetchOtterpadInfo(address);
+  }, [address]);
+
   return (
     <div
       id="chart"
@@ -109,7 +180,7 @@ const Charts = ({
         flex: 1,
         maxHeight: "100vh",
         textAlign: "left",
-        minHeight: "75vh",
+        minHeight: "80vh",
         width: "100%",
       }}
     >
@@ -118,15 +189,113 @@ const Charts = ({
         style={{
           background: "white",
           borderRadius: "8px",
-          height: "75vh",
+          height: "80vh",
           padding: "16px",
+          overflowY: "scroll",
         }}
       >
-        {/* Buy Tokens Tab */}
         <TabPane
           tab={
             <span>
               <ShoppingCartOutlined />
+              About
+            </span>
+          }
+          key="about"
+          style={{ height: "100%", minHeight: "100%" }}
+        >
+          {otterpadInfo ? (
+            <div style={{ padding: "0px" }}>
+              <Space
+                direction="vertical"
+                size="large"
+                style={{ width: "100%" }}
+              >
+                {/* Title and Description Section */}
+                <div>
+                  <Title level={2} style={{ marginBottom: "16px" }}>
+                    {otterpadInfo.title}
+                  </Title>
+                  <Paragraph style={{ fontSize: "16px" }}>
+                    {otterpadInfo.description}
+                  </Paragraph>
+                </div>
+
+                {/* Social Links Section */}
+                <Space size="middle">
+                  {otterpadInfo.website && (
+                    <Button
+                      icon={<GlobalOutlined />}
+                      type="default"
+                      onClick={() =>
+                        window.open(otterpadInfo.website, "_blank")
+                      }
+                    >
+                      Website
+                    </Button>
+                  )}
+                  {otterpadInfo.twitter && (
+                    <Button
+                      icon={<TwitterOutlined />}
+                      type="default"
+                      onClick={() =>
+                        window.open(`${otterpadInfo.twitter}`, "_blank")
+                      }
+                    >
+                      Twitter
+                    </Button>
+                  )}
+                </Space>
+
+                {/* Media Carousel Section */}
+                {otterpadInfo.media.length > 0 && (
+                  <div
+                    style={{
+                      minWidth: "400px",
+                      maxWidth: "45vw",
+                      width: "100%",
+                      margin: "0 auto",
+                      backgroundColor: "#f5f5f5",
+                      borderRadius: "8px",
+                      padding: "16px",
+                    }}
+                  >
+                    <Carousel {...carouselSettings}>
+                      {otterpadInfo.media.map((url, index) => (
+                        <div key={index}>
+                          <div
+                            style={{
+                              height: "400px",
+                              display: "flex",
+                              justifyContent: "center",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Image
+                              src={url}
+                              alt={`${otterpadInfo.title} media ${index + 1}`}
+                              style={{
+                                maxHeight: "100%",
+                                objectFit: "contain",
+                              }}
+                              preview={true}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </Carousel>
+                  </div>
+                )}
+              </Space>
+            </div>
+          ) : (
+            <p>Loading...</p>
+          )}
+        </TabPane>
+        <TabPane
+          tab={
+            <span>
+              <AreaChartOutlined />
               TVL
             </span>
           }
@@ -137,7 +306,7 @@ const Charts = ({
             <ReactApexCharts
               series={chartData.series}
               type="candlestick"
-              height="500px"
+              height="550px"
               options={chartData.options}
             />
           </div>
@@ -145,7 +314,7 @@ const Charts = ({
         <TabPane
           tab={
             <span>
-              <ShoppingCartOutlined />
+              <LineChartOutlined />
               Price
             </span>
           }
@@ -156,8 +325,7 @@ const Charts = ({
             <ReactApexCharts
               series={chartData.series}
               type="candlestick"
-              height="100%"
-              minHeight="100%"
+              height="550px"
               options={chartData.options}
             />
           </div>
