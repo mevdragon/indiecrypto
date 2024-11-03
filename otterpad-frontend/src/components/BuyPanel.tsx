@@ -39,6 +39,9 @@ import {
   CheckCircleOutlined,
   RollbackOutlined,
   ShareAltOutlined,
+  CopyOutlined,
+  LinkOutlined,
+  ExportOutlined,
 } from "@ant-design/icons";
 import {
   useAccount,
@@ -53,8 +56,9 @@ import { Content } from "antd/es/layout/layout";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import TabPane from "antd/es/tabs/TabPane";
 import { getPublicClient, waitForTransaction } from "wagmi/actions";
-import { CONTRACT_ABI, ContractDataResult, ERC20_ABI } from "../pages/FundPage";
+import { CONTRACT_ABI, ContractDataResult } from "../pages/FundPage";
 import { useMediaQuery } from "react-responsive";
+import { ERC20_ABI, SUPPORTED_CHAINS } from "../config";
 
 const { Title, Text } = Typography;
 
@@ -98,10 +102,12 @@ interface RefundState {
 
 const BuyPanel = ({
   address,
+  chainIdDecimal,
   contractData,
   refetchContractDetails,
 }: {
   address: Address;
+  chainIdDecimal: string;
   contractData: ContractDataResult | null;
   refetchContractDetails: () => void;
 }) => {
@@ -206,6 +212,28 @@ const BuyPanel = ({
     };
   };
 
+  const getExplorerUrl = () => {
+    const chain = SUPPORTED_CHAINS.find(
+      (chain) => chain.chainIdDecimal === chainIdDecimal
+    );
+    return chain?.explorerUrl || "";
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(CONTRACT_ADDRESS);
+    message.success("Contract address copied to clipboard");
+  };
+
+  const handleExplorerLink = () => {
+    const explorerUrl = getExplorerUrl();
+    if (explorerUrl) {
+      window.open(
+        `${explorerUrl}/address/${CONTRACT_ADDRESS}#readContract`,
+        "_blank"
+      );
+    }
+  };
+
   // Helper function to format token amounts
   const formatTokenAmount = (
     amount: bigint | undefined,
@@ -280,30 +308,20 @@ const BuyPanel = ({
   const calculateRemainingAmount = () => {
     if (!contractData) return "0";
 
-    // Get current actual contribution amount (excluding rakes)
-    const currentBalance = contractData.paymentTokenBalance;
-    const escrowAmount =
-      (currentBalance * contractData.escrowRakeBPS) / BigInt(10000);
-    const upfrontAmount =
-      (currentBalance *
-        (contractData.upfrontRakeBPS - contractData.OTTERPAD_FEE_BPS)) /
-      BigInt(10000);
-    const otterpadFee =
-      (currentBalance * contractData.OTTERPAD_FEE_BPS) / BigInt(10000);
-    const actualContribution =
-      currentBalance - escrowAmount - upfrontAmount - otterpadFee;
+    // Get current contribution progress
+    const currentContributions = contractData.totalActiveContributions;
 
-    // Calculate how much more we need in actual contributions
-    const remainingContribution =
-      contractData.targetLiquidity - actualContribution;
-    if (remainingContribution <= BigInt(0)) return "0";
+    // Calculate how much more we need in net contributions
+    const remainingNet = contractData.targetLiquidity - currentContributions;
+    if (remainingNet <= BigInt(0)) return "0";
 
-    // Calculate gross amount needed (before fees)
-    // Formula: grossAmount = netAmount / (1 - totalRakePercentage)
+    // Calculate gross amount needed using the same formula as the contract
+    // actualContribution = (targetLiquidity * 10000) / netContributionBPS
+    // Therefore: grossAmount = (remainingNet * 10000) / netContributionBPS
     const netContributionBPS =
       BigInt(10000) - contractData.upfrontRakeBPS - contractData.escrowRakeBPS;
-    const grossAmount =
-      (remainingContribution * BigInt(10000)) / netContributionBPS;
+
+    const grossAmount = (remainingNet * BigInt(10000)) / netContributionBPS;
 
     return formatEther(grossAmount);
   };
@@ -1048,15 +1066,31 @@ const BuyPanel = ({
   const getContractBalanceInfo = () => {
     if (!contractData || !tokenInfo.sale || !tokenInfo.payment) return "";
 
+    const totalPaymentRequired =
+      (contractData.targetLiquidity * BigInt(10000)) /
+      (BigInt(10000) -
+        contractData.upfrontRakeBPS -
+        contractData.escrowRakeBPS);
+    const totalPayTokenRequired =
+      totalPaymentRequired -
+      (totalPaymentRequired * contractData.upfrontRakeBPS) / BigInt(10000);
+
     return (
       <div className="space-y-2">
         <p>Current token balances in the smart contract:</p>
         <ul className="list-disc pl-4">
           <li>
-            {formatEther(contractData.saleTokenBalance)} {tokenInfo.sale.symbol}
+            {parseFloat(formatEther(contractData.saleTokenBalance)).toFixed(2)}/
+            {parseFloat(formatEther(contractData.requiredSaleTokens)).toFixed(
+              2
+            )}{" "}
+            {tokenInfo.sale.symbol}
           </li>
           <li>
-            {formatEther(contractData.paymentTokenBalance)}{" "}
+            {parseFloat(formatEther(contractData.paymentTokenBalance)).toFixed(
+              2
+            )}
+            /{parseFloat(formatEther(totalPayTokenRequired)).toFixed(2)}{" "}
             {tokenInfo.payment.symbol}
           </li>
         </ul>
@@ -1161,6 +1195,24 @@ const BuyPanel = ({
                 }}
               >
                 {getStatusTag()}
+                <Input
+                  value={CONTRACT_ADDRESS}
+                  readOnly
+                  size="small"
+                  style={{ width: "200px", marginRight: "5px" }}
+                  suffix={
+                    <>
+                      <CopyOutlined
+                        className="cursor-pointer mx-1"
+                        onClick={handleCopy}
+                      />
+                      <ExportOutlined
+                        className="cursor-pointer mx-1"
+                        onClick={handleExplorerLink}
+                      />
+                    </>
+                  }
+                />
                 <Button
                   size="small"
                   icon={<ShareAltOutlined />}
@@ -1266,7 +1318,7 @@ const BuyPanel = ({
               <TabPane
                 tab={
                   <span>
-                    <ShoppingCartOutlined />
+                    <ShoppingCartOutlined style={{ marginRight: "5px" }} />
                     Buy Tokens
                   </span>
                 }
@@ -1389,7 +1441,7 @@ const BuyPanel = ({
               <TabPane
                 tab={
                   <span>
-                    <UserOutlined />
+                    <UserOutlined style={{ marginRight: "5px" }} />
                     My Orders
                   </span>
                 }

@@ -3,7 +3,7 @@
  * 
 # Using mock tokens (default)
 npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts
-npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --network sepolia
+npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --network sepolia  --verify
 
 # Using existing tokens
 npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --parameters '{
@@ -64,7 +64,7 @@ export default buildModule("OtterPadFundraiserModule", (m) => {
   // });
 
   // Deploy the fundraiser
-  const fundraiser = m.contract("OtterPadFundraiser", [
+  const fundraiser = m.contract("OtterPadFund", [
     "Crypto Project", // title
     "https://api.legions.bot/api/w/officex/capture_u/f/officex/otterpad_rest_api", // richInfoUrl
     saleTokenAddress, // useMockTokens ? mockSaleToken : saleTokenAddress,

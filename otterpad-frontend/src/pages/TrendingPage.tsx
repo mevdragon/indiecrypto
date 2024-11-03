@@ -3,8 +3,8 @@ import { Card, Input, List, Badge, Skeleton, Layout } from "antd";
 import { Link } from "react-router-dom";
 import AppLayout from "../AppLayout";
 
-const DEFAULT_IMAGE =
-  "https://firebasestorage.googleapis.com/v0/b/arbitrage-bot-ea10c.appspot.com/o/generic-sharing%2Fotterpad%2Fotterpad-donut.png?alt=media&token=4738596d-2c90-4911-997b-7fb3dbf00903";
+export const DEFAULT_PROJECT_IMAGE =
+  "https://firebasestorage.googleapis.com/v0/b/arbitrage-bot-ea10c.appspot.com/o/generic-sharing%2Fotterpad%2FOtterpad%20(4).png?alt=media&token=ac6b946c-f4ec-4fbc-b247-93e1ed6c1d30";
 
 interface OtterpadInfo {
   title: string;
@@ -104,11 +104,11 @@ const TrendingPage: React.FC = () => {
             cover={
               <img
                 alt={item.title}
-                src={item.media?.[0] || DEFAULT_IMAGE}
+                src={item.media?.[0] || DEFAULT_PROJECT_IMAGE}
                 className="h-48 object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = DEFAULT_IMAGE;
+                  target.src = DEFAULT_PROJECT_IMAGE;
                 }}
                 style={{ width: "100%", height: "200px", objectFit: "cover" }}
               />

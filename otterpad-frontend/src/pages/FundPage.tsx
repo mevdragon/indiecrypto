@@ -36,51 +36,9 @@ export type ContractDataResult = {
   totalPaymentsIn: bigint;
   title: string;
   richInfoUrl: string;
+  requiredSaleTokens: bigint;
+  uniswapPool?: Address;
 };
-export const ERC20_ABI = [
-  {
-    inputs: [
-      {
-        name: "owner",
-        type: "address",
-      },
-      {
-        name: "spender",
-        type: "address",
-      },
-    ],
-    name: "allowance",
-    outputs: [
-      {
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        name: "spender",
-        type: "address",
-      },
-      {
-        name: "amount",
-        type: "uint256",
-      },
-    ],
-    name: "approve",
-    outputs: [
-      {
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
 
 const FundPage = () => {
   const { chainIdDecimal, contractAddress } = useParams<{
@@ -192,6 +150,16 @@ const FundPage = () => {
         abi: CONTRACT_ABI,
         functionName: "richInfoUrl",
       },
+      {
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: "checkSaleTokensRequired",
+      },
+      {
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: "uniswapPool",
+      },
       ...(userAddress
         ? [
             {
@@ -256,8 +224,10 @@ const FundPage = () => {
       totalPaymentsIn: successResults[16] as bigint,
       title: successResults[17] as string,
       richInfoUrl: successResults[18] as string,
-      userAllocation: successResults[19] as bigint | undefined,
-      userOrders: successResults[20] as bigint[] | undefined,
+      requiredSaleTokens: successResults[19] as bigint,
+      uniswapPool: successResults[20] as Address | undefined,
+      userAllocation: successResults[21] as bigint | undefined,
+      userOrders: successResults[22] as bigint[] | undefined,
     };
   };
 
@@ -283,10 +253,16 @@ const FundPage = () => {
       >
         <BuyPanel
           address={CONTRACT_ADDRESS}
+          chainIdDecimal={chainIdDecimal || ""}
           contractData={contractData}
           refetchContractDetails={refetchContractDetails}
         />
-        <Charts address={CONTRACT_ADDRESS} contractData={contractData} />
+        <Charts
+          address={CONTRACT_ADDRESS}
+          chainIdDecimal={chainIdDecimal || ""}
+          contractData={contractData}
+          refetchContractDetails={refetchContractDetails}
+        />
       </Layout>
     </AppLayout>
   );

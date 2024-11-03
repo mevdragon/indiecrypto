@@ -61,6 +61,7 @@ export interface OtterPadFundInterface extends Interface {
       | "totalPaymentsIn"
       | "totalTokensAllocated"
       | "uniswapFactory"
+      | "uniswapPool"
       | "uniswapRouter"
       | "upfrontRakeBPS"
       | "userOrderIndices"
@@ -205,6 +206,10 @@ export interface OtterPadFundInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "uniswapPool",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "uniswapRouter",
     values?: undefined
   ): string;
@@ -331,6 +336,10 @@ export interface OtterPadFundInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "uniswapFactory",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "uniswapPool",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -545,7 +554,7 @@ export interface OtterPadFund extends BaseContract {
 
   checkSaleTokensRequired: TypedContractMethod<[], [bigint], "view">;
 
-  deployToUniswap: TypedContractMethod<[], [void], "nonpayable">;
+  deployToUniswap: TypedContractMethod<[], [string], "nonpayable">;
 
   endPrice: TypedContractMethod<[], [bigint], "view">;
 
@@ -627,6 +636,8 @@ export interface OtterPadFund extends BaseContract {
 
   uniswapFactory: TypedContractMethod<[], [string], "view">;
 
+  uniswapPool: TypedContractMethod<[], [string], "view">;
+
   uniswapRouter: TypedContractMethod<[], [string], "view">;
 
   upfrontRakeBPS: TypedContractMethod<[], [bigint], "view">;
@@ -658,7 +669,7 @@ export interface OtterPadFund extends BaseContract {
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "deployToUniswap"
-  ): TypedContractMethod<[], [void], "nonpayable">;
+  ): TypedContractMethod<[], [string], "nonpayable">;
   getFunction(
     nameOrSignature: "endPrice"
   ): TypedContractMethod<[], [bigint], "view">;
@@ -763,6 +774,9 @@ export interface OtterPadFund extends BaseContract {
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "uniswapFactory"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "uniswapPool"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "uniswapRouter"

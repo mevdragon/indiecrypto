@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
+// github@mevdragon
 contract OtterPadFund is ReentrancyGuard {
     struct Purchase {
         uint256 paymentAmount;      // Total amount paid by user
@@ -29,7 +30,7 @@ contract OtterPadFund is ReentrancyGuard {
     uint256 public immutable endPrice;
     uint256 public immutable targetLiquidity;
     
-    uint256 public constant OTTERPAD_FEE_BPS = 100;  // 1% in basis points
+    uint256 public constant OTTERPAD_FEE_BPS = 200;  // 2% in basis points
     uint256 public immutable upfrontRakeBPS;         // Basis points taken upfront (includes otterpad fee)
     uint256 public immutable escrowRakeBPS;          // Basis points held in escrow
     
@@ -39,6 +40,7 @@ contract OtterPadFund is ReentrancyGuard {
     address public immutable foundersWallet;
     address public constant OTTERPAD_DAO = 0x6c83e86e05697C995d718C1cfA3F9045A38C7cd4;
     address public immutable lockLPTokenWallet;
+    address public uniswapPool;
     
     uint256 public orderCounter;
     bool public isDeployedToUniswap;
@@ -46,7 +48,7 @@ contract OtterPadFund is ReentrancyGuard {
     
     // Running totals
     uint256 public totalTokensAllocated;
-    uint256 public totalActiveContributions;
+    uint256 public totalActiveContributions; // towards liquidity
     uint256 public totalPaymentsIn;
 
     string public title;
@@ -143,9 +145,10 @@ contract OtterPadFund is ReentrancyGuard {
         return paymentToken.balanceOf(address(this));
     }
 
-
-    function getEscrowedAmount() public view returns (uint256) {
-        return (totalPaymentsIn * escrowRakeBPS) / 10000;
+   function getEscrowedAmount() public view returns (uint256) {
+        uint256 netContributionBPS = 10000 - upfrontRakeBPS - escrowRakeBPS;
+        uint256 grossAmount = (totalActiveContributions * 10000) / netContributionBPS;
+        return (grossAmount * escrowRakeBPS) / 10000;
     }
     
     function getCurrentPrice() public view returns (uint256) {
@@ -260,7 +263,6 @@ contract OtterPadFund is ReentrancyGuard {
 
     function refund(uint256 orderIndex) external nonReentrant {
         require(!isDeployedToUniswap, "Sale completed");
-        require(!targetReached, "Target already reached");
         Purchase storage purchase = purchases[orderIndex];
         require(purchase.purchaser == msg.sender, "Not the purchaser");
         require(!purchase.isRefunded, "Already refunded");
@@ -284,36 +286,35 @@ contract OtterPadFund is ReentrancyGuard {
         return saleToken.balanceOf(address(this)) >= checkSaleTokensRequired();
     }
     
-    function deployToUniswap() external {
+    function deployToUniswap() external returns (address pool) {
         require(targetReached, "Target not reached");
         require(!isDeployedToUniswap, "Already deployed");
         
         uint256 escrowAmount = getEscrowedAmount();
-        uint256 liquidityPaymentAmount = totalActiveContributions - escrowAmount;
         
         require(_hasSufficientSaleTokens(), "Insufficient sale tokens");
-        
-        require(saleToken.balanceOf(address(this)) >= totalTokensAllocated, "Insufficient sale tokens");
-        require(paymentToken.balanceOf(address(this)) >= totalActiveContributions, 
-            "Insufficient payment tokens");
-        
-        require(saleToken.approve(address(uniswapRouter), totalTokensAllocated), "Token approve failed");
-        require(paymentToken.approve(address(uniswapRouter), liquidityPaymentAmount), "Payment approve failed");
-        
         uint256 normalizedEndPrice = normalizeDecimals(
             endPrice,
             paymentTokenDecimals,
             saleTokenDecimals
         );
-        uint256 liquidityTokens = targetLiquidity * (10**saleTokenDecimals) / normalizedEndPrice;
+        uint256 complimentarySalesTokensLiquidity = targetLiquidity * (10**saleTokenDecimals) / normalizedEndPrice;
+        
+        require(saleToken.balanceOf(address(this)) >= complimentarySalesTokensLiquidity, "Insufficient sale tokens");
+        require(paymentToken.balanceOf(address(this)) >= targetLiquidity + escrowAmount, 
+            "Insufficient payment tokens");
+        
+        require(saleToken.approve(address(uniswapRouter), complimentarySalesTokensLiquidity), "Token approve failed");
+        require(paymentToken.approve(address(uniswapRouter), targetLiquidity), "Payment approve failed");
+        
 
         (uint256 amountA, uint256 amountB, uint256 liquidity) = uniswapRouter.addLiquidity(
             address(saleToken),
             address(paymentToken),
-            liquidityTokens, 
-            liquidityPaymentAmount,
-            liquidityTokens,
-            liquidityPaymentAmount,
+            complimentarySalesTokensLiquidity, 
+            targetLiquidity,
+            complimentarySalesTokensLiquidity,
+            targetLiquidity,
             lockLPTokenWallet,
             block.timestamp + 2 minutes
         );
@@ -324,11 +325,16 @@ contract OtterPadFund is ReentrancyGuard {
         }
         
         isDeployedToUniswap = true;
+
+        pool = uniswapFactory.getPair(address(saleToken), address(paymentToken));
+        uniswapPool = pool;
         
         emit DeployedToUniswap(
-            uniswapFactory.getPair(address(saleToken), address(paymentToken)),
+            pool,
             liquidity
         );
+
+        return pool;
     }
     
     function getAllocation(address user) external view returns (uint256 totalTokens) {
@@ -384,8 +390,12 @@ contract OtterPadFund is ReentrancyGuard {
         uint256 averagePrice = (normalizedStartPrice + normalizedEndPrice) / 2;
         uint256 tokensForSale = (actualContribution * (10**saleTokenDecimals)) / averagePrice;
         
-        // Calculate tokens needed for DEX liquidity at end price
-        uint256 liquidityTokens = (targetLiquidity * (10**saleTokenDecimals)) / normalizedEndPrice;
+        // Calculate actual liquidity amount after removing escrow
+        uint256 escrowAmount = (targetLiquidity * escrowRakeBPS) / 10000;
+        uint256 liquidityPaymentAmount = targetLiquidity - escrowAmount;
+        
+        // Calculate tokens needed for DEX liquidity using actual liquidity payment amount
+        uint256 liquidityTokens = (liquidityPaymentAmount * (10**saleTokenDecimals)) / normalizedEndPrice;
         
         // Return total tokens required
         return tokensForSale + liquidityTokens;
