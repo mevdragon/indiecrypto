@@ -18,7 +18,13 @@ import {
   useWaitForTransactionReceipt,
   usePublicClient,
 } from "wagmi";
-import { parseEther, isAddress, Address, decodeEventLog } from "viem";
+import {
+  parseEther,
+  isAddress,
+  Address,
+  decodeEventLog,
+  zeroAddress,
+} from "viem";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../AppLayout";
@@ -39,6 +45,7 @@ interface FundForm {
   saleToken: string;
   paymentToken: string;
   foundersWallet: string;
+  lockedLPWallet?: string;
   startPrice: string;
   endPrice: string;
   targetLiquidity: string;
@@ -156,6 +163,7 @@ const CreatePage: React.FC = () => {
           values.foundersWallet as Address,
           values.title,
           richInfoUrl,
+          (values.lockedLPWallet as Address) || zeroAddress,
         ],
       });
 
@@ -398,6 +406,27 @@ const CreatePage: React.FC = () => {
               <Input placeholder="0x..." />
             </Form.Item>
 
+            <Form.Item
+              label={
+                <Space>
+                  Locked LP Token Wallet
+                  <Tooltip title="Optional: The wallet address that will receive the locked LP tokens. If not set, LP tokens will be sent to zero address to be burnt">
+                    <InfoCircleOutlined />
+                  </Tooltip>
+                </Space>
+              }
+              name="lockedLPWallet"
+              rules={[
+                {
+                  validator: (_, value) => {
+                    if (!value) return Promise.resolve();
+                    return validateEthereumAddress(_, value);
+                  },
+                },
+              ]}
+            >
+              <Input placeholder="0x... (Optional)" />
+            </Form.Item>
             <Form.Item
               label={
                 <Space>

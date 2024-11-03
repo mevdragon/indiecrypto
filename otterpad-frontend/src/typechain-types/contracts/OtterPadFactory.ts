@@ -47,7 +47,8 @@ export interface OtterPadFactoryInterface extends Interface {
       AddressLike,
       AddressLike,
       string,
-      string
+      string,
+      AddressLike
     ]
   ): string;
   encodeFunctionData(
@@ -93,7 +94,8 @@ export namespace FundCreatedEvent {
     targetLiquidity: BigNumberish,
     upfrontRakeBPS: BigNumberish,
     escrowRakeBPS: BigNumberish,
-    foundersWallet: AddressLike
+    foundersWallet: AddressLike,
+    lockLPTokenWallet: AddressLike
   ];
   export type OutputTuple = [
     fundIndex: bigint,
@@ -104,7 +106,8 @@ export namespace FundCreatedEvent {
     targetLiquidity: bigint,
     upfrontRakeBPS: bigint,
     escrowRakeBPS: bigint,
-    foundersWallet: string
+    foundersWallet: string,
+    lockLPTokenWallet: string
   ];
   export interface OutputObject {
     fundIndex: bigint;
@@ -116,6 +119,7 @@ export namespace FundCreatedEvent {
     upfrontRakeBPS: bigint;
     escrowRakeBPS: bigint;
     foundersWallet: string;
+    lockLPTokenWallet: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -177,7 +181,8 @@ export interface OtterPadFactory extends BaseContract {
       paymentToken: AddressLike,
       foundersWallet: AddressLike,
       title: string,
-      richInfoUrl: string
+      richInfoUrl: string,
+      lockLPTokenWallet: AddressLike
     ],
     [string],
     "nonpayable"
@@ -208,7 +213,8 @@ export interface OtterPadFactory extends BaseContract {
       paymentToken: AddressLike,
       foundersWallet: AddressLike,
       title: string,
-      richInfoUrl: string
+      richInfoUrl: string,
+      lockLPTokenWallet: AddressLike
     ],
     [string],
     "nonpayable"
@@ -235,7 +241,7 @@ export interface OtterPadFactory extends BaseContract {
   >;
 
   filters: {
-    "FundCreated(uint256,address,address,address,string,uint256,uint256,uint256,address)": TypedContractEvent<
+    "FundCreated(uint256,address,address,address,string,uint256,uint256,uint256,address,address)": TypedContractEvent<
       FundCreatedEvent.InputTuple,
       FundCreatedEvent.OutputTuple,
       FundCreatedEvent.OutputObject

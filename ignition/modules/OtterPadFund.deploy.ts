@@ -16,7 +16,7 @@ npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --paramete
  */
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import { parseEther } from "viem";
+import { parseEther, zeroAddress } from "viem";
 
 const DEFAULT_START_PRICE = parseEther("1"); // 1 PAY
 const DEFAULT_END_PRICE = parseEther("4"); // 4 PAY
@@ -77,6 +77,7 @@ export default buildModule("OtterPadFundraiserModule", (m) => {
     upfrontRakeBPS,
     escrowRakeBPS,
     foundersWallet,
+    zeroAddress,
   ]);
 
   // If using mock tokens, mint initial supply

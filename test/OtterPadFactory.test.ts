@@ -31,7 +31,7 @@ describe("OtterPadFactory", function () {
       18n,
     ]);
 
-    const [deployer, foundersWallet, user1, user2] =
+    const [deployer, foundersWallet, user1, user2, lpLockWallet] =
       await hre.viem.getWalletClients();
 
     // Standard parameters for fund creation
@@ -53,6 +53,7 @@ describe("OtterPadFactory", function () {
       foundersWallet,
       user1,
       user2,
+      lpLockWallet,
       defaultParams,
     };
   }
@@ -90,6 +91,7 @@ describe("OtterPadFactory", function () {
         saleToken,
         paymentToken,
         foundersWallet,
+        lpLockWallet,
         defaultParams,
       } = await loadFixture(deployFactoryFixture);
 
@@ -104,6 +106,7 @@ describe("OtterPadFactory", function () {
         getAddress(foundersWallet.account.address),
         defaultParams.title,
         defaultParams.richInfoUrl,
+        getAddress(lpLockWallet.account.address),
       ]);
 
       // Verify fund counter increased
@@ -137,6 +140,9 @@ describe("OtterPadFactory", function () {
       expect(events[0].args.foundersWallet).to.equal(
         getAddress(foundersWallet.account.address)
       );
+      expect(events[0].args.lockLPTokenWallet).to.equal(
+        getAddress(lpLockWallet.account.address)
+      );
     });
 
     it("Should reject invalid creation parameters", async function () {
@@ -146,6 +152,7 @@ describe("OtterPadFactory", function () {
         paymentToken,
         foundersWallet,
         defaultParams,
+        lpLockWallet,
       } = await loadFixture(deployFactoryFixture);
 
       // Test zero address for sale token
@@ -161,6 +168,7 @@ describe("OtterPadFactory", function () {
           getAddress(foundersWallet.account.address),
           defaultParams.title,
           defaultParams.richInfoUrl,
+          getAddress(lpLockWallet.account.address),
         ])
       ).to.be.rejectedWith("Invalid sale token");
 
@@ -177,6 +185,7 @@ describe("OtterPadFactory", function () {
           getAddress(foundersWallet.account.address),
           defaultParams.title,
           defaultParams.richInfoUrl,
+          getAddress(lpLockWallet.account.address),
         ])
       ).to.be.rejectedWith("Invalid start price");
 
@@ -193,6 +202,7 @@ describe("OtterPadFactory", function () {
           getAddress(foundersWallet.account.address),
           defaultParams.title,
           defaultParams.richInfoUrl,
+          getAddress(lpLockWallet.account.address),
         ])
       ).to.be.rejectedWith("End price must exceed start price");
 
@@ -209,6 +219,7 @@ describe("OtterPadFactory", function () {
           getAddress(foundersWallet.account.address),
           "",
           defaultParams.richInfoUrl,
+          getAddress(lpLockWallet.account.address),
         ])
       ).to.be.rejectedWith("Empty title");
     });
@@ -220,6 +231,7 @@ describe("OtterPadFactory", function () {
         paymentToken,
         foundersWallet,
         defaultParams,
+        lpLockWallet,
       } = await loadFixture(deployFactoryFixture);
 
       // Create first fund
@@ -234,6 +246,7 @@ describe("OtterPadFactory", function () {
         getAddress(foundersWallet.account.address),
         defaultParams.title,
         defaultParams.richInfoUrl,
+        getAddress(lpLockWallet.account.address),
       ]);
 
       // Create second fund with different title
@@ -248,6 +261,7 @@ describe("OtterPadFactory", function () {
         getAddress(foundersWallet.account.address),
         "Second Fund",
         defaultParams.richInfoUrl,
+        getAddress(lpLockWallet.account.address),
       ]);
 
       // Verify counter and individual fund addresses
@@ -271,6 +285,7 @@ describe("OtterPadFactory", function () {
         foundersWallet,
         user1,
         defaultParams,
+        lpLockWallet,
       } = await loadFixture(deployFactoryFixture);
 
       // Create fund
@@ -285,6 +300,7 @@ describe("OtterPadFactory", function () {
         getAddress(foundersWallet.account.address),
         defaultParams.title,
         defaultParams.richInfoUrl,
+        getAddress(lpLockWallet.account.address),
       ]);
 
       // Get fund address

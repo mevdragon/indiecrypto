@@ -209,10 +209,11 @@ const BuyPanel = ({
   // Helper function to format token amounts
   const formatTokenAmount = (
     amount: bigint | undefined,
-    symbol: string | undefined
+    symbol: string | undefined,
+    decimals = 3
   ): string => {
     if (!amount || !symbol) return "0";
-    return `${Number(formatEther(amount)).toFixed(6)} ${symbol}`;
+    return `${Number(formatEther(amount)).toFixed(decimals)} ${symbol}`;
   };
 
   // Helper function to calculate average price for a purchase
@@ -989,7 +990,8 @@ const BuyPanel = ({
           BigInt(10000)
       )
     );
-    const refundedAmount = totalPayments - activePayment - upfrontAmount;
+    const refundedAmount =
+      totalPayments - netActive - upfrontAmount - escrowAmount;
     const towardsLiquidityAmount = netActive;
 
     // Calculate percentages
@@ -1024,15 +1026,15 @@ const BuyPanel = ({
             Team Upfront: {upfrontAmount.toFixed(2)} {tokenInfo.payment.symbol}{" "}
             ({upfrontPercentage.toFixed(1)}% of historical)
           </li>
-          <li>
-            Towards Liquidity: {towardsLiquidityAmount.toFixed(2)}{" "}
-            {tokenInfo.payment.symbol} ({towardsLiquidityPercentage.toFixed(1)}%
-            of active)
-          </li>
           <li className="mt-2 text-yellow-500">
             Refunded Amount: {refundedAmount.toFixed(2)}{" "}
             {tokenInfo.payment.symbol} ({refundedPercentage.toFixed(1)}% of
             historical)
+          </li>
+          <li>
+            Towards Liquidity: {towardsLiquidityAmount.toFixed(2)}{" "}
+            {tokenInfo.payment.symbol} ({towardsLiquidityPercentage.toFixed(1)}%
+            of active)
           </li>
           <li>
             Total Historical: {totalPayments.toFixed(2)}{" "}
@@ -1409,7 +1411,9 @@ const BuyPanel = ({
                         title="Your Allocation"
                         value={
                           contractData.userAllocation
-                            ? formatEther(contractData.userAllocation)
+                            ? parseFloat(
+                                formatEther(contractData.userAllocation)
+                              ).toFixed(3)
                             : "0"
                         }
                         suffix="SALE"
@@ -1492,6 +1496,7 @@ const BuyPanel = ({
                                 onClick={() => handleRedeem(Number(orderIndex))}
                                 disabled={
                                   !contractData.targetReached ||
+                                  !contractData.isDeployedToUniswap ||
                                   purchase.isRedeemed
                                 }
                               >
@@ -1504,7 +1509,7 @@ const BuyPanel = ({
                                 onClick={() => handleRefund(Number(orderIndex))}
                                 loading={isRefunding || isRefundLoading}
                                 disabled={
-                                  contractData.targetReached ||
+                                  contractData.isDeployedToUniswap ||
                                   purchase.isRefunded ||
                                   isRefunding
                                 }

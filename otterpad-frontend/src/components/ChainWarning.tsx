@@ -20,7 +20,7 @@ const ChainWarning: React.FC<ChainWarningProps> = ({ requiredChainId }) => {
   if (!chainId || !requiredChain) return null;
 
   // Convert chain IDs to numbers for comparison
-  const currentChainId = chainId.toString();
+  const currentChainId = chainId?.toString();
   if (currentChainId === requiredChainId) return null;
 
   console.log(`requiredChainId: ${requiredChainId}`);

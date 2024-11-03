@@ -24,7 +24,8 @@ contract OtterPadFactory {
         uint256 targetLiquidity,
         uint256 upfrontRakeBPS,
         uint256 escrowRakeBPS,
-        address foundersWallet
+        address foundersWallet,
+        address lockLPTokenWallet
     );
     
     constructor(
@@ -51,7 +52,8 @@ contract OtterPadFactory {
         address paymentToken,
         address foundersWallet,
         string memory title,
-        string memory richInfoUrl
+        string memory richInfoUrl,
+        address lockLPTokenWallet
     ) external returns (address) {
         // Input validation
         require(saleToken != address(0), "Invalid sale token");
@@ -75,7 +77,8 @@ contract OtterPadFactory {
             targetLiquidity,
             upfrontRakeBPS,
             escrowRakeBPS,
-            foundersWallet
+            foundersWallet,
+            lockLPTokenWallet
         );
         
         // Store fundraiser address in mapping
@@ -95,7 +98,8 @@ contract OtterPadFactory {
             targetLiquidity,
             upfrontRakeBPS,
             escrowRakeBPS,
-            foundersWallet
+            foundersWallet,
+            lockLPTokenWallet
         );
         
         return address(fundraiser);

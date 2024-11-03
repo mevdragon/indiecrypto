@@ -44,6 +44,7 @@ export interface OtterPadFundInterface extends Interface {
       | "getUserOrderIndices"
       | "hasSufficientSaleTokens"
       | "isDeployedToUniswap"
+      | "lockLPTokenWallet"
       | "orderCounter"
       | "paymentToken"
       | "purchases"
@@ -139,6 +140,10 @@ export interface OtterPadFundInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "isDeployedToUniswap",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "lockLPTokenWallet",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -276,6 +281,10 @@ export interface OtterPadFundInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "isDeployedToUniswap",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "lockLPTokenWallet",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -566,6 +575,8 @@ export interface OtterPadFund extends BaseContract {
 
   isDeployedToUniswap: TypedContractMethod<[], [boolean], "view">;
 
+  lockLPTokenWallet: TypedContractMethod<[], [string], "view">;
+
   orderCounter: TypedContractMethod<[], [bigint], "view">;
 
   paymentToken: TypedContractMethod<[], [string], "view">;
@@ -684,6 +695,9 @@ export interface OtterPadFund extends BaseContract {
   getFunction(
     nameOrSignature: "isDeployedToUniswap"
   ): TypedContractMethod<[], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "lockLPTokenWallet"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "orderCounter"
   ): TypedContractMethod<[], [bigint], "view">;

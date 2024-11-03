@@ -6,7 +6,12 @@ import {
 } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { expect } from "chai";
 import hre from "hardhat";
-import { parseEther, parseUnits, getAddress } from "viem";
+import {
+  parseEther,
+  parseUnits,
+  getAddress,
+  ContractFunctionRevertedError,
+} from "viem";
 
 const title = "Crypto Project";
 const richInfoUrl =
@@ -32,7 +37,7 @@ describe("OtterPadFund", function () {
       18n,
     ]);
 
-    const [deployer, foundersWallet, buyer1, buyer2] =
+    const [deployer, foundersWallet, buyer1, buyer2, lpLockWallet] =
       await hre.viem.getWalletClients();
 
     // Set up initial parameters
@@ -56,6 +61,7 @@ describe("OtterPadFund", function () {
       upfrontRakeBPS,
       escrowRakeBPS,
       getAddress(foundersWallet.account.address),
+      getAddress(lpLockWallet.account.address),
     ]);
 
     // Mint some tokens to buyers for testing
@@ -88,6 +94,7 @@ describe("OtterPadFund", function () {
       foundersWallet,
       buyer1,
       buyer2,
+      lpLockWallet,
       publicClient,
     };
   }
@@ -104,6 +111,7 @@ describe("OtterPadFund", function () {
         upfrontRakeBPS,
         escrowRakeBPS,
         foundersWallet,
+        lpLockWallet,
       } = await loadFixture(deployFundraiserFixture);
 
       expect(await fundraiser.read.saleToken()).to.equal(
@@ -143,7 +151,7 @@ describe("OtterPadFund", function () {
 
   describe("Buying tokens", function () {
     it("Should allow a valid purchase", async function () {
-      const { fundraiser, paymentToken, buyer1, publicClient } =
+      const { fundraiser, paymentToken, buyer1, publicClient, lpLockWallet } =
         await loadFixture(deployFundraiserFixture);
 
       const paymentAmount = parseEther("10");
@@ -191,8 +199,13 @@ describe("OtterPadFund", function () {
     });
 
     it("Should calculate correct token amounts based on price curve", async function () {
-      const { fundraiser, targetLiquidity, startPrice, endPrice } =
-        await loadFixture(deployFundraiserFixture);
+      const {
+        fundraiser,
+        targetLiquidity,
+        startPrice,
+        endPrice,
+        lpLockWallet,
+      } = await loadFixture(deployFundraiserFixture);
 
       const paymentAmount = parseEther("10");
 
@@ -234,7 +247,7 @@ describe("OtterPadFund", function () {
     });
 
     it("Should emit correct events on purchase", async function () {
-      const { fundraiser, paymentToken, buyer1, publicClient } =
+      const { fundraiser, paymentToken, buyer1, publicClient, lpLockWallet } =
         await loadFixture(deployFundraiserFixture);
 
       const paymentAmount = parseEther("10");
@@ -280,7 +293,7 @@ describe("OtterPadFund", function () {
 
   describe("Token redemption", function () {
     it("Should not allow redemption before target is reached", async function () {
-      const { fundraiser, paymentToken, buyer1, publicClient } =
+      const { fundraiser, paymentToken, buyer1, publicClient, lpLockWallet } =
         await loadFixture(deployFundraiserFixture);
 
       // Make a small purchase first
@@ -310,7 +323,7 @@ describe("OtterPadFund", function () {
       );
     });
 
-    it("Should allow redemption after target is reached", async function () {
+    it("Should not allow redemption before DEX deployment even if target is reached", async function () {
       const {
         fundraiser,
         paymentToken,
@@ -319,18 +332,61 @@ describe("OtterPadFund", function () {
         targetLiquidity,
         upfrontRakeBPS,
         escrowRakeBPS,
+        lpLockWallet,
       } = await loadFixture(deployFundraiserFixture);
 
-      // Calculate exact payment needed with correct rake calculation
-      // Target = 100 ETH
-      // If you contribute X ETH:
-      // - OtterPad fee (1%) = 0.01X
-      // - Additional upfront (varies) = (upfrontRakeBPS/10000)X - 0.01X
-      // - Escrow (varies) = (escrowRakeBPS/10000)X
-      // - Net contribution = X - fees must equal targetLiquidity
-
+      // Calculate payment needed with correct rake calculation
       const OTTERPAD_FEE_BPS = 100n;
-      // Required payment calculation accounting for all fees
+      const remainingBPS =
+        10000n -
+        (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
+      const requiredPayment = (targetLiquidity * 10000n) / remainingBPS;
+
+      // Make purchase that reaches target
+      const buyer1PaymentToken = await hre.viem.getContractAt(
+        "MockERC20",
+        paymentToken.address,
+        { client: { wallet: buyer1 } }
+      );
+      await buyer1PaymentToken.write.approve([
+        fundraiser.address,
+        requiredPayment,
+      ]);
+
+      const buyer1Fundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      await buyer1Fundraiser.write.buy([requiredPayment]);
+
+      // Verify target reached but DEX not deployed
+      expect(await fundraiser.read.targetReached()).to.equal(true);
+      expect(await fundraiser.read.isDeployedToUniswap()).to.equal(false);
+
+      // Try to redeem should fail
+      await expect(buyer1Fundraiser.write.redeem([0n])).to.be.rejectedWith(
+        "Not yet deployed to DEX"
+      );
+    });
+
+    it("Should allow redemption after target is reached and DEX deployment", async function () {
+      const {
+        fundraiser,
+        paymentToken,
+        saleToken,
+        buyer1,
+        foundersWallet,
+        publicClient,
+        targetLiquidity,
+        upfrontRakeBPS,
+        escrowRakeBPS,
+        lpLockWallet,
+      } = await loadFixture(deployFundraiserFixture);
+
+      // Make purchase that reaches target
+      const OTTERPAD_FEE_BPS = 100n;
       const remainingBPS =
         10000n -
         (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
@@ -354,17 +410,36 @@ describe("OtterPadFund", function () {
 
       await buyer1Fundraiser.write.buy([requiredPayment]);
 
-      // Verify target reached
-      expect(await fundraiser.read.targetReached()).to.equal(true);
+      // Deploy to Uniswap
+      const foundersWalletFundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: foundersWallet } }
+      );
+
+      await foundersWalletFundraiser.write.deployToUniswap();
+
+      // Verify DEX deployed
+      expect(await fundraiser.read.isDeployedToUniswap()).to.equal(true);
 
       // Should now be able to redeem
-      await expect(buyer1Fundraiser.write.redeem([0n])).to.be.fulfilled;
+      const initialBalance = await saleToken.read.balanceOf([
+        getAddress(buyer1.account.address),
+      ]);
+      await buyer1Fundraiser.write.redeem([0n]);
+      const finalBalance = await saleToken.read.balanceOf([
+        getAddress(buyer1.account.address),
+      ]);
+
+      // Verify tokens received
+      const purchase = await fundraiser.read.purchases([0n]);
+      expect(finalBalance - initialBalance).to.equal(purchase[2]); // tokenAmount
     });
   });
 
   describe("Refunds", function () {
     it("Should allow refund before target reached", async function () {
-      const { fundraiser, paymentToken, buyer1, publicClient } =
+      const { fundraiser, paymentToken, buyer1, publicClient, lpLockWallet } =
         await loadFixture(deployFundraiserFixture);
 
       const paymentAmount = parseEther("10");
@@ -421,6 +496,7 @@ describe("OtterPadFund", function () {
         targetLiquidity,
         upfrontRakeBPS,
         escrowRakeBPS,
+        lpLockWallet,
       } = await loadFixture(deployFundraiserFixture);
 
       // Calculate required payment to reach target (same as above)
@@ -459,7 +535,7 @@ describe("OtterPadFund", function () {
 
     // Let's also add a test to verify the refund amounts are correct
     it("Should refund the correct contribution amount", async function () {
-      const { fundraiser, paymentToken, buyer1, publicClient } =
+      const { fundraiser, paymentToken, buyer1, publicClient, lpLockWallet } =
         await loadFixture(deployFundraiserFixture);
 
       const paymentAmount = parseEther("10");
@@ -509,9 +585,8 @@ describe("OtterPadFund", function () {
 
   describe("Edge cases", function () {
     it("Should reject purchase below minimum amount", async function () {
-      const { fundraiser, paymentToken, buyer1 } = await loadFixture(
-        deployFundraiserFixture
-      );
+      const { fundraiser, paymentToken, buyer1, lpLockWallet } =
+        await loadFixture(deployFundraiserFixture);
 
       const minimumPurchase = await fundraiser.read.getMinimumPurchase();
       const belowMinimum = minimumPurchase - 1n;
@@ -549,6 +624,7 @@ describe("OtterPadFund", function () {
         targetLiquidity,
         upfrontRakeBPS,
         escrowRakeBPS,
+        lpLockWallet,
       } = await loadFixture(deployFundraiserFixture);
 
       const OTTERPAD_FEE_BPS = 100n;
@@ -592,6 +668,7 @@ describe("OtterPadFund", function () {
         targetLiquidity,
         upfrontRakeBPS,
         escrowRakeBPS,
+        lpLockWallet,
       } = await loadFixture(deployFundraiserFixture);
 
       const OTTERPAD_FEE_BPS = 100n;
@@ -643,8 +720,14 @@ describe("OtterPadFund", function () {
     });
 
     it("Should handle multiple purchases and refunds correctly", async function () {
-      const { fundraiser, paymentToken, buyer1, buyer2, publicClient } =
-        await loadFixture(deployFundraiserFixture);
+      const {
+        fundraiser,
+        paymentToken,
+        buyer1,
+        buyer2,
+        publicClient,
+        lpLockWallet,
+      } = await loadFixture(deployFundraiserFixture);
 
       const payment1 = parseEther("10");
       const payment2 = parseEther("15");
@@ -697,7 +780,9 @@ describe("OtterPadFund", function () {
     });
 
     it("Should handle zero token allocations correctly", async function () {
-      const { fundraiser, buyer1 } = await loadFixture(deployFundraiserFixture);
+      const { fundraiser, buyer1, lpLockWallet } = await loadFixture(
+        deployFundraiserFixture
+      );
 
       const allocation = await fundraiser.read.getAllocation([
         getAddress(buyer1.account.address),
@@ -711,9 +796,8 @@ describe("OtterPadFund", function () {
     });
 
     it("Should prevent reentrant purchases", async function () {
-      const { fundraiser, paymentToken, buyer1 } = await loadFixture(
-        deployFundraiserFixture
-      );
+      const { fundraiser, paymentToken, buyer1, lpLockWallet } =
+        await loadFixture(deployFundraiserFixture);
 
       // Deploy malicious token that attempts reentrancy
       const maliciousToken = await hre.viem.deployContract("ReentrantToken", [
@@ -731,8 +815,13 @@ describe("OtterPadFund", function () {
 
   describe("checkSaleTokensRequired", function () {
     it("Should calculate correct tokens for linear price curve", async function () {
-      const { fundraiser, targetLiquidity, startPrice, endPrice } =
-        await loadFixture(deployFundraiserFixture);
+      const {
+        fundraiser,
+        targetLiquidity,
+        startPrice,
+        endPrice,
+        lpLockWallet,
+      } = await loadFixture(deployFundraiserFixture);
 
       const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
 
@@ -774,7 +863,8 @@ describe("OtterPadFund", function () {
         18n,
       ]);
 
-      const [deployer, foundersWallet] = await hre.viem.getWalletClients();
+      const [deployer, foundersWallet, buyer1, buyer2, lpLockWallet] =
+        await hre.viem.getWalletClients();
 
       // First fundraiser with 5% total rake
       const fundraiser1 = await hre.viem.deployContract("OtterPadFund", [
@@ -790,6 +880,7 @@ describe("OtterPadFund", function () {
         200n, // upfrontRakeBPS (2%)
         300n, // escrowRakeBPS (3%)
         getAddress(foundersWallet.account.address),
+        getAddress(lpLockWallet.account.address),
       ]);
 
       // Second fundraiser with 10% total rake
@@ -806,6 +897,7 @@ describe("OtterPadFund", function () {
         400n, // upfrontRakeBPS (4%)
         600n, // escrowRakeBPS (6%)
         getAddress(foundersWallet.account.address),
+        getAddress(lpLockWallet.account.address),
       ]);
 
       const required1 = await fundraiser1.read.checkSaleTokensRequired();
@@ -830,7 +922,8 @@ describe("OtterPadFund", function () {
         8n,
       ]);
 
-      const [deployer, foundersWallet] = await hre.viem.getWalletClients();
+      const [deployer, foundersWallet, buyer1, buyer2, lpLockWallet] =
+        await hre.viem.getWalletClients();
 
       const fundraiser = await hre.viem.deployContract("OtterPadFund", [
         title,
@@ -845,6 +938,7 @@ describe("OtterPadFund", function () {
         200n, // upfrontRakeBPS
         300n, // escrowRakeBPS
         getAddress(foundersWallet.account.address),
+        getAddress(lpLockWallet.account.address),
       ]);
 
       const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
@@ -869,7 +963,8 @@ describe("OtterPadFund", function () {
         18n,
       ]);
 
-      const [deployer, foundersWallet] = await hre.viem.getWalletClients();
+      const [deployer, foundersWallet, buyer1, buyer2, lpLockWallet] =
+        await hre.viem.getWalletClients();
 
       // Deploy fundraiser with very steep price curve (10x increase)
       const fundraiser = await hre.viem.deployContract("OtterPadFund", [
@@ -885,6 +980,7 @@ describe("OtterPadFund", function () {
         200n, // upfrontRakeBPS
         300n, // escrowRakeBPS
         getAddress(foundersWallet.account.address),
+        getAddress(lpLockWallet.account.address),
       ]);
 
       const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
@@ -896,7 +992,9 @@ describe("OtterPadFund", function () {
     });
 
     it("Should maintain correct ratio between sale and liquidity tokens", async function () {
-      const { fundraiser } = await loadFixture(deployFundraiserFixture);
+      const { fundraiser, lpLockWallet } = await loadFixture(
+        deployFundraiserFixture
+      );
 
       const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
 
@@ -909,6 +1007,224 @@ describe("OtterPadFund", function () {
       // because average price is lower than end price
       expect(requiredTokens > liquidityTokens * 2n).to.be.true;
       expect(requiredTokens < liquidityTokens * 4n).to.be.true;
+    });
+  });
+
+  describe("Uniswap deployment", function () {
+    it("Should not allow deployment before target reached", async function () {
+      const { fundraiser, foundersWallet, lpLockWallet } = await loadFixture(
+        deployFundraiserFixture
+      );
+
+      const foundersWalletFundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: foundersWallet } }
+      );
+      // this should test with exact error message, but for some reason we arent getting the exact error message
+      await expect(foundersWalletFundraiser.write.deployToUniswap()).to.be
+        .rejected;
+    });
+
+    it("Should deploy to Uniswap successfully when conditions are met (by any user)", async function () {
+      const {
+        fundraiser,
+        saleToken,
+        paymentToken,
+        buyer1,
+        foundersWallet,
+        publicClient,
+        targetLiquidity,
+        upfrontRakeBPS,
+        escrowRakeBPS,
+        lpLockWallet,
+      } = await loadFixture(deployFundraiserFixture);
+
+      // Make purchase that reaches target
+      const OTTERPAD_FEE_BPS = 100n;
+      const remainingBPS =
+        10000n -
+        (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
+      const requiredPayment = (targetLiquidity * 10000n) / remainingBPS;
+
+      const buyer1PaymentToken = await hre.viem.getContractAt(
+        "MockERC20",
+        paymentToken.address,
+        { client: { wallet: buyer1 } }
+      );
+      await buyer1PaymentToken.write.approve([
+        fundraiser.address,
+        requiredPayment,
+      ]);
+
+      const buyer1Fundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      await buyer1Fundraiser.write.buy([requiredPayment]);
+
+      // Get initial balances
+      const initialFoundersBalance = await paymentToken.read.balanceOf([
+        getAddress(foundersWallet.account.address),
+      ]);
+
+      const hash = await buyer1Fundraiser.write.deployToUniswap();
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      // Verify DEX deployed
+      expect(await fundraiser.read.isDeployedToUniswap()).to.equal(true);
+
+      // Check escrow released to founders
+      const escrowAmount = (requiredPayment * escrowRakeBPS) / 10000n;
+      const finalFoundersBalance = await paymentToken.read.balanceOf([
+        getAddress(foundersWallet.account.address),
+      ]);
+      expect(finalFoundersBalance - initialFoundersBalance).to.equal(
+        escrowAmount
+      );
+
+      // Verify Uniswap pair exists
+      const factory = await hre.viem.getContractAt(
+        "IUniswapV2Factory",
+        UNISWAP_FACTORY
+      );
+      const pairAddress = await factory.read.getPair([
+        saleToken.address,
+        paymentToken.address,
+      ]);
+      expect(pairAddress).to.not.equal(
+        getAddress("0x0000000000000000000000000000000000000000")
+      );
+
+      // Check DeployedToUniswap event
+      const deployEvents = await fundraiser.getEvents.DeployedToUniswap();
+      expect(deployEvents).to.have.lengthOf(1);
+      expect(deployEvents[0].args.pair).to.equal(pairAddress);
+    });
+
+    it("Should not allow deployment more than once", async function () {
+      const {
+        fundraiser,
+        paymentToken,
+        buyer1,
+        foundersWallet,
+        publicClient,
+        targetLiquidity,
+        upfrontRakeBPS,
+        escrowRakeBPS,
+        lpLockWallet,
+      } = await loadFixture(deployFundraiserFixture);
+
+      // Make purchase that reaches target
+      const OTTERPAD_FEE_BPS = 100n;
+      const remainingBPS =
+        10000n -
+        (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
+      const requiredPayment = (targetLiquidity * 10000n) / remainingBPS;
+
+      const buyer1PaymentToken = await hre.viem.getContractAt(
+        "MockERC20",
+        paymentToken.address,
+        { client: { wallet: buyer1 } }
+      );
+      await buyer1PaymentToken.write.approve([
+        fundraiser.address,
+        requiredPayment,
+      ]);
+
+      const buyer1Fundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      await buyer1Fundraiser.write.buy([requiredPayment]);
+
+      // Deploy to Uniswap first time
+      const foundersWalletFundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: foundersWallet } }
+      );
+
+      await foundersWalletFundraiser.write.deployToUniswap();
+
+      // this should test with exact error message, but for some reason we arent getting the exact error message
+      await expect(foundersWalletFundraiser.write.deployToUniswap()).to.be
+        .rejected;
+    });
+
+    it("Should handle escrow release correctly on deployment", async function () {
+      const {
+        fundraiser,
+        paymentToken,
+        buyer1,
+        foundersWallet,
+        publicClient,
+        targetLiquidity,
+        upfrontRakeBPS,
+        escrowRakeBPS,
+        lpLockWallet,
+      } = await loadFixture(deployFundraiserFixture);
+
+      // Make purchase that reaches target
+      const OTTERPAD_FEE_BPS = 100n;
+      const remainingBPS =
+        10000n -
+        (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
+      const requiredPayment = (targetLiquidity * 10000n) / remainingBPS;
+
+      const buyer1PaymentToken = await hre.viem.getContractAt(
+        "MockERC20",
+        paymentToken.address,
+        { client: { wallet: buyer1 } }
+      );
+      await buyer1PaymentToken.write.approve([
+        fundraiser.address,
+        requiredPayment,
+      ]);
+
+      const buyer1Fundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      await buyer1Fundraiser.write.buy([requiredPayment]);
+
+      // Get initial balances
+      const initialFoundersBalance = await paymentToken.read.balanceOf([
+        getAddress(foundersWallet.account.address),
+      ]);
+
+      // Deploy to Uniswap
+      const foundersWalletFundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: foundersWallet } }
+      );
+
+      const hash = await foundersWalletFundraiser.write.deployToUniswap();
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+      // Verify escrow amount
+      const expectedEscrow = (requiredPayment * escrowRakeBPS) / 10000n;
+      const finalFoundersBalance = await paymentToken.read.balanceOf([
+        getAddress(foundersWallet.account.address),
+      ]);
+      expect(finalFoundersBalance - initialFoundersBalance).to.equal(
+        expectedEscrow
+      );
+
+      // Check EscrowReleased event
+      const escrowEvents = await fundraiser.getEvents.EscrowReleased();
+      expect(escrowEvents).to.have.lengthOf(1);
+      expect(escrowEvents[0].args.amount).to.equal(expectedEscrow);
+      expect(escrowEvents[0].args.foundersWallet).to.equal(
+        getAddress(foundersWallet.account.address)
+      );
     });
   });
 });
