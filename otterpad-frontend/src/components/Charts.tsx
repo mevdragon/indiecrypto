@@ -303,6 +303,7 @@ const Charts = ({
 
         if (allEvents.length === 0) {
           console.log("No events found");
+          setIsFetchingHistory(false);
           return;
         }
 
@@ -512,6 +513,7 @@ const Charts = ({
         console.error("Error fetching and processing data:", error);
         setIsFetchingHistory(false);
       }
+      setIsFetchingHistory(false);
     };
 
     fetchAndProcessData();

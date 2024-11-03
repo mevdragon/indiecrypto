@@ -38,6 +38,7 @@ contract OtterPadFund is ReentrancyGuard {
     
     address public immutable foundersWallet;
     address public constant OTTERPAD_DAO = 0x6c83e86e05697C995d718C1cfA3F9045A38C7cd4;
+    address public immutable lockLPTokenWallet;
     
     uint256 public orderCounter;
     bool public isDeployedToUniswap;
@@ -98,7 +99,8 @@ contract OtterPadFund is ReentrancyGuard {
         uint256 _targetLiquidity,
         uint256 _upfrontRakeBPS,
         uint256 _escrowRakeBPS,
-        address _foundersWallet
+        address _foundersWallet,
+        address _lockLPTokenWallet
     ) {
         require(bytes(_title).length > 0, "Invalid title");
         require(_startPrice > 0 && _endPrice > 0 && _endPrice > _startPrice, "Invalid prices");
@@ -119,6 +121,7 @@ contract OtterPadFund is ReentrancyGuard {
         
         saleTokenDecimals = IERC20Metadata(_saleToken).decimals();
         paymentTokenDecimals = IERC20Metadata(_paymentToken).decimals();
+        lockLPTokenWallet = _lockLPTokenWallet;
         
         startPrice = _startPrice;
         endPrice = _endPrice;
@@ -241,6 +244,7 @@ contract OtterPadFund is ReentrancyGuard {
 
     function redeem(uint256 orderIndex) external nonReentrant {
         require(targetReached, "Target not reached yet");
+        require(isDeployedToUniswap, "Not yet deployed to DEX");
         Purchase storage purchase = purchases[orderIndex];
         require(purchase.purchaser == msg.sender, "Not the purchaser");
         require(!purchase.isRefunded, "Order was refunded");
@@ -281,7 +285,6 @@ contract OtterPadFund is ReentrancyGuard {
     }
     
     function deployToUniswap() external {
-        require(msg.sender == foundersWallet, "Only founders can deploy");
         require(targetReached, "Target not reached");
         require(!isDeployedToUniswap, "Already deployed");
         
@@ -297,14 +300,21 @@ contract OtterPadFund is ReentrancyGuard {
         require(saleToken.approve(address(uniswapRouter), totalTokensAllocated), "Token approve failed");
         require(paymentToken.approve(address(uniswapRouter), liquidityPaymentAmount), "Payment approve failed");
         
+        uint256 normalizedEndPrice = normalizeDecimals(
+            endPrice,
+            paymentTokenDecimals,
+            saleTokenDecimals
+        );
+        uint256 liquidityTokens = targetLiquidity * (10**saleTokenDecimals) / normalizedEndPrice;
+
         (uint256 amountA, uint256 amountB, uint256 liquidity) = uniswapRouter.addLiquidity(
             address(saleToken),
             address(paymentToken),
-            totalTokensAllocated,
+            liquidityTokens, 
             liquidityPaymentAmount,
-            totalTokensAllocated,
+            liquidityTokens,
             liquidityPaymentAmount,
-            address(this),
+            lockLPTokenWallet,
             block.timestamp + 2 minutes
         );
         
