@@ -116,6 +116,7 @@ contract OtterPadFund is ReentrancyGuard {
         require(_saleToken != address(0) && _paymentToken != address(0), "Invalid token addresses");
         require(_saleToken != _paymentToken, "Tokens must be different");
         require(_uniswapRouter != address(0) && _uniswapFactory != address(0), "Invalid Uniswap addresses");
+        require(10000 - upfrontRakeBPS - escrowRakeBPS > 0, "Invalid rake parameters");
         
         title = _title;
         richInfoUrl = _richInfoUrl;
@@ -175,20 +176,11 @@ contract OtterPadFund is ReentrancyGuard {
         uint256 priceAtStart = getCurrentPrice();
         uint256 priceAtEnd = startPrice + ((endPrice - startPrice) * (totalActiveContributions + contributionAmount) / targetLiquidity);
         uint256 averagePrice = (priceAtStart + priceAtEnd) / 2;
-        
-        // The price is in payment token wei per 1e18 sale tokens
-        // So we need to convert paymentAmount to the equivalent in 1e18 terms first
-        uint256 scaledPayment = paymentAmount * 1e18;
+    
         
         // Then divide by average price to get sale tokens in 1e18 terms
-        uint256 tokensIn1e18 = (scaledPayment) / averagePrice;
-        
-        // Finally, adjust to the actual sale token decimals
-        if (saleTokenDecimals >= 18) {
-            return tokensIn1e18 * (10 ** (saleTokenDecimals - 18));
-        } else {
-            return tokensIn1e18 / (10 ** (18 - saleTokenDecimals));
-        }
+        uint256 tokensReceived = (paymentAmount * (10**saleTokenDecimals)) / averagePrice;
+        return tokensReceived;
     }
     
     function buy(uint256 paymentAmount) external nonReentrant {
@@ -304,8 +296,7 @@ contract OtterPadFund is ReentrancyGuard {
         uint256 paymentTokenBase = 10 ** paymentTokenDecimals;
         
         // Calculate complementary sale tokens for liquidity
-        // Formula: tokens = (targetLiquidity * saleTokenBase) / (endPrice * paymentTokenBase / 1e18)
-        uint256 complimentarySalesTokensLiquidity = (targetLiquidity * saleTokenBase * 1e18) / (endPrice * paymentTokenBase);
+        uint256 complimentarySalesTokensLiquidity = (targetLiquidity * saleTokenBase) / endPrice;
         
         require(saleToken.balanceOf(address(this)) >= complimentarySalesTokensLiquidity, "Insufficient sale tokens");
         require(paymentToken.balanceOf(address(this)) >= targetLiquidity + escrowAmount, 
@@ -378,7 +369,6 @@ contract OtterPadFund is ReentrancyGuard {
     function checkSaleTokensRequired() public view returns (uint256) {
         // Handle decimal scaling factors
         uint256 saleTokenBase = 10 ** saleTokenDecimals;    // e.g. 1e18
-        uint256 paymentTokenBase = 10 ** paymentTokenDecimals; // e.g. 1e6
         
         // Calculate tokens needed for liquidity provision (at end price)
         // Formula: liquidityTokens = (targetLiquidity * saleTokenBase) / (endPrice * paymentTokenBase) * paymentTokenBase
@@ -387,7 +377,8 @@ contract OtterPadFund is ReentrancyGuard {
         // Calculate tokens needed for sale to customers
         // Since we're using a bonding curve, use the average price ((startPrice + endPrice) / 2)
         uint256 averagePrice = (startPrice + endPrice) / 2;
-        uint256 tokensForSale = (targetLiquidity * saleTokenBase) / averagePrice;
+        uint256 totalCashInflows = targetLiquidity * 10000 / (10000 - upfrontRakeBPS - escrowRakeBPS);
+        uint256 tokensForSale = (totalCashInflows * saleTokenBase) / averagePrice;
         
         // Return total tokens needed (both liquidity and sale amounts)
         return liquidityTokens + tokensForSale;
