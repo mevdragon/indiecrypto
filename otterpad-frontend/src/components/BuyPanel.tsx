@@ -51,7 +51,7 @@ import {
   useWriteContract,
   usePublicClient,
 } from "wagmi";
-import { Address, formatUnits, parseEther } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
 import { Content } from "antd/es/layout/layout";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import TabPane from "antd/es/tabs/TabPane";
@@ -432,7 +432,7 @@ const BuyPanel = ({
               convertToPurchase(result);
           }
         });
-
+        console.log("purchases", purchases);
         setPurchaseData(purchases);
       } catch (error) {
         console.error("Error fetching purchase data:", error);
@@ -456,13 +456,16 @@ const BuyPanel = ({
     }
 
     try {
-      const paymentAmountBigInt = parseEther(paymentAmount);
+      const paymentAmountBigInt = parseUnits(
+        paymentAmount,
+        contractData.paymentTokenDecimals
+      );
 
       if (contractData.targetReached) {
         // If target reached, use current price directly
         const tokens =
           (paymentAmountBigInt *
-            BigInt(10 ** (tokenInfo.sale?.decimals || 18))) /
+            10n ** BigInt(tokenInfo.sale?.decimals || 18)) /
           contractData.currentPrice;
         return {
           estimatedTokens: formatUnits(tokens, contractData.saleTokenDecimals),
@@ -529,7 +532,10 @@ const BuyPanel = ({
             ...prev,
             isCheckingAllowance: true,
           }));
-          const amountBigInt = parseEther(amount);
+          const amountBigInt = parseUnits(
+            amount,
+            contractData.paymentTokenDecimals
+          );
           const allowance = await publicClient.readContract({
             address: contractData.paymentTokenAddress,
             abi: ERC20_ABI,
@@ -612,15 +618,17 @@ const BuyPanel = ({
       hash: redeemTxHash,
     });
 
+  const provider = useMemo(() => {
+    return new ethers.JsonRpcProvider(
+      "https://sepolia.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
+    );
+  }, []);
+
   // Fetch token information
   useEffect(() => {
     const fetchTokenInfo = async () => {
       if (!contractData?.saleTokenAddress || !contractData?.paymentTokenAddress)
         return;
-
-      const provider = new ethers.JsonRpcProvider(
-        "https://sepolia.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
-      );
 
       const erc20Abi = [
         "function symbol() view returns (string)",
@@ -659,14 +667,18 @@ const BuyPanel = ({
     };
 
     fetchTokenInfo();
-  }, [contractData?.saleTokenAddress, contractData?.paymentTokenAddress]);
+  }, [
+    contractData?.saleTokenAddress,
+    contractData?.paymentTokenAddress,
+    provider,
+  ]);
 
   const checkAllowance = async () => {
     if (!contractData || !userAddress || !publicClient || !buyAmount) return;
 
     try {
       setTransactionState((prev) => ({ ...prev, isCheckingAllowance: true }));
-      const amount = parseEther(buyAmount);
+      const amount = parseUnits(buyAmount, contractData.paymentTokenDecimals);
       const allowance = await publicClient.readContract({
         address: contractData.paymentTokenAddress,
         abi: ERC20_ABI,
@@ -698,7 +710,10 @@ const BuyPanel = ({
         address: contractData.paymentTokenAddress,
         abi: ERC20_ABI,
         functionName: "approve",
-        args: [CONTRACT_ADDRESS, parseEther(buyAmount)],
+        args: [
+          CONTRACT_ADDRESS,
+          parseUnits(buyAmount, contractData.paymentTokenDecimals),
+        ],
       });
 
       setTransactionState((prev) => ({
@@ -742,7 +757,7 @@ const BuyPanel = ({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "buy",
-        args: [parseEther(buyAmount)],
+        args: [parseUnits(buyAmount, contractData.paymentTokenDecimals)],
       });
 
       setTransactionState((prev) => ({
@@ -1527,10 +1542,13 @@ const BuyPanel = ({
                                 }}
                               >
                                 Bought{" "}
-                                {formatUnits(
-                                  purchase.tokenAmount,
-                                  contractData.saleTokenDecimals
-                                )}
+                                {parseFloat(
+                                  formatUnits(
+                                    purchase.tokenAmount,
+                                    contractData.saleTokenDecimals
+                                  )
+                                ).toFixed(2)}{" "}
+                                {tokenInfo.sale?.symbol}
                               </Title>
                               <Text
                                 type="secondary"
@@ -1545,7 +1563,8 @@ const BuyPanel = ({
                                 {formatUnits(
                                   purchase.paymentAmount,
                                   contractData.paymentTokenDecimals
-                                )}
+                                )}{" "}
+                                {tokenInfo.payment?.symbol}
                               </Text>
                             </div>
                             <div

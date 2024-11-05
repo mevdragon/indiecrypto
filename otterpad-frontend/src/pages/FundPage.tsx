@@ -246,6 +246,7 @@ const FundPage = () => {
   };
 
   const contractData = processContractData();
+  console.log(contractData);
   return (
     <AppLayout>
       <div style={{ padding: "0px 16px 0px 16px" }}>

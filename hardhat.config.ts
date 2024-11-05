@@ -14,13 +14,13 @@ const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.24",
-    // settings: {
-    //   viaIR: true,
-    //   optimizer: {
-    //     enabled: true,
-    //     runs: 200,
-    //   },
-    // },
+    settings: {
+      viaIR: true,
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
   },
   etherscan: {
     apiKey: {

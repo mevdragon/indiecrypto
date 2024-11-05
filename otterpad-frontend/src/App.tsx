@@ -19,7 +19,9 @@ import TrendingPage from "./pages/TrendingPage";
 const config = createConfig({
   chains: [sepolia],
   transports: {
-    [sepolia.id]: http(),
+    [sepolia.id]: http(
+      "https://sepolia.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
+    ),
   },
 });
 
@@ -29,7 +31,7 @@ const queryClient = new QueryClient();
 // Setup RainbowKit
 const { wallets } = getDefaultWallets({
   appName: "IndieCrypto",
-  projectId: "YOUR_PROJECT_ID", // Get from WalletConnect
+  projectId: "d8e4503aea07700cf13e5f5179e85283", // Get from WalletConnect
 });
 
 function App() {

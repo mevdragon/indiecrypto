@@ -345,6 +345,8 @@ const Charts = ({
           }
         }
 
+        console.log("allEvents", allEvents);
+
         // Calculate price data based on TVL
         const calculatePrice = (tvl: number) => {
           if (
@@ -377,10 +379,12 @@ const Charts = ({
             Number(val.toFixed(2))
           ),
         }));
+        console.log(`candlesticks`, candlesticks);
         const priceData = candlesticks.map((tvlCandle) => ({
           x: tvlCandle.x,
           y: tvlCandle.y.map((tvl) => Number(calculatePrice(tvl).toFixed(4))),
         }));
+        console.log(`priceData`, priceData);
 
         // Initialize first interval
         minuteData.set(startMinute, {

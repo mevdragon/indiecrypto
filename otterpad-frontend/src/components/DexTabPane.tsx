@@ -323,7 +323,7 @@ const DexTabPane: React.FC<DexTabPaneProps> = ({
           onClick={handleApproveSaleToken}
           disabled={isTransferring || isTransferLoading}
         >
-          {`Approve ${requiredAmount} SALE`}
+          {`Approve Deposit ${requiredAmount} SALE`}
         </Button>
       );
     }

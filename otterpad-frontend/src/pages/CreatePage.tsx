@@ -19,14 +19,9 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   usePublicClient,
+  useReadContract,
 } from "wagmi";
-import {
-  parseEther,
-  isAddress,
-  Address,
-  decodeEventLog,
-  zeroAddress,
-} from "viem";
+import { isAddress, Address, decodeEventLog, zeroAddress } from "viem";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../AppLayout";
@@ -71,6 +66,15 @@ const CreatePage: React.FC = () => {
   const publicClient = usePublicClient();
   const [metadata, setMetadata] = React.useState<OtterpadInfo | null>(null);
   const agreementValue = Form.useWatch("agreement", form);
+
+  // Add fund counter read
+  const factoryAddress = getFactoryAddress(selectedChain);
+  const fundCounterResult = useReadContract({
+    address: factoryAddress as Address,
+    abi: OtterPadFactory__factory.abi,
+    functionName: "fundCounterIndex",
+  });
+  console.log("fundCounterResult", fundCounterResult);
 
   const { writeContractAsync } = useWriteContract();
 
@@ -288,6 +292,10 @@ const CreatePage: React.FC = () => {
           alignItems: "center",
         }}
       >
+        {/* <p style={{ marginBottom: "24px" }}>
+          Total Funds Created:{" "}
+          {fundCounter ? fundCounter.toString() : "Loading..."}
+        </p> */}
         <Card
           title="Create Crypto Fundraiser"
           style={{
