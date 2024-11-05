@@ -47,12 +47,16 @@ export interface OtterPadFundInterface extends Interface {
       | "lockLPTokenWallet"
       | "orderCounter"
       | "paymentToken"
+      | "paymentTokenDecimals"
+      | "paymentTokenSymbol"
       | "purchases"
       | "recoverStuckTokens"
       | "redeem"
       | "refund"
       | "richInfoUrl"
       | "saleToken"
+      | "saleTokenDecimals"
+      | "saleTokenSymbol"
       | "startPrice"
       | "targetLiquidity"
       | "targetReached"
@@ -61,6 +65,7 @@ export interface OtterPadFundInterface extends Interface {
       | "totalPaymentsIn"
       | "totalTokensAllocated"
       | "uniswapFactory"
+      | "uniswapPool"
       | "uniswapRouter"
       | "upfrontRakeBPS"
       | "userOrderIndices"
@@ -155,6 +160,14 @@ export interface OtterPadFundInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "paymentTokenDecimals",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "paymentTokenSymbol",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "purchases",
     values: [BigNumberish]
   ): string;
@@ -175,6 +188,14 @@ export interface OtterPadFundInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "saleToken", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "saleTokenDecimals",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "saleTokenSymbol",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "startPrice",
     values?: undefined
@@ -202,6 +223,10 @@ export interface OtterPadFundInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "uniswapFactory",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "uniswapPool",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -295,6 +320,14 @@ export interface OtterPadFundInterface extends Interface {
     functionFragment: "paymentToken",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "paymentTokenDecimals",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "paymentTokenSymbol",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "purchases", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "recoverStuckTokens",
@@ -307,6 +340,14 @@ export interface OtterPadFundInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "saleToken", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "saleTokenDecimals",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "saleTokenSymbol",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "startPrice", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "targetLiquidity",
@@ -331,6 +372,10 @@ export interface OtterPadFundInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "uniswapFactory",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "uniswapPool",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -545,7 +590,7 @@ export interface OtterPadFund extends BaseContract {
 
   checkSaleTokensRequired: TypedContractMethod<[], [bigint], "view">;
 
-  deployToUniswap: TypedContractMethod<[], [void], "nonpayable">;
+  deployToUniswap: TypedContractMethod<[], [string], "nonpayable">;
 
   endPrice: TypedContractMethod<[], [bigint], "view">;
 
@@ -581,6 +626,10 @@ export interface OtterPadFund extends BaseContract {
 
   paymentToken: TypedContractMethod<[], [string], "view">;
 
+  paymentTokenDecimals: TypedContractMethod<[], [bigint], "view">;
+
+  paymentTokenSymbol: TypedContractMethod<[], [string], "view">;
+
   purchases: TypedContractMethod<
     [arg0: BigNumberish],
     [
@@ -611,6 +660,10 @@ export interface OtterPadFund extends BaseContract {
 
   saleToken: TypedContractMethod<[], [string], "view">;
 
+  saleTokenDecimals: TypedContractMethod<[], [bigint], "view">;
+
+  saleTokenSymbol: TypedContractMethod<[], [string], "view">;
+
   startPrice: TypedContractMethod<[], [bigint], "view">;
 
   targetLiquidity: TypedContractMethod<[], [bigint], "view">;
@@ -626,6 +679,8 @@ export interface OtterPadFund extends BaseContract {
   totalTokensAllocated: TypedContractMethod<[], [bigint], "view">;
 
   uniswapFactory: TypedContractMethod<[], [string], "view">;
+
+  uniswapPool: TypedContractMethod<[], [string], "view">;
 
   uniswapRouter: TypedContractMethod<[], [string], "view">;
 
@@ -658,7 +713,7 @@ export interface OtterPadFund extends BaseContract {
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "deployToUniswap"
-  ): TypedContractMethod<[], [void], "nonpayable">;
+  ): TypedContractMethod<[], [string], "nonpayable">;
   getFunction(
     nameOrSignature: "endPrice"
   ): TypedContractMethod<[], [bigint], "view">;
@@ -705,6 +760,12 @@ export interface OtterPadFund extends BaseContract {
     nameOrSignature: "paymentToken"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "paymentTokenDecimals"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "paymentTokenSymbol"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
     nameOrSignature: "purchases"
   ): TypedContractMethod<
     [arg0: BigNumberish],
@@ -741,6 +802,12 @@ export interface OtterPadFund extends BaseContract {
     nameOrSignature: "saleToken"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "saleTokenDecimals"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "saleTokenSymbol"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
     nameOrSignature: "startPrice"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
@@ -763,6 +830,9 @@ export interface OtterPadFund extends BaseContract {
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "uniswapFactory"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "uniswapPool"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "uniswapRouter"

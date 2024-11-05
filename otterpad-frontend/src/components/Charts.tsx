@@ -19,10 +19,12 @@ import {
   GlobalOutlined,
   LineChartOutlined,
   ShoppingCartOutlined,
+  SlidersFilled,
   TwitterOutlined,
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useBlockNumber, usePublicClient } from "wagmi";
+import DexTabPane from "./DexTabPane";
 
 const { Title, Paragraph } = Typography;
 
@@ -36,38 +38,8 @@ const formatPrice = (value: bigint, decimals: number = 18) => {
   return Number((Number(value) / divisor).toFixed(4));
 };
 
-const generateBullishData = () => {
-  const basePrice = 6000;
-  const data = [];
-  const startTime = new Date("2024-01-01").getTime();
-
-  for (let i = 0; i < 50; i++) {
-    const time = startTime + i * 1800000; // 30-minute intervals
-    const volatility = Math.random() * 25;
-    const trend = i * 1.8; // Slightly stronger upward trend
-
-    // Reduced probability of red candles (25%)
-    const shouldBeRed = Math.random() < 0.27;
-
-    let open, close;
-    if (shouldBeRed) {
-      open = basePrice + trend + Math.random() * 20;
-      close = open - Math.random() * 12; // Smaller red candles
-    } else {
-      open = basePrice + trend + Math.random() * 20;
-      close = open + Math.random() * 25; // Green candle (close higher than open)
-    }
-
-    const high = Math.max(open, close) + volatility;
-    const low = Math.min(open, close) - volatility;
-
-    data.push({
-      x: new Date(time),
-      y: [open, high, low, close],
-    });
-  }
-  return data;
-};
+const DEFAULT_PROJECT_IMAGE =
+  "https://firebasestorage.googleapis.com/v0/b/arbitrage-bot-ea10c.appspot.com/o/generic-sharing%2Fotterpad%2FOtterpad%204%20(4).png?alt=media&token=210c3683-732f-4de7-a7b7-925419caee9e";
 
 const carouselSettings: CarouselProps = {
   autoplay: true,
@@ -96,10 +68,14 @@ interface ChartData {
 
 const Charts = ({
   address,
+  chainIdDecimal,
   contractData,
+  refetchContractDetails,
 }: {
   address: Address;
+  chainIdDecimal: string;
   contractData: ContractDataResult | null;
+  refetchContractDetails: () => void;
 }) => {
   const [otterpadInfo, setOtterpadInfo] = useState<OtterpadInfo | null>(null);
   const [isFetchingHistory, setIsFetchingHistory] = useState(true);
@@ -369,6 +345,8 @@ const Charts = ({
           }
         }
 
+        console.log("allEvents", allEvents);
+
         // Calculate price data based on TVL
         const calculatePrice = (tvl: number) => {
           if (
@@ -401,10 +379,12 @@ const Charts = ({
             Number(val.toFixed(2))
           ),
         }));
+        console.log(`candlesticks`, candlesticks);
         const priceData = candlesticks.map((tvlCandle) => ({
           x: tvlCandle.x,
           y: tvlCandle.y.map((tvl) => Number(calculatePrice(tvl).toFixed(4))),
         }));
+        console.log(`priceData`, priceData);
 
         // Initialize first interval
         minuteData.set(startMinute, {
@@ -581,7 +561,7 @@ const Charts = ({
         <TabPane
           tab={
             <span>
-              <ShoppingCartOutlined />
+              <ShoppingCartOutlined style={{ marginRight: "5px" }} />
               About
             </span>
           }
@@ -632,7 +612,7 @@ const Charts = ({
                 </Space>
 
                 {/* Media Carousel Section */}
-                {otterpadInfo.media.length > 0 && (
+                {otterpadInfo.media && otterpadInfo.media.length > 0 && (
                   <div
                     style={{
                       minWidth: "400px",
@@ -656,7 +636,7 @@ const Charts = ({
                             }}
                           >
                             <Image
-                              src={url}
+                              src={url || DEFAULT_PROJECT_IMAGE}
                               alt={`${otterpadInfo.title} media ${index + 1}`}
                               style={{
                                 maxHeight: "100%",
@@ -679,7 +659,7 @@ const Charts = ({
         <TabPane
           tab={
             <span>
-              <LineChartOutlined />
+              <LineChartOutlined style={{ marginRight: "5px" }} />
               Price
             </span>
           }
@@ -710,7 +690,7 @@ const Charts = ({
         <TabPane
           tab={
             <span>
-              <AreaChartOutlined />
+              <AreaChartOutlined style={{ marginRight: "5px" }} />
               TVL
             </span>
           }
@@ -737,6 +717,23 @@ const Charts = ({
               options={chartData.tvl.options}
             />
           </div>
+        </TabPane>
+        <TabPane
+          tab={
+            <span>
+              <SlidersFilled style={{ marginRight: "5px" }} />
+              DEX
+            </span>
+          }
+          key="dex"
+          style={{ height: "100%", minHeight: "100%" }}
+        >
+          <DexTabPane
+            address={address}
+            chainIdDecimal={chainIdDecimal}
+            contractData={contractData}
+            refetchContractDetails={refetchContractDetails}
+          />
         </TabPane>
       </Tabs>
     </div>

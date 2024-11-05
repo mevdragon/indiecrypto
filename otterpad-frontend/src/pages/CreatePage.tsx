@@ -11,20 +11,17 @@ import {
   Tooltip,
   Space,
   Select,
+  Alert,
+  Checkbox,
 } from "antd";
 import {
   useAccount,
   useWriteContract,
   useWaitForTransactionReceipt,
   usePublicClient,
+  useReadContract,
 } from "wagmi";
-import {
-  parseEther,
-  isAddress,
-  Address,
-  decodeEventLog,
-  zeroAddress,
-} from "viem";
+import { isAddress, Address, decodeEventLog, zeroAddress } from "viem";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../AppLayout";
@@ -54,8 +51,6 @@ interface FundForm {
   useCustomRichInfo: boolean;
 }
 
-const CONTRACT_ADDRESS = "0xf56759Df56bA0fe7294c75715E8eD2d2b065577F" as const;
-
 const CreatePage: React.FC = () => {
   const [selectedChain, setSelectedChain] = React.useState(
     SUPPORTED_CHAINS[0].chainIdDecimal
@@ -70,6 +65,16 @@ const CreatePage: React.FC = () => {
   const [txHash, setTxHash] = React.useState<`0x${string}`>();
   const publicClient = usePublicClient();
   const [metadata, setMetadata] = React.useState<OtterpadInfo | null>(null);
+  const agreementValue = Form.useWatch("agreement", form);
+
+  // Add fund counter read
+  const factoryAddress = getFactoryAddress(selectedChain);
+  const fundCounterResult = useReadContract({
+    address: factoryAddress as Address,
+    abi: OtterPadFactory__factory.abi,
+    functionName: "fundCounterIndex",
+  });
+  console.log("fundCounterResult", fundCounterResult);
 
   const { writeContractAsync } = useWriteContract();
 
@@ -153,7 +158,7 @@ const CreatePage: React.FC = () => {
         abi: OtterPadFactory__factory.abi,
         functionName: "createFundraiser",
         args: [
-          BigInt(Math.max(values.upfrontRakeBPS, 100)),
+          BigInt(Math.max(values.upfrontRakeBPS, 200)),
           BigInt(values.escrowRakeBPS),
           BigInt(values.startPrice),
           BigInt(values.endPrice),
@@ -287,6 +292,10 @@ const CreatePage: React.FC = () => {
           alignItems: "center",
         }}
       >
+        {/* <p style={{ marginBottom: "24px" }}>
+          Total Funds Created:{" "}
+          {fundCounter ? fundCounter.toString() : "Loading..."}
+        </p> */}
         <Card
           title="Create Crypto Fundraiser"
           style={{
@@ -301,7 +310,7 @@ const CreatePage: React.FC = () => {
             disabled={!isConnected || isSubmitting}
             initialValues={{
               useCustomRichInfo: false,
-              upfrontRakeBPS: 100,
+              upfrontRakeBPS: 200,
             }}
           >
             <Form.Item
@@ -499,7 +508,7 @@ const CreatePage: React.FC = () => {
               label={
                 <Space>
                   Upfront Rake (BPS)
-                  <Tooltip title="Initial fee in basis points (100 = 1%). Minimum is 100">
+                  <Tooltip title="Initial fee in basis points (100 = 1%). Minimum is 200">
                     <InfoCircleOutlined />
                   </Tooltip>
                 </Space>
@@ -510,10 +519,10 @@ const CreatePage: React.FC = () => {
               ]}
             >
               <InputNumber
-                min={100}
+                min={200}
                 max={10000}
                 style={{ width: "100%" }}
-                placeholder="100"
+                placeholder="200"
               />
             </Form.Item>
 
@@ -639,11 +648,68 @@ const CreatePage: React.FC = () => {
             )}
 
             <Form.Item>
+              <Alert
+                message="Important: Token Listing Requirements"
+                description={
+                  <>
+                    <p>
+                      This fundraiser is only for tokens that are not already
+                      listed on Uniswap V2. Using this for already listed tokens
+                      may result in unexpected behavior and potential loss of
+                      funds.{" "}
+                      <a
+                        href="https://docs.indiecrypto.club/requirements"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Learn more
+                      </a>
+                    </p>
+                    <Form.Item
+                      name="agreement"
+                      valuePropName="checked"
+                      rules={[
+                        {
+                          validator: (_, value) =>
+                            value
+                              ? Promise.resolve()
+                              : Promise.reject(
+                                  new Error(
+                                    "Please read and agree to the terms and conditions"
+                                  )
+                                ),
+                        },
+                      ]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Checkbox>
+                        I understand and agree to the{" "}
+                        <a
+                          href="https://docs.indiecrypto.club/tos"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          terms & conditions
+                        </a>{" "}
+                        and risks associated with using permissionless
+                        blockchain smart contracts. I confirm my token is not
+                        already listed on Uniswap V2.
+                      </Checkbox>
+                    </Form.Item>
+                  </>
+                }
+                type="warning"
+                showIcon
+                style={{ marginBottom: "16px" }}
+              />
+            </Form.Item>
+
+            <Form.Item>
               <Button
                 type="primary"
                 htmlType="submit"
                 loading={isSubmitting}
-                disabled={!isConnected || isSubmitting}
+                disabled={!isConnected || isSubmitting || !agreementValue}
                 style={{ width: "100%" }}
               >
                 {!isConnected

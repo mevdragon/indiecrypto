@@ -3,7 +3,7 @@
  * 
 # Using mock tokens (default)
 npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts
-npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --network sepolia
+npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --network sepolia  --verify
 
 # Using existing tokens
 npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --parameters '{
@@ -32,11 +32,11 @@ export default buildModule("OtterPadFundraiserModule", (m) => {
   const useMockTokens = m.getParameter("useMockTokens", true);
   const saleTokenAddress = m.getParameter<string>(
     "saleToken",
-    "0xea0D03c0aBc36a1Ca7864e03f2E40333D6F4D0F4"
+    "0x9eC6b6f455B45fe44d0Edff3d10F7e6219C1202e"
   );
   const paymentTokenAddress = m.getParameter<string>(
     "paymentToken",
-    "0xBc255963Da9C9bdeD90774c821B3FAC81Bf487C1"
+    "0x9AcF3D5E879Affd4a718dF1526a44f0303854d98"
   );
   const foundersWallet = m.getParameter<string>(
     "foundersWallet",
@@ -64,7 +64,7 @@ export default buildModule("OtterPadFundraiserModule", (m) => {
   // });
 
   // Deploy the fundraiser
-  const fundraiser = m.contract("OtterPadFundraiser", [
+  const fundraiser = m.contract("OtterPadFund", [
     "Crypto Project", // title
     "https://api.legions.bot/api/w/officex/capture_u/f/officex/otterpad_rest_api", // richInfoUrl
     saleTokenAddress, // useMockTokens ? mockSaleToken : saleTokenAddress,

@@ -1,5 +1,5 @@
 // npx hardhat ignition deploy ./ignition/modules/OtterPadFactory.deploy.ts
-// npx hardhat ignition deploy ./ignition/modules/OtterPadFactory.deploy.ts --network sepolia
+// npx hardhat ignition deploy ./ignition/modules/OtterPadFactory.deploy.ts --network sepolia  --verify
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 

@@ -39,6 +39,9 @@ import {
   CheckCircleOutlined,
   RollbackOutlined,
   ShareAltOutlined,
+  CopyOutlined,
+  LinkOutlined,
+  ExportOutlined,
 } from "@ant-design/icons";
 import {
   useAccount,
@@ -48,13 +51,14 @@ import {
   useWriteContract,
   usePublicClient,
 } from "wagmi";
-import { Address, formatEther, parseEther } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
 import { Content } from "antd/es/layout/layout";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import TabPane from "antd/es/tabs/TabPane";
 import { getPublicClient, waitForTransaction } from "wagmi/actions";
-import { CONTRACT_ABI, ContractDataResult, ERC20_ABI } from "../pages/FundPage";
+import { CONTRACT_ABI, ContractDataResult } from "../pages/FundPage";
 import { useMediaQuery } from "react-responsive";
+import { ERC20_ABI, SUPPORTED_CHAINS } from "../config";
 
 const { Title, Text } = Typography;
 
@@ -98,10 +102,12 @@ interface RefundState {
 
 const BuyPanel = ({
   address,
+  chainIdDecimal,
   contractData,
   refetchContractDetails,
 }: {
   address: Address;
+  chainIdDecimal: string;
   contractData: ContractDataResult | null;
   refetchContractDetails: () => void;
 }) => {
@@ -206,26 +212,26 @@ const BuyPanel = ({
     };
   };
 
-  // Helper function to format token amounts
-  const formatTokenAmount = (
-    amount: bigint | undefined,
-    symbol: string | undefined,
-    decimals = 3
-  ): string => {
-    if (!amount || !symbol) return "0";
-    return `${Number(formatEther(amount)).toFixed(decimals)} ${symbol}`;
+  const getExplorerUrl = () => {
+    const chain = SUPPORTED_CHAINS.find(
+      (chain) => chain.chainIdDecimal === chainIdDecimal
+    );
+    return chain?.explorerUrl || "";
   };
 
-  // Helper function to calculate average price for a purchase
-  const calculateAveragePriceForPurchase = (purchase: Purchase | undefined) => {
-    if (!purchase || !tokenInfo.payment || !tokenInfo.sale) return "0";
+  const handleCopy = () => {
+    navigator.clipboard.writeText(CONTRACT_ADDRESS);
+    message.success("Contract address copied to clipboard");
+  };
 
-    const paymentAmount = Number(formatEther(purchase.paymentAmount));
-    const tokenAmount = Number(formatEther(purchase.tokenAmount));
-
-    if (tokenAmount === 0) return "0";
-
-    return (paymentAmount / tokenAmount).toFixed(6);
+  const handleExplorerLink = () => {
+    const explorerUrl = getExplorerUrl();
+    if (explorerUrl) {
+      window.open(
+        `${explorerUrl}/address/${CONTRACT_ADDRESS}#readContract`,
+        "_blank"
+      );
+    }
   };
 
   // Simplified handle refund function
@@ -280,32 +286,22 @@ const BuyPanel = ({
   const calculateRemainingAmount = () => {
     if (!contractData) return "0";
 
-    // Get current actual contribution amount (excluding rakes)
-    const currentBalance = contractData.paymentTokenBalance;
-    const escrowAmount =
-      (currentBalance * contractData.escrowRakeBPS) / BigInt(10000);
-    const upfrontAmount =
-      (currentBalance *
-        (contractData.upfrontRakeBPS - contractData.OTTERPAD_FEE_BPS)) /
-      BigInt(10000);
-    const otterpadFee =
-      (currentBalance * contractData.OTTERPAD_FEE_BPS) / BigInt(10000);
-    const actualContribution =
-      currentBalance - escrowAmount - upfrontAmount - otterpadFee;
+    // Get current contribution progress
+    const currentContributions = contractData.totalActiveContributions;
 
-    // Calculate how much more we need in actual contributions
-    const remainingContribution =
-      contractData.targetLiquidity - actualContribution;
-    if (remainingContribution <= BigInt(0)) return "0";
+    // Calculate how much more we need in net contributions
+    const remainingNet = contractData.targetLiquidity - currentContributions;
+    if (remainingNet <= BigInt(0)) return "0";
 
-    // Calculate gross amount needed (before fees)
-    // Formula: grossAmount = netAmount / (1 - totalRakePercentage)
+    // Calculate gross amount needed using the same formula as the contract
+    // actualContribution = (targetLiquidity * 10000) / netContributionBPS
+    // Therefore: grossAmount = (remainingNet * 10000) / netContributionBPS
     const netContributionBPS =
       BigInt(10000) - contractData.upfrontRakeBPS - contractData.escrowRakeBPS;
-    const grossAmount =
-      (remainingContribution * BigInt(10000)) / netContributionBPS;
 
-    return formatEther(grossAmount);
+    const grossAmount = (remainingNet * BigInt(10000)) / netContributionBPS;
+
+    return formatUnits(grossAmount, contractData.paymentTokenDecimals);
   };
 
   const handleMaxRemainClick = () => {
@@ -436,7 +432,7 @@ const BuyPanel = ({
               convertToPurchase(result);
           }
         });
-
+        console.log("purchases", purchases);
         setPurchaseData(purchases);
       } catch (error) {
         console.error("Error fetching purchase data:", error);
@@ -460,17 +456,23 @@ const BuyPanel = ({
     }
 
     try {
-      const paymentAmountBigInt = parseEther(paymentAmount);
+      const paymentAmountBigInt = parseUnits(
+        paymentAmount,
+        contractData.paymentTokenDecimals
+      );
 
       if (contractData.targetReached) {
         // If target reached, use current price directly
         const tokens =
           (paymentAmountBigInt *
-            BigInt(10 ** (tokenInfo.sale?.decimals || 18))) /
+            10n ** BigInt(tokenInfo.sale?.decimals || 18)) /
           contractData.currentPrice;
         return {
-          estimatedTokens: formatEther(tokens),
-          avgPricePerToken: formatEther(contractData.currentPrice),
+          estimatedTokens: formatUnits(tokens, contractData.saleTokenDecimals),
+          avgPricePerToken: formatUnits(
+            contractData.currentPrice,
+            contractData.paymentTokenDecimals
+          ),
         };
       }
 
@@ -505,8 +507,14 @@ const BuyPanel = ({
         (paymentAmountBigInt * saleTokenDecimals) / averagePrice;
 
       return {
-        estimatedTokens: formatEther(estimatedTokens),
-        avgPricePerToken: formatEther(averagePrice),
+        estimatedTokens: formatUnits(
+          estimatedTokens,
+          contractData.saleTokenDecimals
+        ),
+        avgPricePerToken: formatUnits(
+          averagePrice,
+          contractData.paymentTokenDecimals
+        ),
       };
     } catch (error) {
       console.error("Error calculating estimated tokens:", error);
@@ -524,7 +532,10 @@ const BuyPanel = ({
             ...prev,
             isCheckingAllowance: true,
           }));
-          const amountBigInt = parseEther(amount);
+          const amountBigInt = parseUnits(
+            amount,
+            contractData.paymentTokenDecimals
+          );
           const allowance = await publicClient.readContract({
             address: contractData.paymentTokenAddress,
             abi: ERC20_ABI,
@@ -607,15 +618,17 @@ const BuyPanel = ({
       hash: redeemTxHash,
     });
 
+  const provider = useMemo(() => {
+    return new ethers.JsonRpcProvider(
+      "https://sepolia.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
+    );
+  }, []);
+
   // Fetch token information
   useEffect(() => {
     const fetchTokenInfo = async () => {
       if (!contractData?.saleTokenAddress || !contractData?.paymentTokenAddress)
         return;
-
-      const provider = new ethers.JsonRpcProvider(
-        "https://sepolia.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
-      );
 
       const erc20Abi = [
         "function symbol() view returns (string)",
@@ -654,14 +667,18 @@ const BuyPanel = ({
     };
 
     fetchTokenInfo();
-  }, [contractData?.saleTokenAddress, contractData?.paymentTokenAddress]);
+  }, [
+    contractData?.saleTokenAddress,
+    contractData?.paymentTokenAddress,
+    provider,
+  ]);
 
   const checkAllowance = async () => {
     if (!contractData || !userAddress || !publicClient || !buyAmount) return;
 
     try {
       setTransactionState((prev) => ({ ...prev, isCheckingAllowance: true }));
-      const amount = parseEther(buyAmount);
+      const amount = parseUnits(buyAmount, contractData.paymentTokenDecimals);
       const allowance = await publicClient.readContract({
         address: contractData.paymentTokenAddress,
         abi: ERC20_ABI,
@@ -679,28 +696,6 @@ const BuyPanel = ({
     }
   };
 
-  // useEffect(() => {
-  //   if (buyAmount && contractData && tokenInfo.sale && tokenInfo.payment) {
-  //     console.log("Input state:", {
-  //       buyAmount,
-  //       tokenInfo,
-  //       contractData: {
-  //         currentPrice: formatEther(contractData.currentPrice),
-  //         startPrice: formatEther(contractData.startPrice),
-  //         endPrice: formatEther(contractData.endPrice),
-  //       },
-  //     });
-
-  //     const result = calculateEstimatedTokens(
-  //       buyAmount,
-  //       contractData,
-  //       tokenInfo
-  //     );
-  //     setEstimatedTokens(result.estimatedTokens);
-  //     setAvgPricePerToken(result.avgPricePerToken);
-  //   }
-  // }, [buyAmount, contractData, tokenInfo]);
-
   // Update handle approve function
   const handleApprove = async () => {
     if (!buyAmount || !contractData || !userAddress || !approveToken) return;
@@ -715,7 +710,10 @@ const BuyPanel = ({
         address: contractData.paymentTokenAddress,
         abi: ERC20_ABI,
         functionName: "approve",
-        args: [CONTRACT_ADDRESS, parseEther(buyAmount)],
+        args: [
+          CONTRACT_ADDRESS,
+          parseUnits(buyAmount, contractData.paymentTokenDecimals),
+        ],
       });
 
       setTransactionState((prev) => ({
@@ -759,7 +757,7 @@ const BuyPanel = ({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "buy",
-        args: [parseEther(buyAmount)],
+        args: [parseUnits(buyAmount, contractData.paymentTokenDecimals)],
       });
 
       setTransactionState((prev) => ({
@@ -974,9 +972,17 @@ const BuyPanel = ({
   const getEscrowInfo = () => {
     if (!contractData || !tokenInfo.payment) return "";
 
-    const totalPayments = Number(formatEther(contractData.totalPaymentsIn));
+    const totalPayments = Number(
+      formatUnits(
+        contractData.totalPaymentsIn,
+        contractData.paymentTokenDecimals
+      )
+    );
     const netActive = Number(
-      formatEther(contractData.totalActiveContributions)
+      formatUnits(
+        contractData.totalActiveContributions,
+        contractData.paymentTokenDecimals
+      )
     );
 
     const escrowRate = Number(contractData.escrowRakeBPS) / 10000;
@@ -985,9 +991,10 @@ const BuyPanel = ({
 
     const escrowAmount = activePayment * escrowRate;
     const upfrontAmount = Number(
-      formatEther(
+      formatUnits(
         (contractData.totalPaymentsIn * contractData.upfrontRakeBPS) /
-          BigInt(10000)
+          BigInt(10000),
+        contractData.paymentTokenDecimals
       )
     );
     const refundedAmount =
@@ -1048,15 +1055,49 @@ const BuyPanel = ({
   const getContractBalanceInfo = () => {
     if (!contractData || !tokenInfo.sale || !tokenInfo.payment) return "";
 
+    const totalPaymentRequired =
+      (contractData.targetLiquidity * BigInt(10000)) /
+      (BigInt(10000) -
+        contractData.upfrontRakeBPS -
+        contractData.escrowRakeBPS);
+    const totalPayTokenRequired =
+      totalPaymentRequired -
+      (totalPaymentRequired * contractData.upfrontRakeBPS) / BigInt(10000);
+
     return (
       <div className="space-y-2">
         <p>Current token balances in the smart contract:</p>
         <ul className="list-disc pl-4">
           <li>
-            {formatEther(contractData.saleTokenBalance)} {tokenInfo.sale.symbol}
+            {parseFloat(
+              formatUnits(
+                contractData.saleTokenBalance,
+                contractData.saleTokenDecimals
+              )
+            ).toFixed(2)}
+            /
+            {parseFloat(
+              formatUnits(
+                contractData.requiredSaleTokens,
+                contractData.saleTokenDecimals
+              )
+            ).toFixed(2)}{" "}
+            {tokenInfo.sale.symbol}
           </li>
           <li>
-            {formatEther(contractData.paymentTokenBalance)}{" "}
+            {parseFloat(
+              formatUnits(
+                contractData.paymentTokenBalance,
+                contractData.paymentTokenDecimals
+              )
+            ).toFixed(2)}
+            /
+            {parseFloat(
+              formatUnits(
+                totalPayTokenRequired,
+                contractData.paymentTokenDecimals
+              )
+            ).toFixed(2)}{" "}
             {tokenInfo.payment.symbol}
           </li>
         </ul>
@@ -1088,8 +1129,15 @@ const BuyPanel = ({
     const liquidityContribution = contractData.totalActiveContributions;
 
     // Convert BigInt values to numbers for percentage calculation
-    const currentNet = Number(formatEther(liquidityContribution));
-    const targetNet = Number(formatEther(contractData.targetLiquidity));
+    const currentNet = Number(
+      formatUnits(liquidityContribution, contractData.paymentTokenDecimals)
+    );
+    const targetNet = Number(
+      formatUnits(
+        contractData.targetLiquidity,
+        contractData.paymentTokenDecimals
+      )
+    );
 
     if (targetNet === 0) return 0;
 
@@ -1102,11 +1150,13 @@ const BuyPanel = ({
     if (!contractData || !tokenInfo.payment) return "";
 
     // totalActiveContributions is already the amount for liquidity
-    return `${formatEther(
-      contractData.totalActiveContributions
-    )} / ${formatEther(contractData.targetLiquidity)} ${
-      tokenInfo.payment?.symbol
-    }`;
+    return `${formatUnits(
+      contractData.totalActiveContributions,
+      contractData.paymentTokenDecimals
+    )} / ${formatUnits(
+      contractData.targetLiquidity,
+      contractData.paymentTokenDecimals
+    )} ${tokenInfo.payment?.symbol}`;
   };
 
   const handleShare = () => {
@@ -1161,6 +1211,24 @@ const BuyPanel = ({
                 }}
               >
                 {getStatusTag()}
+                <Input
+                  value={CONTRACT_ADDRESS}
+                  readOnly
+                  size="small"
+                  style={{ width: "200px", marginRight: "5px" }}
+                  suffix={
+                    <>
+                      <CopyOutlined
+                        className="cursor-pointer mx-1"
+                        onClick={handleCopy}
+                      />
+                      <ExportOutlined
+                        className="cursor-pointer mx-1"
+                        onClick={handleExplorerLink}
+                      />
+                    </>
+                  }
+                />
                 <Button
                   size="small"
                   icon={<ShareAltOutlined />}
@@ -1210,10 +1278,19 @@ const BuyPanel = ({
                       level={3}
                       style={{ margin: 0, whiteSpace: "nowrap" }}
                     >
-                      {formatEther(contractData.currentPrice)} PAY
+                      {formatUnits(
+                        contractData.currentPrice,
+                        contractData.paymentTokenDecimals
+                      )}{" "}
+                      PAY
                     </Title>
                     <Text type="secondary" style={{ whiteSpace: "nowrap" }}>
-                      End: {formatEther(contractData.endPrice)} PAY
+                      End:{" "}
+                      {formatUnits(
+                        contractData.endPrice,
+                        contractData.paymentTokenDecimals
+                      )}{" "}
+                      PAY
                     </Text>
                   </div>
                 </Card>
@@ -1266,7 +1343,7 @@ const BuyPanel = ({
               <TabPane
                 tab={
                   <span>
-                    <ShoppingCartOutlined />
+                    <ShoppingCartOutlined style={{ marginRight: "5px" }} />
                     Buy Tokens
                   </span>
                 }
@@ -1389,7 +1466,7 @@ const BuyPanel = ({
               <TabPane
                 tab={
                   <span>
-                    <UserOutlined />
+                    <UserOutlined style={{ marginRight: "5px" }} />
                     My Orders
                   </span>
                 }
@@ -1412,7 +1489,10 @@ const BuyPanel = ({
                         value={
                           contractData.userAllocation
                             ? parseFloat(
-                                formatEther(contractData.userAllocation)
+                                formatUnits(
+                                  contractData.userAllocation,
+                                  contractData.saleTokenDecimals
+                                )
                               ).toFixed(3)
                             : "0"
                         }
@@ -1462,10 +1542,13 @@ const BuyPanel = ({
                                 }}
                               >
                                 Bought{" "}
-                                {formatTokenAmount(
-                                  purchase.tokenAmount,
-                                  "SALE"
-                                )}
+                                {parseFloat(
+                                  formatUnits(
+                                    purchase.tokenAmount,
+                                    contractData.saleTokenDecimals
+                                  )
+                                ).toFixed(2)}{" "}
+                                {tokenInfo.sale?.symbol}
                               </Title>
                               <Text
                                 type="secondary"
@@ -1477,10 +1560,11 @@ const BuyPanel = ({
                                 }}
                               >
                                 for{" "}
-                                {formatTokenAmount(
+                                {formatUnits(
                                   purchase.paymentAmount,
-                                  "PAY"
-                                )}
+                                  contractData.paymentTokenDecimals
+                                )}{" "}
+                                {tokenInfo.payment?.symbol}
                               </Text>
                             </div>
                             <div

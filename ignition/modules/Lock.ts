@@ -1,4 +1,5 @@
 // reference ignition module
+// npx hardhat ignition deploy ./ignition/modules/Lock.ts --network sepolia --verify
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { parseEther } from "viem";
