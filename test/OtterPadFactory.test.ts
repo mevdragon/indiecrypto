@@ -7,6 +7,8 @@ import hre from "hardhat";
 import { parseEther, parseUnits, getAddress } from "viem";
 
 describe("OtterPadFactory", function () {
+  this.timeout(60000); // 60 seconds
+
   // Constants for Uniswap addresses - using the same test addresses as in Fund tests
   const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6";
   const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3";

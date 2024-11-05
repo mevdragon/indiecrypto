@@ -209,7 +209,16 @@ describe("OtterPadFund", function () {
 
       const paymentAmount = parseEther("10");
 
-      // Mirror the contract's exact calculation from calculateTokensReceived()
+      // Get token decimals
+      const saleTokenDecimals = await fundraiser.read
+        .saleToken()
+        .then((addr) => hre.viem.getContractAt("IERC20Metadata", addr))
+        .then((contract) => contract.read.decimals());
+      const paymentTokenDecimals = await fundraiser.read
+        .paymentToken()
+        .then((addr) => hre.viem.getContractAt("IERC20Metadata", addr))
+        .then((contract) => contract.read.decimals());
+
       const OTTERPAD_FEE_BPS = 200n;
       const upfrontRakeBPS = await fundraiser.read.upfrontRakeBPS();
       const escrowRakeBPS = await fundraiser.read.escrowRakeBPS();
@@ -236,13 +245,14 @@ describe("OtterPadFund", function () {
           targetLiquidity;
       const averagePrice = (priceAtStart + priceAtEnd) / 2n;
 
-      // Match contract's token calculation exactly
-      const expectedTokens = (paymentAmount * parseEther("1")) / averagePrice;
+      // Calculate tokens with proper decimal handling
+      const expectedTokens =
+        (paymentAmount * 10n ** BigInt(saleTokenDecimals)) /
+        (averagePrice * 10n ** BigInt(paymentTokenDecimals));
 
       const tokenAmount = await fundraiser.read.calculateTokensReceived([
         paymentAmount,
       ]);
-
       expect(tokenAmount).to.equal(expectedTokens);
     });
 
@@ -889,37 +899,48 @@ describe("OtterPadFund", function () {
     it("Should calculate correct tokens for linear price curve", async function () {
       const {
         fundraiser,
+        saleToken,
+        paymentToken,
         targetLiquidity,
         startPrice,
         endPrice,
-        lpLockWallet,
       } = await loadFixture(deployFundraiserFixture);
 
       const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
 
-      // Break down the calculation to verify each component
+      // Use exact same calculations as contract
       const upfrontRakeBPS = await fundraiser.read.upfrontRakeBPS();
       const escrowRakeBPS = await fundraiser.read.escrowRakeBPS();
       const netContributionBPS = 10000n - upfrontRakeBPS - escrowRakeBPS;
 
-      // Calculate actual contribution needed to reach target after rake
+      // First calculate actual contribution amount after rake
       const actualContribution =
         (targetLiquidity * 10000n) / netContributionBPS;
 
-      // Calculate tokens needed for sale using average price
+      // Get correct decimal bases
+      const saleTokenDecimals = await saleToken.read.decimals();
+      const paymentTokenDecimals = await paymentToken.read.decimals();
+      const saleTokenBase = 10n ** BigInt(saleTokenDecimals);
+      const paymentTokenBase = 10n ** BigInt(paymentTokenDecimals);
+
+      // Calculate average price
       const averagePrice = (startPrice + endPrice) / 2n;
-      const expectedTokensForSale =
-        (actualContribution * parseEther("1")) / averagePrice;
 
-      // Calculate tokens needed for DEX liquidity at end price
-      // First calculate actual liquidity amount after removing escrow
-      const escrowAmount = (targetLiquidity * escrowRakeBPS) / 10000n;
-      const liquidityPaymentAmount = targetLiquidity - escrowAmount;
-      const expectedLiquidityTokens =
-        (liquidityPaymentAmount * parseEther("1")) / endPrice;
+      // Calculate tokens for sale using exact same formula as contract
+      const tokensForSale =
+        (actualContribution * saleTokenBase * parseEther("1")) /
+        (averagePrice * paymentTokenBase);
 
-      // Total required should match sum of sale and liquidity tokens
-      const expectedTotal = expectedTokensForSale + expectedLiquidityTokens;
+      // Calculate liquidity tokens
+      const escrowAmount = (actualContribution * escrowRakeBPS) / 10000n;
+      const liquidityPaymentAmount = actualContribution - escrowAmount;
+
+      const liquidityTokens =
+        (liquidityPaymentAmount * saleTokenBase * parseEther("1")) /
+        (endPrice * paymentTokenBase);
+
+      const expectedTotal = tokensForSale + liquidityTokens;
+
       expect(requiredTokens).to.equal(expectedTotal);
     });
 
@@ -983,8 +1004,6 @@ describe("OtterPadFund", function () {
     });
 
     it("Should calculate correctly with different decimals", async function () {
-      // Deploy tokens with different decimals
-
       const saleToken6Dec = await hre.viem.deployContract("MockERC20", [
         "SaleToken6",
         "SALE6",
@@ -1000,6 +1019,12 @@ describe("OtterPadFund", function () {
       const [deployer, foundersWallet, buyer1, buyer2, lpLockWallet] =
         await hre.viem.getWalletClients();
 
+      const startPrice = parseUnits("0.1", 8);
+      const endPrice = parseUnits("0.3", 8);
+      const targetLiquidity = parseUnits("100", 8);
+      const upfrontRakeBPS = 1000n;
+      const escrowRakeBPS = 1000n;
+
       const fundraiser = await hre.viem.deployContract("OtterPadFund", [
         title,
         richInfoUrl,
@@ -1007,20 +1032,50 @@ describe("OtterPadFund", function () {
         paymentToken8Dec.address,
         UNISWAP_ROUTER,
         UNISWAP_FACTORY,
-        parseUnits("0.1", 8), // startPrice in payment token decimals
-        parseUnits("0.3", 8), // endPrice in payment token decimals
-        parseUnits("100", 8), // targetLiquidity in payment token decimals
-        200n, // upfrontRakeBPS
-        300n, // escrowRakeBPS
+        startPrice,
+        endPrice,
+        targetLiquidity,
+        upfrontRakeBPS,
+        escrowRakeBPS,
         getAddress(foundersWallet.account.address),
         getAddress(lpLockWallet.account.address),
       ]);
 
       const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
 
-      // Verify the result is in sale token decimals (6)
-      expect(requiredTokens < parseUnits("1000000", 6)).to.be.true;
-      expect(requiredTokens > parseUnits("1", 6)).to.be.true;
+      // Calculate tokens needed using exact same formula as contract
+      const netContributionBPS = 10000n - upfrontRakeBPS - escrowRakeBPS;
+      const actualContribution =
+        (targetLiquidity * 10000n) / netContributionBPS;
+
+      const saleTokenBase = 10n ** 6n; // 6 decimals
+      const paymentTokenBase = 10n ** 8n; // 8 decimals
+
+      // Average price for sale tokens
+      const averagePrice = (startPrice + endPrice) / 2n;
+
+      // Calculate tokens for sale
+      const tokensForSale =
+        (actualContribution * saleTokenBase * parseEther("1")) /
+        (averagePrice * paymentTokenBase);
+
+      // Calculate liquidity tokens
+      const escrowAmount = (actualContribution * escrowRakeBPS) / 10000n;
+      const liquidityPaymentAmount = actualContribution - escrowAmount;
+
+      const liquidityTokens =
+        (liquidityPaymentAmount * saleTokenBase * parseEther("1")) /
+        (endPrice * paymentTokenBase);
+
+      const expectedTotal = tokensForSale + liquidityTokens;
+
+      expect(requiredTokens).to.equal(expectedTotal);
+
+      // Add explicit value checks for debugging
+      console.log("Required tokens:", requiredTokens.toString());
+      console.log("Expected total:", expectedTotal.toString());
+      console.log("Tokens for sale:", tokensForSale.toString());
+      console.log("Liquidity tokens:", liquidityTokens.toString());
     });
 
     it("Should handle steep price curves", async function () {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity 0.8.24;
 
 import "./OtterPadFund.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
@@ -21,7 +21,6 @@ contract OtterPadFactory {
         address indexed fund,
         address indexed saleToken,
         address paymentToken,
-        string title,
         uint256 targetLiquidity,
         uint256 upfrontRakeBPS,
         uint256 escrowRakeBPS,
@@ -52,27 +51,27 @@ contract OtterPadFactory {
         address saleToken,
         address paymentToken,
         address foundersWallet,
-        string memory title,
-        string memory richInfoUrl,
+        // string memory title,
+        // string memory richInfoUrl,
         address lockLPTokenWallet
     ) external returns (address) {
         // Input validation
         require(saleToken != address(0), "Invalid sale token");
         require(paymentToken != address(0), "Invalid payment token");
         require(foundersWallet != address(0), "Invalid founders wallet");
-        require(bytes(title).length > 0, "Empty title");
+        // require(bytes(title).length > 0, "Empty title");
         require(startPrice > 0, "Invalid start price");
         require(endPrice > startPrice, "End price must exceed start price");
         require(targetLiquidity > 0, "Invalid target liquidity");
         
         // Create new fundraiser instance
         OtterPadFund fundraiser = new OtterPadFund(
-            title,
-            richInfoUrl,
+            // title,
+            // richInfoUrl,
             saleToken,
             paymentToken,
-            address(uniswapRouter),
-            address(uniswapFactory),
+            // address(uniswapRouter),
+            // address(uniswapFactory),
             startPrice,
             endPrice,
             targetLiquidity,
@@ -90,18 +89,18 @@ contract OtterPadFactory {
         fundCounterIndex++;
         
         // Emit creation event with fund index and additional parameters
-        emit FundCreated(
-            currentIndex,
-            address(fundraiser),
-            saleToken,
-            paymentToken,
-            title,
-            targetLiquidity,
-            upfrontRakeBPS,
-            escrowRakeBPS,
-            foundersWallet,
-            lockLPTokenWallet
-        );
+        // emit FundCreated(
+        //     currentIndex,
+        //     address(fundraiser),
+        //     saleToken,
+        //     paymentToken,
+        //     // title,
+        //     targetLiquidity,
+        //     upfrontRakeBPS,
+        //     escrowRakeBPS,
+        //     foundersWallet,
+        //     lockLPTokenWallet
+        // );
         
         return address(fundraiser);
     }

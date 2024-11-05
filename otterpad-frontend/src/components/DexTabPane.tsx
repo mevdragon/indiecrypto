@@ -17,7 +17,7 @@ import {
 } from "@ant-design/icons";
 import { CONTRACT_ABI, ContractDataResult } from "../pages/FundPage";
 import { ERC20_ABI, SUPPORTED_CHAINS } from "../config";
-import { Address, formatEther } from "viem";
+import { Address, formatUnits } from "viem";
 
 interface DexTabPaneProps {
   address: Address;
@@ -286,7 +286,10 @@ const DexTabPane: React.FC<DexTabPaneProps> = ({
     } = transactionState;
 
     const requiredAmount = Number(
-      formatEther(contractData.requiredSaleTokens)
+      formatUnits(
+        contractData.requiredSaleTokens,
+        contractData.saleTokenDecimals
+      )
     ).toFixed(2);
 
     if (isCheckingAllowance) {
@@ -376,20 +379,35 @@ const DexTabPane: React.FC<DexTabPaneProps> = ({
                 <div>
                   <div>
                     Sale Token Balance:{" "}
-                    {Number(formatEther(contractData.saleTokenBalance)).toFixed(
-                      2
-                    )}
+                    {Number(
+                      formatUnits(
+                        contractData.saleTokenBalance,
+                        contractData.saleTokenDecimals
+                      )
+                    ).toFixed(2)}
                     /
                     {Number(
-                      formatEther(contractData.requiredSaleTokens)
+                      formatUnits(
+                        contractData.requiredSaleTokens,
+                        contractData.saleTokenDecimals
+                      )
                     ).toFixed(2)}{" "}
                   </div>
                   <div>
                     Payment Token Balance:{" "}
                     {Number(
-                      formatEther(contractData.paymentTokenBalance)
+                      formatUnits(
+                        contractData.paymentTokenBalance,
+                        contractData.paymentTokenDecimals
+                      )
                     ).toFixed(2)}
-                    /{Number(formatEther(totalPayTokenRequired)).toFixed(2)}{" "}
+                    /
+                    {Number(
+                      formatUnits(
+                        totalPayTokenRequired,
+                        contractData.paymentTokenDecimals
+                      )
+                    ).toFixed(2)}{" "}
                   </div>
                 </div>
               </div>

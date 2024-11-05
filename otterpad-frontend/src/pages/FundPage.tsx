@@ -38,6 +38,8 @@ export type ContractDataResult = {
   richInfoUrl: string;
   requiredSaleTokens: bigint;
   uniswapPool?: Address;
+  saleTokenDecimals: number;
+  paymentTokenDecimals: number;
 };
 
 const FundPage = () => {
@@ -160,6 +162,16 @@ const FundPage = () => {
         abi: CONTRACT_ABI,
         functionName: "uniswapPool",
       },
+      {
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: "saleTokenDecimals",
+      },
+      {
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: "paymentTokenDecimals",
+      },
       ...(userAddress
         ? [
             {
@@ -226,8 +238,10 @@ const FundPage = () => {
       richInfoUrl: successResults[18] as string,
       requiredSaleTokens: successResults[19] as bigint,
       uniswapPool: successResults[20] as Address | undefined,
-      userAllocation: successResults[21] as bigint | undefined,
-      userOrders: successResults[22] as bigint[] | undefined,
+      saleTokenDecimals: Number(successResults[21]),
+      paymentTokenDecimals: Number(successResults[22]),
+      userAllocation: successResults[23] as bigint | undefined,
+      userOrders: successResults[24] as bigint[] | undefined,
     };
   };
 
