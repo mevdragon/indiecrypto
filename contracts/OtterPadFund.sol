@@ -158,6 +158,7 @@ contract OtterPadFund is ReentrancyGuard {
         return (grossAmount * escrowRakeBPS) / 10000;
     }
     
+    
     function getCurrentPrice() public view returns (uint256) {
         if (totalActiveContributions >= targetLiquidity) return endPrice;
         return startPrice + ((endPrice - startPrice) * totalActiveContributions / targetLiquidity);
