@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 // github@mevdragon
 contract OtterPadFund is ReentrancyGuard {
@@ -158,10 +159,32 @@ contract OtterPadFund is ReentrancyGuard {
         return (grossAmount * escrowRakeBPS) / 10000;
     }
     
+    function getSlope () public view returns (uint256) {
+        return (endPrice - startPrice) * (10**paymentTokenDecimals) / targetLiquidity;
+    }
     
     function getCurrentPrice() public view returns (uint256) {
-        if (totalActiveContributions >= targetLiquidity) return endPrice;
-        return startPrice + ((endPrice - startPrice) * totalActiveContributions / targetLiquidity);
+        return startPrice + (totalActiveContributions * getSlope()/10**paymentTokenDecimals);
+    }
+
+    function _calculateTokensReceived(uint256 paymentAmount) private view returns (uint256) {
+        // Given PAY tokens, how many X SALE tokens are received?
+        // a = slope
+        // b = startPrice
+        // x = sale tokens received
+        // PAY = input payment amount
+        // -----------------------------
+        // PAY = ∫(0 to X) (ax + b)dx 
+        // PAY = (a/2)X² + bX
+        // (a/2)X² + bX - PAY = 0
+        // X = (-b ± √(b^2 + 4((a/2))(PAY))) / (2(a/2))
+        // X = (-b + √(b^2 + 4((a/2))(PAY))) / (2(a/2))
+        uint256 b = startPrice;
+        int256 a = int256(getSlope());
+        int256 saleTokensReceived = (-int256(b) + int256(Math.sqrt(
+            uint256(int256(b)**2 + (4*((a)/2)*int256(paymentAmount)))
+        ))) * int256(10**saleTokenDecimals) / (2*(a/2));
+        return uint256(saleTokensReceived);
     }
     
     function calculateTokensReceived(uint256 paymentAmount) public view returns (uint256) {
@@ -170,18 +193,12 @@ contract OtterPadFund is ReentrancyGuard {
         uint256 upfrontAmount = (paymentAmount * upfrontRakeBPS) / 10000 - otterpadFee;
         uint256 escrowAmount = (paymentAmount * escrowRakeBPS) / 10000;
         uint256 contributionAmount = paymentAmount - upfrontAmount - escrowAmount - otterpadFee;
-        
         require(totalActiveContributions + contributionAmount <= targetLiquidity, "Exceeds target");
-        
-        // Calculate average price (in payment token wei per 1e18 sale tokens)
-        uint256 priceAtStart = getCurrentPrice();
-        uint256 priceAtEnd = startPrice + ((endPrice - startPrice) * (totalActiveContributions + contributionAmount) / targetLiquidity);
-        uint256 averagePrice = (priceAtStart + priceAtEnd) / 2;
-    
-        
-        // Then divide by average price to get sale tokens in 1e18 terms
-        uint256 tokensReceived = (paymentAmount * (10**saleTokenDecimals)) / averagePrice;
-        return tokensReceived;
+
+        uint256 salesTokensIssuedThusFar = _calculateTokensReceived(totalActiveContributions);
+        uint256 salesTokensIssuedAfterThisPurchase = _calculateTokensReceived(totalActiveContributions + contributionAmount);
+        uint256 netNewSalesTokensIssued = salesTokensIssuedAfterThisPurchase - salesTokensIssuedThusFar;
+        return netNewSalesTokensIssued;
     }
     
     function buy(uint256 paymentAmount) external nonReentrant {

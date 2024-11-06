@@ -1442,7 +1442,7 @@ const BuyPanel = ({
                     icon={getButtonState().icon}
                     onClick={getButtonState().onClick}
                     disabled={getButtonState().disabled || !isConnected}
-                    style={{ width: "100%", height: "48px" }}
+                    style={{ width: "100%", height: "48px", cursor: "pointer" }}
                   >
                     <label style={{ marginLeft: 10 }}>
                       {getButtonState().text}
