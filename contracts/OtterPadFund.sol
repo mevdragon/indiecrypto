@@ -194,16 +194,15 @@ contract OtterPadFund is ReentrancyGuard {
         uint256 escrowAmount = (paymentAmount * escrowRakeBPS) / 10000;
         uint256 contributionAmount = paymentAmount - upfrontAmount - escrowAmount - otterpadFee;
         require(totalActiveContributions + contributionAmount <= targetLiquidity, "Exceeds target");
-
-        uint256 salesTokensIssuedThusFar = _calculateTokensReceived(totalActiveContributions);
-        uint256 salesTokensIssuedAfterThisPurchase = _calculateTokensReceived(totalActiveContributions + contributionAmount);
+        uint256 netCashInflows = totalActiveContributions * 10000 / (10000 - upfrontRakeBPS - escrowRakeBPS);
+        uint256 salesTokensIssuedThusFar = _calculateTokensReceived(netCashInflows);
+        uint256 salesTokensIssuedAfterThisPurchase = _calculateTokensReceived(netCashInflows + paymentAmount);
         uint256 netNewSalesTokensIssued = salesTokensIssuedAfterThisPurchase - salesTokensIssuedThusFar;
         return netNewSalesTokensIssued;
     }
     
     function buy(uint256 paymentAmount) external nonReentrant {
         require(!isDeployedToUniswap, "Sale completed");
-        require(!targetReached, "Target already reached");
         require(paymentAmount >= getMinimumPurchase(), "Below minimum purchase");
         
         // Calculate fees and amounts (all in payment token wei)
@@ -386,17 +385,16 @@ contract OtterPadFund is ReentrancyGuard {
 
     function checkSaleTokensRequired() public view returns (uint256) {
         // Handle decimal scaling factors
-        uint256 saleTokenBase = 10 ** saleTokenDecimals;    // e.g. 1e18
+        uint256 saleTokenBase = 10 ** saleTokenDecimals;
         
         // Calculate tokens needed for liquidity provision (at end price)
-        // Formula: liquidityTokens = (targetLiquidity * saleTokenBase) / (endPrice * paymentTokenBase) * paymentTokenBase
         uint256 liquidityTokens = (targetLiquidity * saleTokenBase) / endPrice;
         
-        // Calculate tokens needed for sale to customers
-        // Since we're using a bonding curve, use the average price ((startPrice + endPrice) / 2)
-        uint256 averagePrice = (startPrice + endPrice) / 2;
+        // // Calculate total cash inflows including rake
         uint256 totalCashInflows = targetLiquidity * 10000 / (10000 - upfrontRakeBPS - escrowRakeBPS);
-        uint256 tokensForSale = (totalCashInflows * saleTokenBase) / averagePrice;
+        
+        // Reuse _calculateTokensReceived to get exact token amount needed for sale
+        uint256 tokensForSale = _calculateTokensReceived(totalCashInflows);
         
         // Return total tokens needed (both liquidity and sale amounts)
         return liquidityTokens + tokensForSale;
