@@ -138,6 +138,7 @@ const BuyPanel = ({
   });
 
   const [refundTxs, setRefundTxs] = useState<Record<number, `0x${string}`>>({});
+  const [isRefundLocking, setIsRefundLocking] = useState(false);
 
   // Single waitForTransactionReceipt hook that watches the latest refund tx
   const { isLoading: isRefundLoading, isSuccess: isRefundSuccess } =
@@ -178,11 +179,6 @@ const BuyPanel = ({
   // }, [buyAmount, estimatedTokens]);
 
   const [purchaseData, setPurchaseData] = useState<Record<number, Purchase>>(
-    {}
-  );
-
-  // Replace single refund state with a map
-  const [refundStates, setRefundStates] = useState<Record<number, RefundState>>(
     {}
   );
 
@@ -237,8 +233,8 @@ const BuyPanel = ({
   // Simplified handle refund function
   const handleRefund = async (orderIndex: number) => {
     if (!contractData || !refundOrder) return;
-
     try {
+      setIsRefundLocking(true);
       refundOrder(
         {
           address: CONTRACT_ADDRESS,
@@ -258,6 +254,7 @@ const BuyPanel = ({
               description: "Please wait while your refund is being processed",
               duration: 5,
             });
+            setIsRefundLocking(false);
           },
           onError: (error) => {
             console.error("Refund error:", error);
@@ -269,6 +266,7 @@ const BuyPanel = ({
                   : "Failed to process refund",
               duration: 5,
             });
+            setIsRefundLocking(false);
           },
         }
       );
@@ -308,7 +306,7 @@ const BuyPanel = ({
     const remainingAmount = calculateRemainingAmount();
     setBuyAmount(remainingAmount);
     // Trigger calculations for estimated tokens and avg price
-    calculateEstimatedTokens(remainingAmount, contractData, tokenInfo);
+    calculateEstimatedTokens(remainingAmount, contractData);
   };
 
   // Helper function to format BPS values to percentage
@@ -446,73 +444,56 @@ const BuyPanel = ({
     fetchPurchaseData();
   }, [contractData?.userOrders]);
 
-  const calculateEstimatedTokens = (
+  const calculateEstimatedTokens = async (
     paymentAmount: string,
-    contractData: ContractDataResult | null,
-    tokenInfo: TokenState
+    contractData: ContractDataResult | null
   ) => {
-    if (!contractData || !paymentAmount || isNaN(Number(paymentAmount))) {
+    if (
+      !publicClient ||
+      !contractData ||
+      !paymentAmount ||
+      isNaN(Number(paymentAmount))
+    ) {
       return { estimatedTokens: "0", avgPricePerToken: "0" };
     }
 
     try {
+      // Convert payment amount to BigInt with proper decimals
       const paymentAmountBigInt = parseUnits(
         paymentAmount,
         contractData.paymentTokenDecimals
       );
 
-      if (contractData.targetReached) {
-        // If target reached, use current price directly
-        const tokens =
-          (paymentAmountBigInt *
-            10n ** BigInt(tokenInfo.sale?.decimals || 18)) /
-          contractData.currentPrice;
-        return {
-          estimatedTokens: formatUnits(tokens, contractData.saleTokenDecimals),
-          avgPricePerToken: formatUnits(
-            contractData.currentPrice,
-            contractData.paymentTokenDecimals
-          ),
-        };
-      }
+      // Call contract's calculateTokensReceived function
+      const tokensReceived = await publicClient.readContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: "calculateTokensReceived",
+        args: [paymentAmountBigInt],
+      });
 
-      // Calculate price progression using net contribution
-      const otterpadFee =
-        (paymentAmountBigInt * contractData.OTTERPAD_FEE_BPS) / BigInt(10000);
-      const upfrontAmount =
-        (paymentAmountBigInt * contractData.upfrontRakeBPS) / BigInt(10000) -
-        otterpadFee;
-      const escrowAmount =
-        (paymentAmountBigInt * contractData.escrowRakeBPS) / BigInt(10000);
-      const netContribution =
-        paymentAmountBigInt - otterpadFee - upfrontAmount - escrowAmount;
+      // Format the received tokens
+      const formattedTokens = formatUnits(
+        tokensReceived,
+        contractData.saleTokenDecimals
+      );
 
-      // Get current price and calculate end price after this purchase
-      const startPrice = contractData.currentPrice;
-      const totalPriceDiff = contractData.endPrice - contractData.startPrice;
+      // Calculate average price per token
+      // avgPrice = paymentAmount / tokensReceived
+      console.log(`paymentAmountBigInt: ${paymentAmountBigInt}`);
+      console.log(`tokensReceived: ${tokensReceived}`);
 
-      const newProgress =
-        contractData.totalActiveContributions + netContribution;
-      const priceAtEnd =
-        contractData.startPrice +
-        (totalPriceDiff * newProgress) / contractData.targetLiquidity;
-
-      // Use average price for this purchase
-      const averagePrice = (startPrice + priceAtEnd) / BigInt(2);
-
-      // Calculate tokens using full payment amount
-      const saleTokenDecimals =
-        BigInt(10) ** BigInt(tokenInfo.sale?.decimals || 18);
-      const estimatedTokens =
-        (paymentAmountBigInt * saleTokenDecimals) / averagePrice;
+      const avgPrice =
+        tokensReceived > 0n
+          ? (paymentAmountBigInt *
+              BigInt(10 ** contractData.saleTokenDecimals)) /
+            tokensReceived
+          : 0n;
 
       return {
-        estimatedTokens: formatUnits(
-          estimatedTokens,
-          contractData.saleTokenDecimals
-        ),
+        estimatedTokens: formattedTokens,
         avgPricePerToken: formatUnits(
-          averagePrice,
+          avgPrice,
           contractData.paymentTokenDecimals
         ),
       };
@@ -560,13 +541,9 @@ const BuyPanel = ({
 
   const debouncedCalculateEstimatedTokens = useMemo(
     () =>
-      debounce((amount: string) => {
+      debounce(async (amount: string) => {
         if (amount && contractData && tokenInfo.sale && tokenInfo.payment) {
-          const result = calculateEstimatedTokens(
-            amount,
-            contractData,
-            tokenInfo
-          );
+          const result = await calculateEstimatedTokens(amount, contractData);
           setEstimatedTokens(result.estimatedTokens);
           setAvgPricePerToken(result.avgPricePerToken);
         }
@@ -1591,7 +1568,11 @@ const BuyPanel = ({
                                 danger
                                 icon={<RollbackOutlined />}
                                 onClick={() => handleRefund(Number(orderIndex))}
-                                loading={isRefunding || isRefundLoading}
+                                loading={
+                                  isRefunding ||
+                                  isRefundLoading ||
+                                  isRefundLocking
+                                }
                                 disabled={
                                   contractData.isDeployedToUniswap ||
                                   purchase.isRefunded ||
