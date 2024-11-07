@@ -12,10 +12,14 @@ import {
   Typography,
   CarouselProps,
   Spin,
+  Input,
+  message,
 } from "antd";
 import TabPane from "antd/es/tabs/TabPane";
 import {
   AreaChartOutlined,
+  CopyOutlined,
+  ExportOutlined,
   GlobalOutlined,
   LineChartOutlined,
   ShoppingCartOutlined,
@@ -25,6 +29,7 @@ import {
 import { useEffect, useState } from "react";
 import { useBlockNumber, usePublicClient } from "wagmi";
 import DexTabPane from "./DexTabPane";
+import { SUPPORTED_CHAINS } from "../config";
 
 const { Title, Paragraph } = Typography;
 
@@ -546,6 +551,25 @@ const Charts = ({
     fetchOtterpadInfo(address);
   }, [address, contractData?.richInfoUrl]);
 
+  const getExplorerUrl = () => {
+    const chain = SUPPORTED_CHAINS.find(
+      (chain) => chain.chainIdDecimal === chainIdDecimal
+    );
+    return chain?.explorerUrl || "";
+  };
+
+  const handleCopy = (address: string) => {
+    navigator.clipboard.writeText(address);
+    message.success("Contract address copied to clipboard");
+  };
+
+  const handleExplorerLink = (address: string) => {
+    const explorerUrl = getExplorerUrl();
+    if (explorerUrl) {
+      window.open(`${explorerUrl}/address/${address}#readContract`, "_blank");
+    }
+  };
+
   return (
     <div
       id="chart"
@@ -577,6 +601,64 @@ const Charts = ({
           key="about"
           style={{ height: "100%", minHeight: "100%" }}
         >
+          <div style={{ display: "flex", flexDirection: "row", gap: 0 }}>
+            <Input
+              value={contractData?.saleTokenAddress}
+              readOnly
+              size="small"
+              style={{ width: "200px", marginRight: "5px" }}
+              prefix={
+                <span style={{ fontWeight: "bold", color: "#1677ff" }}>
+                  {contractData?.saleTokenSymbol}
+                </span>
+              }
+              suffix={
+                <>
+                  <CopyOutlined
+                    className="cursor-pointer mx-1"
+                    onClick={() =>
+                      handleCopy(contractData?.saleTokenAddress || "")
+                    }
+                  />
+                  <ExportOutlined
+                    className="cursor-pointer mx-1"
+                    onClick={() =>
+                      handleExplorerLink(contractData?.saleTokenAddress || "")
+                    }
+                  />
+                </>
+              }
+            />
+            <Input
+              value={contractData?.paymentTokenAddress}
+              readOnly
+              size="small"
+              style={{ width: "200px", marginRight: "5px" }}
+              prefix={
+                <span style={{ fontWeight: "bold", color: "#1677ff" }}>
+                  {contractData?.paymentTokenSymbol}
+                </span>
+              }
+              suffix={
+                <>
+                  <CopyOutlined
+                    className="cursor-pointer mx-1"
+                    onClick={() =>
+                      handleCopy(contractData?.paymentTokenAddress || "")
+                    }
+                  />
+                  <ExportOutlined
+                    className="cursor-pointer mx-1"
+                    onClick={() =>
+                      handleExplorerLink(
+                        contractData?.paymentTokenAddress || ""
+                      )
+                    }
+                  />
+                </>
+              }
+            />
+          </div>
           {otterpadInfo ? (
             <div style={{ padding: "0px" }}>
               <Space
