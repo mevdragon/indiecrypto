@@ -160,30 +160,34 @@ contract OtterPadFund is ReentrancyGuard {
     }
     
     function getSlope () public view returns (uint256) {
-        return (endPrice - startPrice) * (10**paymentTokenDecimals) / targetLiquidity;
+        uint256 totalCashInflows = targetLiquidity * 10000 / (10000 - upfrontRakeBPS - escrowRakeBPS);
+        uint256 avgPrice = ((startPrice + endPrice) / 2);
+        uint256 proratedTokensForSale = totalCashInflows * (10**paymentTokenDecimals) / avgPrice;
+        uint256 salesTokensForSale = proratedTokensForSale * (10**saleTokenDecimals) / 10**paymentTokenDecimals;
+        return (endPrice - startPrice) * (10**saleTokenDecimals) / salesTokensForSale;
     }
     
     function getCurrentPrice() public view returns (uint256) {
-        return startPrice + (totalActiveContributions * getSlope()/10**paymentTokenDecimals);
+        return startPrice + (totalActiveContributions * getSlope()/(10**paymentTokenDecimals));
     }
 
     function _calculateTokensReceived(uint256 paymentAmount) private view returns (uint256) {
         // Given PAY tokens, how many X SALE tokens are received?
-        // a = slope
+        // m = slope
         // b = startPrice
         // x = sale tokens received
         // PAY = input payment amount
         // -----------------------------
-        // PAY = ∫(0 to X) (ax + b)dx 
-        // PAY = (a/2)X² + bX
-        // (a/2)X² + bX - PAY = 0
-        // X = (-b ± √(b^2 + 4((a/2))(PAY))) / (2(a/2))
-        // X = (-b + √(b^2 + 4((a/2))(PAY))) / (2(a/2))
+        // PAY = ∫(0 to X) (mx + b)dx 
+        // PAY = (m/2)X² + bX
+        // (m/2)X² + bX - PAY = 0
+        // X = (-b ± √(b^2 + 4((m/2))(PAY))) / (2(m/2))
+        // X = (-b + √(b^2 + 4((m/2))(PAY))) / (2(m/2))
         uint256 b = startPrice;
-        int256 a = int256(getSlope());
+        int256 m = int256(getSlope());
         int256 saleTokensReceived = (-int256(b) + int256(Math.sqrt(
-            uint256(int256(b)**2 + (4*((a)/2)*int256(paymentAmount)))
-        ))) * int256(10**saleTokenDecimals) / (2*(a/2));
+            uint256(int256(b)**2 + (4*((m)/2)*int256(paymentAmount)))
+        ))) * int256(10**saleTokenDecimals) / (2*(m/2));
         return uint256(saleTokensReceived);
     }
     
@@ -384,19 +388,18 @@ contract OtterPadFund is ReentrancyGuard {
     }
 
     function checkSaleTokensRequired() public view returns (uint256) {
-        // Handle decimal scaling factors
-        uint256 saleTokenBase = 10 ** saleTokenDecimals;
         
         // Calculate tokens needed for liquidity provision (at end price)
-        uint256 liquidityTokens = (targetLiquidity * saleTokenBase) / endPrice;
+        uint256 proratedLiquidity = (targetLiquidity * 10 ** paymentTokenDecimals) / endPrice;
+        uint256 salesTokensForLiquidity = proratedLiquidity * (10**saleTokenDecimals) / 10**paymentTokenDecimals;
         
-        // // Calculate total cash inflows including rake
+        // Calculate tokens needed for buyers to receive
         uint256 totalCashInflows = targetLiquidity * 10000 / (10000 - upfrontRakeBPS - escrowRakeBPS);
-        
-        // Reuse _calculateTokensReceived to get exact token amount needed for sale
-        uint256 tokensForSale = _calculateTokensReceived(totalCashInflows);
+        uint256 avgPrice = ((startPrice + endPrice) / 2);
+        uint256 proratedTokensForSale = totalCashInflows * (10**paymentTokenDecimals) / avgPrice;
+        uint256 salesTokensForSale = proratedTokensForSale * (10**saleTokenDecimals) / 10**paymentTokenDecimals;
         
         // Return total tokens needed (both liquidity and sale amounts)
-        return liquidityTokens + tokensForSale;
+        return salesTokensForLiquidity + salesTokensForSale;
     }
 }
