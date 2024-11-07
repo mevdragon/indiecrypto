@@ -165,8 +165,9 @@ const TrendingPage: React.FC = () => {
             renderItem={renderItem}
             style={{
               width: "100%",
-              display: "flex",
+              // display: "flex",
               justifyContent: "center",
+              minWidth: "100%",
             }}
           />
         </Skeleton>

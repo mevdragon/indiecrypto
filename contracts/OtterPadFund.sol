@@ -290,10 +290,14 @@ contract OtterPadFund is ReentrancyGuard {
         
         totalTokensAllocated -= purchase.tokenAmount;
         totalActiveContributions -= purchase.contributionAmount;
+
+        uint256 cashPaidInAmount = purchase.contributionAmount * 10000 / (10000 - upfrontRakeBPS - escrowRakeBPS);
+        uint256 escrowAmount = (cashPaidInAmount * escrowRakeBPS) / 10000;
+        uint256 refundAmount = purchase.contributionAmount + escrowAmount;
         
-        require(paymentToken.transfer(msg.sender, purchase.contributionAmount), "Refund failed");
+        require(paymentToken.transfer(msg.sender, refundAmount), "Refund failed");
         
-        emit Refunded(msg.sender, purchase.contributionAmount, orderIndex, totalActiveContributions, block.timestamp);
+        emit Refunded(msg.sender, refundAmount, orderIndex, totalActiveContributions, block.timestamp);
     }
 
     function hasSufficientSaleTokens() external view returns (bool) {

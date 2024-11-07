@@ -209,11 +209,13 @@ describe("OtterPadFund", function () {
 
       const paymentAmount = parseEther("10");
 
-      // Calculate exactly as the contract does
+      // Calculate exactly as contract does
       const OTTERPAD_FEE_BPS = 200n;
       const upfrontRakeBPS = await fundraiser.read.upfrontRakeBPS();
       const escrowRakeBPS = await fundraiser.read.escrowRakeBPS();
+      const netContributionBPS = 10000n - upfrontRakeBPS - escrowRakeBPS;
 
+      // Calculate contribution amount exactly as contract does
       const otterpadFee = (paymentAmount * OTTERPAD_FEE_BPS) / 10000n;
       const upfrontAmount =
         (paymentAmount * upfrontRakeBPS) / 10000n - otterpadFee;
@@ -221,33 +223,62 @@ describe("OtterPadFund", function () {
       const contributionAmount =
         paymentAmount - otterpadFee - upfrontAmount - escrowAmount;
 
+      // Get current total contributions
       const currentContributions =
         await fundraiser.read.totalActiveContributions();
 
-      // Calculate prices exactly as contract does
-      const priceAtStart =
-        startPrice +
-        ((endPrice - startPrice) * currentContributions) / targetLiquidity;
-      const priceAtEnd =
-        startPrice +
-        ((endPrice - startPrice) *
-          (currentContributions + contributionAmount)) /
-          targetLiquidity;
-      const averagePrice = (priceAtStart + priceAtEnd) / 2n;
+      // Calculate slope exactly as contract's getSlope() function
+      const totalCashInflows =
+        (targetLiquidity * 10000n) / (10000n - upfrontRakeBPS - escrowRakeBPS);
+      const avgPrice = (startPrice + endPrice) / 2n;
+      const proratedTokensForSale =
+        (totalCashInflows * parseEther("1")) / avgPrice;
+      const slope =
+        ((endPrice - startPrice) * parseEther("1")) / proratedTokensForSale;
 
-      // Scale payment to 1e18 first (since prices are per 1e18 sale tokens)
-      const scaledPayment = paymentAmount * parseEther("1");
+      // Calculate net cash inflows as contract does
+      const netCashInflows =
+        (currentContributions * 10000n) / netContributionBPS;
 
-      // Calculate expected tokens in 1e18 terms first
-      const tokensIn1e18 = scaledPayment / averagePrice;
+      // Helper function to perform quadratic calculation with BigInt precision
+      function calculateTokens(amount: bigint): bigint {
+        const b = startPrice;
+        const m = slope;
 
-      // No need to adjust further since both tokens are 18 decimals in test
-      const expectedTokens = tokensIn1e18;
+        // Convert to BigInts and maintain precision throughout calculation
+        const bSquared = b * b;
+        const mHalf = m / 2n;
+        const fourMHalfAmount = 4n * mHalf * amount;
+
+        // Calculate square root term using BigInt math where possible
+        const sqrtInput = bSquared + fourMHalfAmount;
+
+        // Convert to string for Math.sqrt, then back to BigInt with precision
+        const sqrtValue = Math.sqrt(Number(sqrtInput.toString()));
+        const sqrtTermBigInt = BigInt(
+          Math.floor(sqrtValue * Number((1e9).toString()))
+        );
+
+        // Calculate result maintaining precision
+        const numerator = (-b * BigInt(1e9) + sqrtTermBigInt) * parseEther("1");
+        const denominator = 2n * mHalf * BigInt(1e9);
+
+        // Perform final division
+        return numerator / denominator;
+      }
+
+      // Calculate tokens before and after with high precision
+      const tokensBefore = calculateTokens(netCashInflows);
+      const tokensAfter = calculateTokens(netCashInflows + paymentAmount);
+
+      // Calculate difference
+      const expectedTokens = tokensAfter - tokensBefore;
 
       const actualTokens = await fundraiser.read.calculateTokensReceived([
         paymentAmount,
       ]);
-      expect(actualTokens).to.equal(expectedTokens);
+
+      expect(actualTokens).to.be.closeTo(expectedTokens, 10000n); // Allow difference of up to 10000 wei due to OpenZeppelin Math.sqrt implementation decimals difference
     });
 
     it("Should emit correct events on purchase", async function () {
@@ -484,17 +515,32 @@ describe("OtterPadFund", function () {
 
       // Verify refund processed
       const purchase = await fundraiser.read.purchases([0n]);
-      expect(purchase[4]).to.equal(true);
+      expect(purchase[4]).to.equal(true); // isRefunded
 
-      // Check balance increased
+      // Check final balance
       const finalBalance = await paymentToken.read.balanceOf([
         getAddress(buyer1.account.address),
       ]);
-      expect(finalBalance > initialBalance).to.be.true;
 
-      // Verify exact refund amount
-      const purchase0 = await fundraiser.read.purchases([0n]);
-      expect(finalBalance).to.equal(initialBalance + purchase0[1]);
+      // Calculate expected refund - match contract's calculation
+      const OTTERPAD_FEE_BPS = 200n;
+      const upfrontRakeBPS = await fundraiser.read.upfrontRakeBPS();
+      const escrowRakeBPS = await fundraiser.read.escrowRakeBPS();
+      const netContributionBPS = 10000n - upfrontRakeBPS - escrowRakeBPS;
+
+      // Get the actual contribution amount from the purchase
+      const contributionAmount = purchase[1]; // contributionAmount field
+
+      // Calculate the original payment that would result in this contribution
+      const grossAmount = (contributionAmount * 10000n) / netContributionBPS;
+
+      // Calculate escrow portion
+      const escrowAmount = (grossAmount * escrowRakeBPS) / 10000n;
+
+      // Total refund is contribution + escrow
+      const expectedRefund = contributionAmount + escrowAmount;
+
+      expect(finalBalance).to.equal(initialBalance + expectedRefund);
     });
 
     it("Should allow refund after target reached but before DEX deployment", async function () {
@@ -533,8 +579,7 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      const hash = await buyer1Fundraiser.write.buy([requiredPayment]);
-      await publicClient.waitForTransactionReceipt({ hash });
+      await buyer1Fundraiser.write.buy([requiredPayment]);
 
       // Verify target is reached
       expect(await fundraiser.read.targetReached()).to.equal(true);
@@ -550,16 +595,29 @@ describe("OtterPadFund", function () {
 
       // Verify refund processed
       const purchase = await fundraiser.read.purchases([0n]);
-      expect(purchase[4]).to.equal(true);
+      expect(purchase[4]).to.equal(true); // isRefunded
 
       // Check final balance
       const finalBalance = await paymentToken.read.balanceOf([
         getAddress(buyer1.account.address),
       ]);
 
-      // Verify exact refund amount
-      const purchase0 = await fundraiser.read.purchases([0n]);
-      expect(finalBalance).to.equal(initialBalance + purchase0[1]);
+      // Calculate expected refund - match contract's calculation
+      const netContributionBPS = 10000n - upfrontRakeBPS - escrowRakeBPS;
+
+      // Get the actual contribution amount from the purchase
+      const contributionAmount = purchase[1]; // contributionAmount field
+
+      // Calculate the original payment that would result in this contribution
+      const grossAmount = (contributionAmount * 10000n) / netContributionBPS;
+
+      // Calculate escrow portion
+      const escrowAmount = (grossAmount * escrowRakeBPS) / 10000n;
+
+      // Total refund is contribution + escrow
+      const expectedRefund = contributionAmount + escrowAmount;
+
+      expect(finalBalance).to.equal(initialBalance + expectedRefund);
     });
 
     it("Should not allow refund after DEX deployment", async function () {
@@ -639,12 +697,11 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      const buyHash = await buyer1Fundraiser.write.buy([paymentAmount]);
-      await publicClient.waitForTransactionReceipt({ hash: buyHash });
+      await buyer1Fundraiser.write.buy([paymentAmount]);
 
       // Get the purchase details to know exact contribution amount
       const purchase = await fundraiser.read.purchases([0n]);
-      const contributionAmount = purchase[1];
+      const contributionAmount = purchase[1]; // contributionAmount field
 
       // Get initial balance before refund
       const initialBalance = await paymentToken.read.balanceOf([
@@ -660,8 +717,22 @@ describe("OtterPadFund", function () {
         getAddress(buyer1.account.address),
       ]);
 
-      // Verify exact refund amount
-      expect(finalBalance).to.equal(initialBalance + contributionAmount);
+      // Calculate expected refund amount - match contract's calculation
+      const OTTERPAD_FEE_BPS = 200n;
+      const upfrontRakeBPS = await fundraiser.read.upfrontRakeBPS();
+      const escrowRakeBPS = await fundraiser.read.escrowRakeBPS();
+      const netContributionBPS = 10000n - upfrontRakeBPS - escrowRakeBPS;
+
+      // Calculate the original payment that would result in this contribution
+      const grossAmount = (contributionAmount * 10000n) / netContributionBPS;
+
+      // Calculate escrow portion
+      const escrowAmount = (grossAmount * escrowRakeBPS) / 10000n;
+
+      // Total refund is contribution + escrow
+      const expectedRefund = contributionAmount + escrowAmount;
+
+      expect(finalBalance).to.equal(initialBalance + expectedRefund);
     });
   });
 
@@ -897,37 +968,27 @@ describe("OtterPadFund", function () {
 
   describe("checkSaleTokensRequired", function () {
     it("Should calculate correct tokens for linear price curve", async function () {
-      const {
-        fundraiser,
-        saleToken,
-        paymentToken,
-        targetLiquidity,
-        startPrice,
-        endPrice,
-      } = await loadFixture(deployFundraiserFixture);
+      const { fundraiser, saleToken, targetLiquidity, startPrice, endPrice } =
+        await loadFixture(deployFundraiserFixture);
 
       const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
 
-      // Get parameters for calculation
+      // Get parameters
       const upfrontRakeBPS = await fundraiser.read.upfrontRakeBPS();
       const escrowRakeBPS = await fundraiser.read.escrowRakeBPS();
       const netContributionBPS = 10000n - upfrontRakeBPS - escrowRakeBPS;
 
-      // Calculate gross amount needed to reach target liquidity
-      const actualContribution =
-        (targetLiquidity * 10000n) / netContributionBPS;
+      // Calculate total cash inflows needed
+      const totalCashInflows = (targetLiquidity * 10000n) / netContributionBPS;
 
-      // Get decimal bases
-      const saleTokenBase = 10n ** BigInt(await saleToken.read.decimals());
+      // Calculate liquidity tokens at end price
+      const liquidityTokens = (targetLiquidity * parseEther("1")) / endPrice;
 
-      // Calculate tokens for sale using average price
-      const averagePrice = (startPrice + endPrice) / 2n;
-      const tokensForSale = (targetLiquidity * saleTokenBase) / averagePrice;
+      // Calculate sale tokens using average price
+      const avgPrice = (startPrice + endPrice) / 2n;
+      const tokensForSale = (totalCashInflows * parseEther("1")) / avgPrice;
 
-      // Calculate tokens for liquidity at end price
-      const liquidityTokens = (targetLiquidity * saleTokenBase) / endPrice;
-
-      const expectedTotal = tokensForSale + liquidityTokens;
+      const expectedTotal = liquidityTokens + tokensForSale;
       expect(requiredTokens).to.equal(expectedTotal);
     });
 
@@ -985,8 +1046,8 @@ describe("OtterPadFund", function () {
       const required1 = await fundraiser1.read.checkSaleTokensRequired();
       const required2 = await fundraiser2.read.checkSaleTokensRequired();
 
-      // Both should require the same tokens since rake doesn't affect token calculation
-      expect(required1).to.equal(required2);
+      // Higher rake should require more tokens due to more total inflows needed
+      expect(required2).to.be.gt(required1);
     });
 
     it("Should calculate correctly with different decimals", async function () {
@@ -1027,25 +1088,21 @@ describe("OtterPadFund", function () {
 
       const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
 
-      // Calculate tokens using same formula as contract
-      const saleTokenBase = 10n ** 6n; // 6 decimals
+      // Calculate with proper decimal handling
+      const saleTokenBase = 10n ** 6n;
+      const paymentTokenBase = 10n ** 8n;
 
-      // Calculate tokens for sale using average price
-      const averagePrice = (startPrice + endPrice) / 2n;
-      const tokensForSale = (targetLiquidity * saleTokenBase) / averagePrice;
-
-      // Calculate tokens for liquidity
+      // Calculate liquidity tokens
       const liquidityTokens = (targetLiquidity * saleTokenBase) / endPrice;
 
-      const expectedTotal = tokensForSale + liquidityTokens;
+      // Calculate sale tokens
+      const netContributionBPS = 8000n; // 10000 - 1000 - 1000
+      const totalCashInflows = (targetLiquidity * 10000n) / netContributionBPS;
+      const avgPrice = (startPrice + endPrice) / 2n;
+      const tokensForSale = (totalCashInflows * saleTokenBase) / avgPrice;
 
+      const expectedTotal = liquidityTokens + tokensForSale;
       expect(requiredTokens).to.equal(expectedTotal);
-
-      // Add explicit value checks for debugging
-      console.log("Required tokens:", requiredTokens.toString());
-      console.log("Expected total:", expectedTotal.toString());
-      console.log("Tokens for sale:", tokensForSale.toString());
-      console.log("Liquidity tokens:", liquidityTokens.toString());
     });
 
     it("Should handle steep price curves", async function () {
