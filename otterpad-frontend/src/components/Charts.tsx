@@ -206,11 +206,6 @@ const Charts = ({
           ],
         };
 
-        const decimals = await publicClient.readContract({
-          ...paymentTokenContract,
-          functionName: "decimals",
-        });
-
         // Fetch events
         const [purchaseEvents, refundEvents] = await Promise.all([
           publicClient.getLogs({
@@ -255,11 +250,11 @@ const Charts = ({
             timestamp: Number(e.args.timestamp),
             amount: formatWithDecimals(
               Number(e.args.contributionAmount),
-              Number(decimals)
+              Number(contractData.paymentTokenDecimals)
             ),
             netActiveContributions: formatWithDecimals(
               Number(e.args.netActiveContributions),
-              Number(decimals)
+              Number(contractData.paymentTokenDecimals)
             ),
             type: "purchase",
           })),
@@ -267,11 +262,11 @@ const Charts = ({
             timestamp: Number(e.args.timestamp),
             amount: formatWithDecimals(
               Number(e.args.contributionAmount),
-              Number(decimals)
+              Number(contractData.paymentTokenDecimals)
             ),
             netActiveContributions: formatWithDecimals(
               Number(e.args.netActiveContributions),
-              Number(decimals)
+              Number(contractData.paymentTokenDecimals)
             ),
             type: "refund",
           })),

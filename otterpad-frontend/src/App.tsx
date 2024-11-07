@@ -6,7 +6,15 @@ import BuyPanel from "./components/BuyPanel";
 import { RainbowKitProvider, getDefaultWallets } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { arbitrum, sepolia } from "wagmi/chains";
+import {
+  arbitrum,
+  bsc,
+  polygon,
+  sepolia,
+  mainnet,
+  base,
+  optimism,
+} from "wagmi/chains";
 import { Alert, ConfigProvider } from "antd";
 import "@rainbow-me/rainbowkit/styles.css";
 import FundPage from "./pages/FundPage";
@@ -17,13 +25,28 @@ import TrendingPage from "./pages/TrendingPage";
 
 // Create wagmi config
 const config = createConfig({
-  chains: [sepolia, arbitrum],
+  chains: [base, bsc, optimism, polygon, arbitrum, mainnet, sepolia],
   transports: {
     [sepolia.id]: http(
       "https://sepolia.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
     ),
     [arbitrum.id]: http(
       "https://arbitrum-mainnet.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
+    ),
+    [polygon.id]: http(
+      "https://polygon-mainnet.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
+    ),
+    [bsc.id]: http(
+      "https://bsc-mainnet.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
+    ),
+    [mainnet.id]: http(
+      "https://mainnet.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
+    ),
+    [base.id]: http(
+      "https://base-mainnet.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
+    ),
+    [optimism.id]: http(
+      "https://optimism-mainnet.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
     ),
   },
 });
