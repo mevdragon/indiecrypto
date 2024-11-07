@@ -879,8 +879,8 @@ const BuyPanel = ({
 
     if (!viewedTutorial) {
       return {
-        text: "How It Works",
-        icon: <QuestionCircleFilled style={{ marginRight: "5px" }} />,
+        text: "Get Started | How It Works",
+        icon: null,
         disabled: false,
         onClick: () => setHelpModalOpen(true),
       };
