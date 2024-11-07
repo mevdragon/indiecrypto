@@ -33,6 +33,12 @@ import { SUPPORTED_CHAINS } from "../config";
 
 const { Title, Paragraph } = Typography;
 
+const INTERVAL = {
+  MINUTE: 60,
+  HOUR: 60 * 60,
+  DAY: 24 * 60 * 60,
+};
+
 const formatWithDecimals = (value: number, decimals: number = 18) => {
   const divisor = Math.pow(10, decimals);
   return Number((value / divisor).toFixed(2));
@@ -188,6 +194,7 @@ const Charts = ({
 
       setIsFetchingHistory(true);
 
+      const timeInterval = INTERVAL.HOUR;
       const blocksPerDay = (24 * 60 * 60) / 12;
       const startBlock = currentBlock - BigInt(Math.floor(blocksPerDay * 7));
 
@@ -279,50 +286,54 @@ const Charts = ({
         }
 
         // Process minute intervals
-        const minuteData = new Map();
+        const intervalData = new Map();
         const firstTimestamp = allEvents[0].timestamp;
         const lastTimestamp = allEvents[allEvents.length - 1].timestamp;
-        const startMinute = Math.floor(firstTimestamp / 60) * 60;
-        const endMinute = Math.ceil(lastTimestamp / 60) * 60;
+        const startInterval =
+          Math.floor(firstTimestamp / timeInterval) * timeInterval;
+        const endInterval =
+          Math.ceil(lastTimestamp / timeInterval) * timeInterval;
         let lowestTVL = allEvents[0].netActiveContributions;
         let highestTVL = allEvents[0].netActiveContributions;
         let currentTVL = allEvents[0].netActiveContributions;
 
         // Initialize first interval
-        minuteData.set(startMinute, {
+        intervalData.set(startInterval, {
           open: allEvents[0].netActiveContributions,
           high: allEvents[0].netActiveContributions,
           low: allEvents[0].netActiveContributions,
           close: allEvents[0].netActiveContributions,
-          timestamp: startMinute * 1000,
+          timestamp: startInterval * 1000,
         });
 
         // Process each minute interval
         for (
-          let timestamp = startMinute;
-          timestamp <= endMinute;
-          timestamp += 60
+          let timestamp = startInterval;
+          timestamp <= endInterval;
+          timestamp += timeInterval
         ) {
-          const eventsInMinute = allEvents.filter(
-            (e) => Math.floor(e.timestamp / 60) * 60 === timestamp
+          const eventsInInterval = allEvents.filter(
+            (e) =>
+              Math.floor(e.timestamp / timeInterval) * timeInterval ===
+              timestamp
           );
 
-          const prevMinute = minuteData.get(timestamp - 60);
-          const prevClose = prevMinute ? prevMinute.close : currentTVL;
+          const prevInterval = intervalData.get(timestamp - timeInterval);
+          const prevClose = prevInterval ? prevInterval.close : currentTVL;
 
-          if (eventsInMinute.length > 0) {
-            const lastEvent = eventsInMinute[eventsInMinute.length - 1];
+          if (eventsInInterval.length > 0) {
+            const lastEvent = eventsInInterval[eventsInInterval.length - 1];
             currentTVL = lastEvent.netActiveContributions;
 
             const high = Math.max(
-              ...eventsInMinute.map((e) => e.netActiveContributions)
+              ...eventsInInterval.map((e) => e.netActiveContributions)
             );
             const low = Math.min(
-              ...eventsInMinute.map((e) => e.netActiveContributions)
+              ...eventsInInterval.map((e) => e.netActiveContributions)
             );
             lowestTVL = Math.min(lowestTVL, low);
 
-            minuteData.set(timestamp, {
+            intervalData.set(timestamp, {
               open: prevClose,
               high,
               low,
@@ -330,7 +341,7 @@ const Charts = ({
               timestamp: timestamp * 1000,
             });
           } else {
-            minuteData.set(timestamp, {
+            intervalData.set(timestamp, {
               open: prevClose,
               high: prevClose,
               low: prevClose,
@@ -377,18 +388,20 @@ const Charts = ({
           return startPrice + ((endPrice - startPrice) * tvl) / targetLiquidity;
         };
 
-        const tvlData = Array.from(minuteData.values()).map((minute) => ({
-          date: new Date(minute.timestamp).toISOString(),
-          tvl: minute.close,
+        const tvlData = Array.from(intervalData.values()).map((interval) => ({
+          date: new Date(interval.timestamp).toISOString(),
+          tvl: interval.close,
         }));
 
         // Convert to candlestick format
-        const candlesticks = Array.from(minuteData.values()).map((minute) => ({
-          x: new Date(minute.timestamp),
-          y: [minute.open, minute.high, minute.low, minute.close].map((val) =>
-            Number(val.toFixed(2))
-          ),
-        }));
+        const candlesticks = Array.from(intervalData.values()).map(
+          (interval) => ({
+            x: new Date(interval.timestamp),
+            y: [interval.open, interval.high, interval.low, interval.close].map(
+              (val) => Number(val.toFixed(2))
+            ),
+          })
+        );
 
         const priceData = candlesticks.map((tvlCandle) => ({
           x: tvlCandle.x,
@@ -396,25 +409,25 @@ const Charts = ({
         }));
 
         // Initialize first interval
-        minuteData.set(startMinute, {
+        intervalData.set(startInterval, {
           open: allEvents[0].netActiveContributions,
           high: allEvents[0].netActiveContributions,
           low: allEvents[0].netActiveContributions,
           close: allEvents[0].netActiveContributions,
-          timestamp: startMinute * 1000,
+          timestamp: startInterval * 1000,
         });
 
         // Process each minute interval
         for (
-          let timestamp = startMinute;
-          timestamp <= endMinute;
+          let timestamp = startInterval;
+          timestamp <= endInterval;
           timestamp += 60
         ) {
           const eventsInMinute = allEvents.filter(
             (e) => Math.floor(e.timestamp / 60) * 60 === timestamp
           );
 
-          const prevMinute = minuteData.get(timestamp - 60);
+          const prevMinute = intervalData.get(timestamp - 60);
           const prevClose = prevMinute ? prevMinute.close : currentTVL;
 
           if (eventsInMinute.length > 0) {
@@ -431,7 +444,7 @@ const Charts = ({
             lowestTVL = Math.min(lowestTVL, low);
             highestTVL = Math.max(highestTVL, high);
 
-            minuteData.set(timestamp, {
+            intervalData.set(timestamp, {
               open: prevClose,
               high,
               low,
@@ -439,7 +452,7 @@ const Charts = ({
               timestamp: timestamp * 1000,
             });
           } else {
-            minuteData.set(timestamp, {
+            intervalData.set(timestamp, {
               open: prevClose,
               high: prevClose,
               low: prevClose,
