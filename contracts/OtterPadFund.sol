@@ -168,7 +168,9 @@ contract OtterPadFund is ReentrancyGuard {
     }
     
     function getCurrentPrice() public view returns (uint256) {
-        return startPrice + (totalActiveContributions * getSlope()/(10**paymentTokenDecimals));
+        uint256 netCashInflows = totalActiveContributions * 10000 / (10000 - upfrontRakeBPS - escrowRakeBPS);
+        uint256 tokensIssuedSoFar = _calculateTokensReceived(netCashInflows);
+        return startPrice + (tokensIssuedSoFar * getSlope() / (10**saleTokenDecimals));
     }
 
     function _calculateTokensReceived(uint256 paymentAmount) private view returns (uint256) {

@@ -55,6 +55,7 @@ const CreatePage: React.FC = () => {
   const [selectedChain, setSelectedChain] = React.useState(
     SUPPORTED_CHAINS[0].chainIdDecimal
   );
+  console.log(`selectedChain`, selectedChain);
   const [form] = Form.useForm<FundForm>();
   const { isConnected } = useAccount();
   const isDesktop = useMediaQuery({ minWidth: 1024 });
@@ -331,6 +332,7 @@ const CreatePage: React.FC = () => {
                 options={SUPPORTED_CHAINS.map((chain) => ({
                   label: chain.chain,
                   value: chain.chainIdDecimal,
+                  disabled: chain.isDisabled,
                 }))}
               />
             </Form.Item>

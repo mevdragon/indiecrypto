@@ -9,6 +9,7 @@ import "@nomicfoundation/hardhat-chai-matchers";
 // Load environment variables from .env
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "";
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "";
+const ARBITRUM_RPC_URL = process.env.ARBITRUM_RPC_URL || "";
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
 
 const config: HardhatUserConfig = {
@@ -30,6 +31,10 @@ const config: HardhatUserConfig = {
   networks: {
     sepolia: {
       url: SEPOLIA_RPC_URL,
+      accounts: [PRIVATE_KEY],
+    },
+    arbitrum: {
+      url: ARBITRUM_RPC_URL,
       accounts: [PRIVATE_KEY],
     },
     hardhat: {

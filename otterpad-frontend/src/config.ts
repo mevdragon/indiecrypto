@@ -9,11 +9,18 @@ export interface ChainConfig {
 
 export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
-    chain: "Sepolia Testnet",
+    chain: "Sepolia",
     chainIdDecimal: "11155111",
-    factoryAddress: "0x91FbCa74C051e8144E3883e162B618187C8A1adf",
+    factoryAddress: "0xD1D3Ff570e819a218956e7094BEa5CA42eb5D5B0",
     isDisabled: false,
     explorerUrl: "https://sepolia.etherscan.io",
+  },
+  {
+    chain: "Arbitrum One",
+    chainIdDecimal: "42161",
+    factoryAddress: "0x4BaC8705e5029a028ee67fDbC6767598fB1E6fEc",
+    isDisabled: false,
+    explorerUrl: "https://arbiscan.io",
   },
   {
     chain: "Base Mainnet",
@@ -28,6 +35,12 @@ export const getFactoryAddress = (chainId: string): string => {
   const chain = SUPPORTED_CHAINS.find((c) => c.chainIdDecimal === chainId);
   if (!chain) throw new Error(`Unsupported chain ID: ${chainId}`);
   return chain.factoryAddress;
+};
+
+export const getChainName = (chainId: string): string => {
+  const chain = SUPPORTED_CHAINS.find((c) => c.chainIdDecimal === chainId);
+  if (!chain) throw new Error(`Unsupported chain ID: ${chainId}`);
+  return chain.chain;
 };
 
 export const ERC20_ABI = [

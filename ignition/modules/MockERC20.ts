@@ -9,13 +9,19 @@ const INITIAL_SUPPLY_PAY = 1_000_000_000_000; // 1 million tokens with 6 decimal
 
 const TokenDeploymentModule = buildModule("TokenDeploymentModule", (m) => {
   // Deploy SALE token
-  const saleToken = m.contract("MockERC20", ["Sale Token", "SALE", 18n], {
-    id: "SaleTokenMock",
+  // const saleToken = m.contract("MockERC20", ["Sale Token", "SALE", 18n], {
+  //   id: "SaleTokenMock",
+  // });
+  const saleToken = m.contract("MockERC20", ["Chicken Wings", "WINGS", 18n], {
+    id: "ChickenWings",
   });
 
   // Deploy PAY token
-  const payToken = m.contract("MockERC20", ["Payment Token", "PAY", 6n], {
-    id: "PayTokenMock",
+  // const payToken = m.contract("MockERC20", ["Payment Token", "PAY", 6n], {
+  //   id: "PayTokenMock",
+  // });
+  const payToken = m.contract("MockERC20", ["Tether USD", "USDT", 6n], {
+    id: "Tether",
   });
 
   // Mint SALE tokens after deployment

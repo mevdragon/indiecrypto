@@ -3,8 +3,13 @@
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3"; // Mainnet V2 Router
-const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6"; // Mainnet V2 Factory
+// Sepolia
+// const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3"; // Mainnet V2 Router
+// const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6"; // Mainnet V2 Factory
+
+// Arbitrum
+const UNISWAP_ROUTER = "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24"; // Mainnet V2 Router
+const UNISWAP_FACTORY = "0xf1D7CC64Fb4452F05c498126312eBE29f30Fbcf9"; // Mainnet V2 Factory
 
 export default buildModule("OtterPadFactoryModule", (m) => {
   // Deploy the factory contract

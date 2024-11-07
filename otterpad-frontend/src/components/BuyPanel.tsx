@@ -58,7 +58,8 @@ import TabPane from "antd/es/tabs/TabPane";
 import { getPublicClient, waitForTransaction } from "wagmi/actions";
 import { CONTRACT_ABI, ContractDataResult } from "../pages/FundPage";
 import { useMediaQuery } from "react-responsive";
-import { ERC20_ABI, SUPPORTED_CHAINS } from "../config";
+import { ERC20_ABI, getChainName, SUPPORTED_CHAINS } from "../config";
+import { token } from "../typechain-types/@openzeppelin/contracts";
 
 const { Title, Text } = Typography;
 
@@ -123,6 +124,7 @@ const BuyPanel = ({
   const { address: userAddress, isConnected } = useAccount();
   const [estimatedTokens, setEstimatedTokens] = useState<string>("0");
   const publicClient = usePublicClient();
+  const chainName = getChainName(chainIdDecimal);
 
   const [isApproved, setIsApproved] = useState(false);
   const [currentAllowance, setCurrentAllowance] = useState<bigint>(BigInt(0));
@@ -281,26 +283,25 @@ const BuyPanel = ({
     }
   };
 
-  const calculateRemainingAmount = () => {
+  function calculateRemainingAmount() {
     if (!contractData) return "0";
 
-    // Get current contribution progress
-    const currentContributions = contractData.totalActiveContributions;
-
-    // Calculate how much more we need in net contributions
-    const remainingNet = contractData.targetLiquidity - currentContributions;
-    if (remainingNet <= BigInt(0)) return "0";
-
-    // Calculate gross amount needed using the same formula as the contract
-    // actualContribution = (targetLiquidity * 10000) / netContributionBPS
-    // Therefore: grossAmount = (remainingNet * 10000) / netContributionBPS
+    // Calculate the total required gross amount first
     const netContributionBPS =
       BigInt(10000) - contractData.upfrontRakeBPS - contractData.escrowRakeBPS;
+    const totalGrossRequired =
+      (contractData.targetLiquidity * BigInt(10000)) / netContributionBPS;
 
-    const grossAmount = (remainingNet * BigInt(10000)) / netContributionBPS;
+    // Then subtract current contributions adjusted for gross amount
+    const currentGross =
+      (contractData.totalActiveContributions * BigInt(10000)) /
+      netContributionBPS;
+    const remainingGross = totalGrossRequired - currentGross;
 
-    return formatUnits(grossAmount, contractData.paymentTokenDecimals);
-  };
+    if (remainingGross <= BigInt(0)) return "0";
+
+    return formatUnits(remainingGross, contractData.paymentTokenDecimals);
+  }
 
   const handleMaxRemainClick = () => {
     const remainingAmount = calculateRemainingAmount();
@@ -613,28 +614,40 @@ const BuyPanel = ({
       ];
 
       try {
-        const saleTokenContract = new ethers.Contract(
-          contractData.saleTokenAddress,
-          erc20Abi,
-          provider
-        );
-        const paymentTokenContract = new ethers.Contract(
-          contractData.paymentTokenAddress,
-          erc20Abi,
-          provider
-        );
+        // const saleTokenContract = new ethers.Contract(
+        //   contractData.saleTokenAddress,
+        //   erc20Abi,
+        //   provider
+        // );
+        // const paymentTokenContract = new ethers.Contract(
+        //   contractData.paymentTokenAddress,
+        //   erc20Abi,
+        //   provider
+        // );
 
-        const [saleSymbol, saleDecimals, paymentSymbol, paymentDecimals] =
-          await Promise.all([
-            saleTokenContract.symbol(),
-            saleTokenContract.decimals(),
-            paymentTokenContract.symbol(),
-            paymentTokenContract.decimals(),
-          ]);
+        // const [
+        //   // saleSymbol,
+        //   // saleDecimals,
+        //   // paymentSymbol,
+        //   // paymentDecimals,
+        // ] = await Promise.all([
+        //   // saleTokenContract.symbol(),
+        //   // saleTokenContract.decimals(),
+        //   // paymentTokenContract.symbol(),
+        //   // paymentTokenContract.decimals(),
+        // ]);
 
         setTokenInfo({
-          sale: { symbol: saleSymbol, decimals: saleDecimals },
-          payment: { symbol: paymentSymbol, decimals: paymentDecimals },
+          sale: {
+            symbol: contractData.saleTokenSymbol,
+            decimals: contractData.saleTokenDecimals,
+          },
+          payment: {
+            symbol: contractData.paymentTokenSymbol,
+            decimals: contractData.paymentTokenDecimals,
+          },
+          // sale: { symbol: saleSymbol, decimals: saleDecimals },
+          // payment: { symbol: paymentSymbol, decimals: paymentDecimals },
         });
         setLoading(false);
       } catch (error) {
@@ -1187,6 +1200,7 @@ const BuyPanel = ({
                   justifyContent: "center",
                 }}
               >
+                <Tag color="processing">{chainName}</Tag>
                 {getStatusTag()}
                 <Input
                   value={CONTRACT_ADDRESS}
@@ -1255,11 +1269,15 @@ const BuyPanel = ({
                       level={3}
                       style={{ margin: 0, whiteSpace: "nowrap" }}
                     >
-                      {formatUnits(
-                        contractData.currentPrice,
-                        contractData.paymentTokenDecimals
-                      )}{" "}
-                      PAY
+                      {parseFloat(
+                        formatUnits(
+                          contractData.currentPrice,
+                          contractData.paymentTokenDecimals
+                        )
+                      ).toFixed(3)}{" "}
+                      <span style={{ fontSize: "0.9rem" }}>
+                        {tokenInfo.payment.symbol}
+                      </span>
                     </Title>
                     <Text type="secondary" style={{ whiteSpace: "nowrap" }}>
                       End:{" "}
@@ -1267,7 +1285,7 @@ const BuyPanel = ({
                         contractData.endPrice,
                         contractData.paymentTokenDecimals
                       )}{" "}
-                      PAY
+                      {tokenInfo.payment.symbol}
                     </Text>
                   </div>
                 </Card>
@@ -1345,7 +1363,7 @@ const BuyPanel = ({
                       }}
                     >
                       <Text strong>
-                        Amount to Buy (PAY)
+                        Amount to Buy ({tokenInfo.payment.symbol})
                         <Tooltip title={getMaxRemainTooltip()}>
                           <Button
                             type="link"
@@ -1358,7 +1376,8 @@ const BuyPanel = ({
                         </Tooltip>
                       </Text>
                       <Text type="secondary" style={{ whiteSpace: "nowrap" }}>
-                        Balance: {userPaymentTokenBalance?.formatted ?? "0"} PAY
+                        Balance: {userPaymentTokenBalance?.formatted ?? "0"}{" "}
+                        {tokenInfo.payment.symbol}
                       </Text>
                     </div>
 
@@ -1369,7 +1388,7 @@ const BuyPanel = ({
                         value={buyAmount}
                         onChange={handleBuyAmountChange}
                         prefix={<DollarOutlined className="text-gray-500" />}
-                        suffix="PAY"
+                        suffix={tokenInfo.payment.symbol}
                         className="flex-1"
                       />
                     </div>
@@ -1387,7 +1406,11 @@ const BuyPanel = ({
                             <Statistic
                               title="Total Cost"
                               value={buyAmount}
-                              suffix="PAY"
+                              suffix={
+                                <span style={{ fontSize: "0.9rem" }}>
+                                  {tokenInfo.payment.symbol}
+                                </span>
+                              }
                             />
                           </div>
                         </Col>
@@ -1396,7 +1419,11 @@ const BuyPanel = ({
                             <Statistic
                               title="Estimated Tokens"
                               value={Number(estimatedTokens).toFixed(3)}
-                              suffix="SALE"
+                              suffix={
+                                <span style={{ fontSize: "0.9rem" }}>
+                                  {tokenInfo.sale.symbol}
+                                </span>
+                              }
                             />
                           </div>
                         </Col>
@@ -1405,7 +1432,11 @@ const BuyPanel = ({
                             <Statistic
                               title="Avg Price per Token"
                               value={Number(avgPricePerToken).toFixed(4)}
-                              suffix="PAY"
+                              suffix={
+                                <span style={{ fontSize: "0.9rem" }}>
+                                  {tokenInfo.payment.symbol}
+                                </span>
+                              }
                             />
                           </div>
                         </Col>
@@ -1433,8 +1464,9 @@ const BuyPanel = ({
                       width: "100%",
                     }}
                   >
-                    Make sure you have enough PAY tokens in your wallet.
-                    Transaction will require approval from your wallet.
+                    Make sure you have enough {tokenInfo.payment.symbol} tokens
+                    in your wallet. Transaction will require approval from your
+                    wallet.
                   </Text>
                 </div>
               </TabPane>
@@ -1473,7 +1505,7 @@ const BuyPanel = ({
                               ).toFixed(3)
                             : "0"
                         }
-                        suffix="SALE"
+                        suffix={tokenInfo.sale.symbol}
                         prefix={<UserOutlined />}
                       />
                     </Card>

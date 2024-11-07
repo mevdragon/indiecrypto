@@ -6,7 +6,7 @@ import BuyPanel from "./components/BuyPanel";
 import { RainbowKitProvider, getDefaultWallets } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { sepolia } from "wagmi/chains";
+import { arbitrum, sepolia } from "wagmi/chains";
 import { Alert, ConfigProvider } from "antd";
 import "@rainbow-me/rainbowkit/styles.css";
 import FundPage from "./pages/FundPage";
@@ -17,10 +17,13 @@ import TrendingPage from "./pages/TrendingPage";
 
 // Create wagmi config
 const config = createConfig({
-  chains: [sepolia],
+  chains: [sepolia, arbitrum],
   transports: {
     [sepolia.id]: http(
       "https://sepolia.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
+    ),
+    [arbitrum.id]: http(
+      "https://arbitrum-mainnet.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
     ),
   },
 });
