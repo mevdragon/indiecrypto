@@ -1,5 +1,5 @@
 import { ApexOptions } from "apexcharts";
-import { Address } from "viem";
+import { Address, formatUnits } from "viem";
 import ReactApexCharts from "react-apexcharts";
 import dayjs from "dayjs";
 import { ContractDataResult } from "../pages/FundPage";
@@ -31,11 +31,6 @@ const { Title, Paragraph } = Typography;
 const formatWithDecimals = (value: number, decimals: number = 18) => {
   const divisor = Math.pow(10, decimals);
   return Number((value / divisor).toFixed(2));
-};
-
-const formatPrice = (value: bigint, decimals: number = 18) => {
-  const divisor = Math.pow(10, decimals);
-  return Number((Number(value) / divisor).toFixed(4));
 };
 
 const DEFAULT_PROJECT_IMAGE =
@@ -356,9 +351,24 @@ const Charts = ({
           )
             return 0;
 
-          const startPrice = formatPrice(contractData.startPrice);
-          const endPrice = formatPrice(contractData.endPrice);
-          const targetLiquidity = formatPrice(contractData.targetLiquidity);
+          const startPrice = parseFloat(
+            formatUnits(
+              contractData.startPrice,
+              contractData.paymentTokenDecimals
+            )
+          );
+          const endPrice = parseFloat(
+            formatUnits(
+              contractData.endPrice,
+              contractData.paymentTokenDecimals
+            )
+          );
+          const targetLiquidity = parseFloat(
+            formatUnits(
+              contractData.targetLiquidity,
+              contractData.paymentTokenDecimals
+            )
+          );
 
           if (tvl >= targetLiquidity) {
             return endPrice;
@@ -379,12 +389,11 @@ const Charts = ({
             Number(val.toFixed(2))
           ),
         }));
-        console.log(`candlesticks`, candlesticks);
+
         const priceData = candlesticks.map((tvlCandle) => ({
           x: tvlCandle.x,
           y: tvlCandle.y.map((tvl) => Number(calculatePrice(tvl).toFixed(4))),
         }));
-        console.log(`priceData`, priceData);
 
         // Initialize first interval
         minuteData.set(startMinute, {
@@ -439,7 +448,7 @@ const Charts = ({
             });
           }
         }
-        console.log(`tvlData`, tvlData);
+
         // Update both charts simultaneously
         setChartData((prev) => ({
           tvl: {

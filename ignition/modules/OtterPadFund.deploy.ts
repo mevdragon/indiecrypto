@@ -16,11 +16,11 @@ npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --paramete
  */
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import { parseEther, zeroAddress } from "viem";
+import { parseEther, parseUnits, zeroAddress } from "viem";
 
-const DEFAULT_START_PRICE = parseEther("1"); // 1 PAY
-const DEFAULT_END_PRICE = parseEther("4"); // 4 PAY
-const DEFAULT_TARGET = parseEther("100000"); // 100,000 PAY
+const DEFAULT_START_PRICE = parseUnits("1", 6); // 1 PAY
+const DEFAULT_END_PRICE = parseUnits("3", 6); // 3 PAY
+const DEFAULT_TARGET = parseUnits("100", 6); // 100 PAY
 const DEFAULT_UPFRONT_RAKE_BPS = 1000n; // 10%
 const DEFAULT_ESCROW_RAKE_BPS = 1000n; // 10%
 

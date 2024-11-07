@@ -11,7 +11,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Sepolia Testnet",
     chainIdDecimal: "11155111",
-    factoryAddress: "0x318326f7A30Bfb6EdF9f0e66b9290d7fEA262B43",
+    factoryAddress: "0x91FbCa74C051e8144E3883e162B618187C8A1adf",
     isDisabled: false,
     explorerUrl: "https://sepolia.etherscan.io",
   },
