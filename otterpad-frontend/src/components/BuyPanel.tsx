@@ -42,6 +42,7 @@ import {
   CopyOutlined,
   LinkOutlined,
   ExportOutlined,
+  QuestionCircleFilled,
 } from "@ant-design/icons";
 import {
   useAccount,
@@ -60,6 +61,7 @@ import { CONTRACT_ABI, ContractDataResult } from "../pages/FundPage";
 import { useMediaQuery } from "react-responsive";
 import { ERC20_ABI, getChainName, SUPPORTED_CHAINS } from "../config";
 import { token } from "../typechain-types/@openzeppelin/contracts";
+import HowItWorksModal from "./HowItWorks";
 
 const { Title, Text } = Typography;
 
@@ -116,8 +118,8 @@ const BuyPanel = ({
   const isDesktop = useMediaQuery({ minWidth: 1024 });
   const [loading, setLoading] = useState(true);
   const [tokenInfo, setTokenInfo] = useState<TokenState>({
-    sale: null,
-    payment: null,
+    sale: { symbol: "", decimals: 0 },
+    payment: { symbol: "", decimals: 0 },
   });
   const [buyAmount, setBuyAmount] = useState("");
   const [api, contextHolder] = notification.useNotification();
@@ -128,6 +130,9 @@ const BuyPanel = ({
 
   const [isApproved, setIsApproved] = useState(false);
   const [currentAllowance, setCurrentAllowance] = useState<bigint>(BigInt(0));
+
+  const [viewedTutorial, setViewedTutorial] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
 
   const [avgPricePerToken, setAvgPricePerToken] = useState<string>("0");
 
@@ -288,19 +293,22 @@ const BuyPanel = ({
 
     // Calculate the total required gross amount first
     const netContributionBPS =
-      BigInt(10000) - contractData.upfrontRakeBPS - contractData.escrowRakeBPS;
+      BigInt(10000) -
+      BigInt(contractData.upfrontRakeBPS || 0n) -
+      BigInt(contractData.escrowRakeBPS || 0n);
     const totalGrossRequired =
-      (contractData.targetLiquidity * BigInt(10000)) / netContributionBPS;
+      (BigInt(contractData.targetLiquidity || 0n) * BigInt(10000)) /
+      netContributionBPS;
 
     // Then subtract current contributions adjusted for gross amount
     const currentGross =
-      (contractData.totalActiveContributions * BigInt(10000)) /
+      (BigInt(contractData.totalActiveContributions || 0n) * BigInt(10000)) /
       netContributionBPS;
     const remainingGross = totalGrossRequired - currentGross;
 
     if (remainingGross <= BigInt(0)) return "0";
 
-    return formatUnits(remainingGross, contractData.paymentTokenDecimals);
+    return formatUnits(remainingGross - 1n, contractData.paymentTokenDecimals);
   }
 
   const handleMaxRemainClick = () => {
@@ -321,15 +329,17 @@ const BuyPanel = ({
 
     const remainingAmount = calculateRemainingAmount();
     const netContributionBPS =
-      BigInt(10000) - contractData.upfrontRakeBPS - contractData.escrowRakeBPS;
+      BigInt(10000) -
+      BigInt(contractData.upfrontRakeBPS || 0n) -
+      BigInt(contractData.escrowRakeBPS || 0n);
 
     return (
       <div className="space-y-2">
         <p>This amount accounts for all fees:</p>
         <ul className="list-disc pl-4">
           <li>
-            OtterPad Fee: {formatBPStoPercentage(contractData.OTTERPAD_FEE_BPS)}
-            %
+            OtterPad Fee:{" "}
+            {formatBPStoPercentage(contractData.OTTERPAD_FEE_BPS || 0n)}%
           </li>
           <li>
             Upfront Rake:{" "}
@@ -475,7 +485,7 @@ const BuyPanel = ({
 
       // Format the received tokens
       const formattedTokens = formatUnits(
-        tokensReceived,
+        tokensReceived || 0n,
         contractData.saleTokenDecimals
       );
 
@@ -494,7 +504,7 @@ const BuyPanel = ({
       return {
         estimatedTokens: formattedTokens,
         avgPricePerToken: formatUnits(
-          avgPrice,
+          avgPrice || 0n,
           contractData.paymentTokenDecimals
         ),
       };
@@ -588,6 +598,7 @@ const BuyPanel = ({
     token: contractData?.paymentTokenAddress,
     query: {
       refetchInterval: 30000, // Refresh every 30 seconds
+      enabled: isConnected,
     },
   });
 
@@ -601,6 +612,22 @@ const BuyPanel = ({
       "https://sepolia.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
     );
   }, []);
+
+  useEffect(() => {
+    if (!contractData) return;
+
+    setTokenInfo({
+      sale: {
+        symbol: contractData.saleTokenSymbol,
+        decimals: contractData.saleTokenDecimals,
+      },
+      payment: {
+        symbol: contractData.paymentTokenSymbol,
+        decimals: contractData.paymentTokenDecimals,
+      },
+    });
+    setLoading(false);
+  }, [contractData]);
 
   // Fetch token information
   useEffect(() => {
@@ -850,6 +877,15 @@ const BuyPanel = ({
       isWaitingForPurchase,
     } = transactionState;
 
+    if (!viewedTutorial) {
+      return {
+        text: "Get Started | How It Works",
+        icon: null,
+        disabled: false,
+        onClick: () => setHelpModalOpen(true),
+      };
+    }
+
     if (isCheckingAllowance) {
       return {
         text: "Checking Allowance...",
@@ -964,13 +1000,13 @@ const BuyPanel = ({
 
     const totalPayments = Number(
       formatUnits(
-        contractData.totalPaymentsIn,
+        contractData.totalPaymentsIn || 0n,
         contractData.paymentTokenDecimals
       )
     );
     const netActive = Number(
       formatUnits(
-        contractData.totalActiveContributions,
+        contractData.totalActiveContributions || 0n,
         contractData.paymentTokenDecimals
       )
     );
@@ -982,8 +1018,9 @@ const BuyPanel = ({
     const escrowAmount = activePayment * escrowRate;
     const upfrontAmount = Number(
       formatUnits(
-        (contractData.totalPaymentsIn * contractData.upfrontRakeBPS) /
-          BigInt(10000),
+        (BigInt(contractData.totalPaymentsIn || 0n) *
+          BigInt(contractData.upfrontRakeBPS || 0n)) /
+          BigInt(10000) || 0n,
         contractData.paymentTokenDecimals
       )
     );
@@ -1043,7 +1080,8 @@ const BuyPanel = ({
   };
 
   const getContractBalanceInfo = () => {
-    if (!contractData || !tokenInfo.sale || !tokenInfo.payment) return "";
+    if (!isConnected || !contractData || !tokenInfo.sale || !tokenInfo.payment)
+      return "";
 
     const totalPaymentRequired =
       (contractData.targetLiquidity * BigInt(10000)) /
@@ -1061,14 +1099,14 @@ const BuyPanel = ({
           <li>
             {parseFloat(
               formatUnits(
-                contractData.saleTokenBalance,
+                contractData.saleTokenBalance || 0n,
                 contractData.saleTokenDecimals
               )
             ).toFixed(2)}
             /
             {parseFloat(
               formatUnits(
-                contractData.requiredSaleTokens,
+                contractData.requiredSaleTokens || 0n,
                 contractData.saleTokenDecimals
               )
             ).toFixed(2)}{" "}
@@ -1077,14 +1115,14 @@ const BuyPanel = ({
           <li>
             {parseFloat(
               formatUnits(
-                contractData.paymentTokenBalance,
+                contractData.paymentTokenBalance || 0n,
                 contractData.paymentTokenDecimals
               )
             ).toFixed(2)}
             /
             {parseFloat(
               formatUnits(
-                totalPayTokenRequired,
+                totalPayTokenRequired || 0n,
                 contractData.paymentTokenDecimals
               )
             ).toFixed(2)}{" "}
@@ -1120,11 +1158,14 @@ const BuyPanel = ({
 
     // Convert BigInt values to numbers for percentage calculation
     const currentNet = Number(
-      formatUnits(liquidityContribution, contractData.paymentTokenDecimals)
+      formatUnits(
+        liquidityContribution || 0n,
+        contractData.paymentTokenDecimals
+      )
     );
     const targetNet = Number(
       formatUnits(
-        contractData.targetLiquidity,
+        contractData.targetLiquidity || 0n,
         contractData.paymentTokenDecimals
       )
     );
@@ -1141,10 +1182,10 @@ const BuyPanel = ({
 
     // totalActiveContributions is already the amount for liquidity
     return `${formatUnits(
-      contractData.totalActiveContributions,
+      contractData.totalActiveContributions || 0n,
       contractData.paymentTokenDecimals
     )} / ${formatUnits(
-      contractData.targetLiquidity,
+      contractData.targetLiquidity || 0n,
       contractData.paymentTokenDecimals
     )} ${tokenInfo.payment?.symbol}`;
   };
@@ -1271,21 +1312,21 @@ const BuyPanel = ({
                     >
                       {parseFloat(
                         formatUnits(
-                          contractData.currentPrice,
+                          contractData.currentPrice || 0n,
                           contractData.paymentTokenDecimals
                         )
                       ).toFixed(3)}{" "}
                       <span style={{ fontSize: "0.9rem" }}>
-                        {tokenInfo.payment.symbol}
+                        {tokenInfo.payment?.symbol}
                       </span>
                     </Title>
                     <Text type="secondary" style={{ whiteSpace: "nowrap" }}>
                       End:{" "}
                       {formatUnits(
-                        contractData.endPrice,
+                        contractData.endPrice || 0n,
                         contractData.paymentTokenDecimals
                       )}{" "}
-                      {tokenInfo.payment.symbol}
+                      {tokenInfo.payment?.symbol}
                     </Text>
                   </div>
                 </Card>
@@ -1363,7 +1404,7 @@ const BuyPanel = ({
                       }}
                     >
                       <Text strong>
-                        Amount to Buy ({tokenInfo.payment.symbol})
+                        Amount to Buy ({tokenInfo.payment?.symbol})
                         <Tooltip title={getMaxRemainTooltip()}>
                           <Button
                             type="link"
@@ -1376,8 +1417,14 @@ const BuyPanel = ({
                         </Tooltip>
                       </Text>
                       <Text type="secondary" style={{ whiteSpace: "nowrap" }}>
-                        Balance: {userPaymentTokenBalance?.formatted ?? "0"}{" "}
-                        {tokenInfo.payment.symbol}
+                        {isConnected ? (
+                          <div>
+                            Balance: {userPaymentTokenBalance?.formatted ?? "0"}{" "}
+                            {tokenInfo.payment?.symbol}
+                          </div>
+                        ) : (
+                          "Connect Wallet to Buy Tokens"
+                        )}
                       </Text>
                     </div>
 
@@ -1388,7 +1435,7 @@ const BuyPanel = ({
                         value={buyAmount}
                         onChange={handleBuyAmountChange}
                         prefix={<DollarOutlined className="text-gray-500" />}
-                        suffix={tokenInfo.payment.symbol}
+                        suffix={tokenInfo.payment?.symbol}
                         className="flex-1"
                       />
                     </div>
@@ -1408,7 +1455,7 @@ const BuyPanel = ({
                               value={buyAmount}
                               suffix={
                                 <span style={{ fontSize: "0.9rem" }}>
-                                  {tokenInfo.payment.symbol}
+                                  {tokenInfo.payment?.symbol}
                                 </span>
                               }
                             />
@@ -1421,7 +1468,7 @@ const BuyPanel = ({
                               value={Number(estimatedTokens).toFixed(3)}
                               suffix={
                                 <span style={{ fontSize: "0.9rem" }}>
-                                  {tokenInfo.sale.symbol}
+                                  {tokenInfo.sale?.symbol}
                                 </span>
                               }
                             />
@@ -1434,7 +1481,7 @@ const BuyPanel = ({
                               value={Number(avgPricePerToken).toFixed(4)}
                               suffix={
                                 <span style={{ fontSize: "0.9rem" }}>
-                                  {tokenInfo.payment.symbol}
+                                  {tokenInfo.payment?.symbol}
                                 </span>
                               }
                             />
@@ -1449,7 +1496,10 @@ const BuyPanel = ({
                     size="large"
                     icon={getButtonState().icon}
                     onClick={getButtonState().onClick}
-                    disabled={getButtonState().disabled || !isConnected}
+                    disabled={
+                      viewedTutorial &&
+                      (getButtonState().disabled || !isConnected)
+                    }
                     style={{ width: "100%", height: "48px", cursor: "pointer" }}
                   >
                     <label style={{ marginLeft: 10 }}>
@@ -1464,9 +1514,15 @@ const BuyPanel = ({
                       width: "100%",
                     }}
                   >
-                    Make sure you have enough {tokenInfo.payment.symbol} tokens
+                    Make sure you have enough {tokenInfo.payment?.symbol} tokens
                     in your wallet. Transaction will require approval from your
-                    wallet.
+                    wallet.{" "}
+                    <span
+                      onClick={() => setHelpModalOpen(true)}
+                      style={{ color: "rgb(22, 119, 255)", cursor: "pointer" }}
+                    >
+                      How It Works
+                    </span>
                   </Text>
                 </div>
               </TabPane>
@@ -1499,13 +1555,13 @@ const BuyPanel = ({
                           contractData.userAllocation
                             ? parseFloat(
                                 formatUnits(
-                                  contractData.userAllocation,
+                                  contractData.userAllocation || 0n,
                                   contractData.saleTokenDecimals
                                 )
                               ).toFixed(3)
                             : "0"
                         }
-                        suffix={tokenInfo.sale.symbol}
+                        suffix={tokenInfo.sale?.symbol}
                         prefix={<UserOutlined />}
                       />
                     </Card>
@@ -1553,7 +1609,7 @@ const BuyPanel = ({
                                 Bought{" "}
                                 {parseFloat(
                                   formatUnits(
-                                    purchase.tokenAmount,
+                                    purchase.tokenAmount || 0n,
                                     contractData.saleTokenDecimals
                                   )
                                 ).toFixed(2)}{" "}
@@ -1570,7 +1626,7 @@ const BuyPanel = ({
                               >
                                 for{" "}
                                 {formatUnits(
-                                  purchase.paymentAmount,
+                                  purchase.paymentAmount || 0n,
                                   contractData.paymentTokenDecimals
                                 )}{" "}
                                 {tokenInfo.payment?.symbol}
@@ -1625,6 +1681,13 @@ const BuyPanel = ({
           </div>
         </Card>
       </Content>
+      <HowItWorksModal
+        isOpen={helpModalOpen}
+        toggleModal={(bool: boolean) => {
+          setHelpModalOpen(bool);
+          setViewedTutorial(true);
+        }}
+      />
     </div>
   );
 };

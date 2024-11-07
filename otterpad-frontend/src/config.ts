@@ -16,19 +16,26 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     explorerUrl: "https://sepolia.etherscan.io",
   },
   {
+    chain: "Polygon",
+    chainIdDecimal: "137",
+    factoryAddress: "0xBc255963Da9C9bdeD90774c821B3FAC81Bf487C1", // To be filled
+    isDisabled: false,
+    explorerUrl: "https://polygonscan.com",
+  },
+  {
     chain: "Arbitrum One",
     chainIdDecimal: "42161",
     factoryAddress: "0x4BaC8705e5029a028ee67fDbC6767598fB1E6fEc",
     isDisabled: false,
     explorerUrl: "https://arbiscan.io",
   },
-  {
-    chain: "Base Mainnet",
-    chainIdDecimal: "8453",
-    factoryAddress: "", // To be filled
-    isDisabled: true,
-    explorerUrl: "https://basescan.org",
-  },
+  // {
+  //   chain: "Base Mainnet",
+  //   chainIdDecimal: "8453",
+  //   factoryAddress: "___________", // To be filled
+  //   isDisabled: true,
+  //   explorerUrl: "https://basescan.org",
+  // },
 ];
 
 export const getFactoryAddress = (chainId: string): string => {

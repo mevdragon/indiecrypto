@@ -4,11 +4,11 @@ import BuyPanel from "../components/BuyPanel";
 import { OtterPadFund__factory } from "../typechain-types";
 import Charts from "../components/Charts";
 import { Layout } from "antd";
-import { useAccount, useContractReads } from "wagmi";
+import { useAccount, useContractReads, useSwitchChain } from "wagmi";
 import { useMediaQuery } from "react-responsive";
 import { useParams } from "react-router-dom";
 import { getFactoryAddress } from "../config";
-import React from "react";
+import React, { useEffect } from "react";
 import ChainWarning from "../components/ChainWarning";
 
 export const CONTRACT_ABI = OtterPadFund__factory.abi;
@@ -49,6 +49,15 @@ const FundPage = () => {
     chainIdDecimal: string;
     contractAddress: string;
   }>();
+  const { switchChain } = useSwitchChain();
+  const [finishedChainSetup, setFinishedChainSetup] = React.useState(false);
+  useEffect(() => {
+    if (chainIdDecimal && switchChain) {
+      switchChain({ chainId: Number(chainIdDecimal) });
+      setFinishedChainSetup(true);
+    }
+  }, [chainIdDecimal, switchChain]);
+
   const CONTRACT_ADDRESS = contractAddress as Address;
   const { address: userAddress, isConnected } = useAccount();
   const isDesktop = useMediaQuery({ minWidth: 1024 });
@@ -63,126 +72,151 @@ const FundPage = () => {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "getCurrentPrice",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "startPrice",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "endPrice",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "getMinimumPurchase",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "getSaleTokenBalance",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "getPaymentTokenBalance",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "getEscrowedAmount",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "targetReached",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "isDeployedToUniswap",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "saleToken",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "paymentToken",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "targetLiquidity",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "upfrontRakeBPS",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "escrowRakeBPS",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "OTTERPAD_FEE_BPS",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "totalActiveContributions",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "totalPaymentsIn",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "title",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "richInfoUrl",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "checkSaleTokensRequired",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "uniswapPool",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "saleTokenDecimals",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "paymentTokenDecimals",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "saleTokenSymbol",
+        chainId: Number(chainIdDecimal),
       },
       {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "paymentTokenSymbol",
+        chainId: Number(chainIdDecimal),
       },
       ...(userAddress
         ? [
@@ -190,12 +224,14 @@ const FundPage = () => {
               address: CONTRACT_ADDRESS,
               abi: CONTRACT_ABI,
               functionName: "getAllocation",
+              chainId: Number(chainIdDecimal),
               args: [userAddress],
             },
             {
               address: CONTRACT_ADDRESS,
               abi: CONTRACT_ABI,
               functionName: "getUserOrderIndices",
+              chainId: Number(chainIdDecimal),
               args: [userAddress],
             },
           ]
@@ -261,6 +297,10 @@ const FundPage = () => {
 
   const contractData = processContractData();
   console.log(contractData);
+
+  if (!finishedChainSetup) {
+    return null;
+  }
   return (
     <AppLayout>
       <div style={{ padding: "0px 16px 0px 16px" }}>

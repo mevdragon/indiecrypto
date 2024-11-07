@@ -10,6 +10,7 @@ import "@nomicfoundation/hardhat-chai-matchers";
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "";
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "";
 const ARBITRUM_RPC_URL = process.env.ARBITRUM_RPC_URL || "";
+const POLYGON_RPC_URL = process.env.POLYGON_RPC_URL || "";
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
 
 const config: HardhatUserConfig = {
@@ -35,6 +36,10 @@ const config: HardhatUserConfig = {
     },
     arbitrum: {
       url: ARBITRUM_RPC_URL,
+      accounts: [PRIVATE_KEY],
+    },
+    polygon: {
+      url: POLYGON_RPC_URL,
       accounts: [PRIVATE_KEY],
     },
     hardhat: {
