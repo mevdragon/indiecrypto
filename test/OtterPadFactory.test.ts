@@ -43,8 +43,8 @@ describe("OtterPadFactory", function () {
       startPrice: parseEther("0.1"),
       endPrice: parseEther("0.3"),
       targetLiquidity: parseEther("100"),
-      upfrontRakeBPS: 200n,
-      escrowRakeBPS: 300n,
+      upfrontRakeBPS: 2_000_000n,
+      escrowRakeBPS: 3_000_000n,
     };
 
     return {
