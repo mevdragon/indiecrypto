@@ -13,7 +13,7 @@ const TokenDeploymentModule = buildModule("TokenDeploymentModule", (m) => {
   //   id: "SaleTokenMock",
   // });
   const saleToken = m.contract("MockERC20", ["Chicken Wings", "WINGS", 18n], {
-    id: "ChickenWings",
+    id: "ChickenWings2",
   });
 
   // Deploy PAY token
@@ -21,7 +21,7 @@ const TokenDeploymentModule = buildModule("TokenDeploymentModule", (m) => {
   //   id: "PayTokenMock",
   // });
   const payToken = m.contract("MockERC20", ["Tether USD", "USDT", 6n], {
-    id: "Tether",
+    id: "Tether2",
   });
 
   // Mint SALE tokens after deployment

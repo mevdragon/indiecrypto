@@ -12,7 +12,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Sepolia",
     chainIdDecimal: "11155111",
-    factoryAddress: "0x3F89a732Bd6c7B0FEd23956D4f1a67917458D520",
+    factoryAddress: "0xAd6b2b459EA1193Ede38739fb54F7Bbc8c49e7AD",
     isDisabled: false,
     explorerUrl: "https://sepolia.etherscan.io",
     geckoTerminalChainSlug: "sepolia-testnet",

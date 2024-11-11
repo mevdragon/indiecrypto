@@ -389,8 +389,7 @@ contract OtterPadFund is ReentrancyGuard {
     }
 
     function recoverStuckTokens(
-        address tokenAddress,
-        uint256 amount
+        address tokenAddress
     ) external nonReentrant {
         require(msg.sender == foundersWallet, "Only founders can recover");
         require(isDeployedToUniswap, "Not yet deployed to Uniswap");
@@ -398,9 +397,8 @@ contract OtterPadFund is ReentrancyGuard {
         
         IERC20 token = IERC20(tokenAddress);
         uint256 balance = token.balanceOf(address(this));
-        require(balance >= amount, "Insufficient balance");
         
-        require(token.transfer(foundersWallet, amount), "Token recovery failed");
+        require(token.transfer(foundersWallet, balance), "Token recovery failed");
     }
 
     function checkSaleTokensRequired() public view returns (uint256) {
