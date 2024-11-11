@@ -311,7 +311,8 @@ const CreatePage: React.FC = () => {
             disabled={!isConnected || isSubmitting}
             initialValues={{
               useCustomRichInfo: false,
-              upfrontRakeBPS: 200,
+              upfrontRakeBPS: 2_000_000,
+              lockedLPWallet: zeroAddress,
             }}
           >
             <Form.Item
@@ -510,7 +511,7 @@ const CreatePage: React.FC = () => {
               label={
                 <Space>
                   Upfront Rake (BPS)
-                  <Tooltip title="Initial fee in basis points (100 = 1%). Minimum is 200">
+                  <Tooltip title="Initial fee in basis points (1% = 1000000). Minimum is 2000000">
                     <InfoCircleOutlined />
                   </Tooltip>
                 </Space>
@@ -521,10 +522,10 @@ const CreatePage: React.FC = () => {
               ]}
             >
               <InputNumber
-                min={200}
-                max={10000}
+                min={2_000_000}
+                max={50_000_000}
                 style={{ width: "100%" }}
-                placeholder="200"
+                placeholder="2000000"
               />
             </Form.Item>
 
@@ -544,9 +545,9 @@ const CreatePage: React.FC = () => {
             >
               <InputNumber
                 min={0}
-                max={10000}
+                max={50_000_000}
                 style={{ width: "100%" }}
-                placeholder="100"
+                placeholder="0"
               />
             </Form.Item>
 

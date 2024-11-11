@@ -18,11 +18,11 @@ npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --paramete
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { parseEther, parseUnits, zeroAddress } from "viem";
 
-const DEFAULT_START_PRICE = parseUnits("1", 6); // 1 PAY
-const DEFAULT_END_PRICE = parseUnits("3", 6); // 3 PAY
-const DEFAULT_TARGET = parseUnits("100", 6); // 100 PAY
-const DEFAULT_UPFRONT_RAKE_BPS = 1000n; // 10%
-const DEFAULT_ESCROW_RAKE_BPS = 1000n; // 10%
+const DEFAULT_START_PRICE = parseUnits("0.01", 6); // 0.01 PAY
+const DEFAULT_END_PRICE = parseUnits("0.03", 6); // 0.03 PAY
+const DEFAULT_TARGET = parseUnits("1333333", 6); // 1.3M PAY
+const DEFAULT_UPFRONT_RAKE_BPS = 30_000_000n; // 30%
+const DEFAULT_ESCROW_RAKE_BPS = 0n; // 0%
 
 const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3"; // Mainnet V2 Router
 const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6"; // Mainnet V2 Factory

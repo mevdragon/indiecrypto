@@ -293,16 +293,17 @@ const BuyPanel = ({
 
     // Calculate the total required gross amount first
     const netContributionBPS =
-      BigInt(10000) -
+      BigInt(100_000_000) -
       BigInt(contractData.upfrontRakeBPS || 0n) -
       BigInt(contractData.escrowRakeBPS || 0n);
     const totalGrossRequired =
-      (BigInt(contractData.targetLiquidity || 0n) * BigInt(10000)) /
+      (BigInt(contractData.targetLiquidity || 0n) * BigInt(100_000_000)) /
       netContributionBPS;
 
     // Then subtract current contributions adjusted for gross amount
     const currentGross =
-      (BigInt(contractData.totalActiveContributions || 0n) * BigInt(10000)) /
+      (BigInt(contractData.totalActiveContributions || 0n) *
+        BigInt(100_000_000)) /
       netContributionBPS;
     const remainingGross = totalGrossRequired - currentGross;
 
@@ -329,7 +330,7 @@ const BuyPanel = ({
 
     const remainingAmount = calculateRemainingAmount();
     const netContributionBPS =
-      BigInt(10000) -
+      BigInt(100_000_000) -
       BigInt(contractData.upfrontRakeBPS || 0n) -
       BigInt(contractData.escrowRakeBPS || 0n);
 
@@ -401,7 +402,7 @@ const BuyPanel = ({
         ...prev,
         isWaitingForPurchase: false,
       }));
-      setBuyAmount("");
+      // setBuyAmount("");
       api.success({
         message: "Purchase Successful",
         description: "Your token purchase was successful!",
@@ -1011,8 +1012,8 @@ const BuyPanel = ({
       )
     );
 
-    const escrowRate = Number(contractData.escrowRakeBPS) / 10000;
-    const upfrontRate = Number(contractData.upfrontRakeBPS) / 10000;
+    const escrowRate = Number(contractData.escrowRakeBPS) / 100_000_000;
+    const upfrontRate = Number(contractData.upfrontRakeBPS) / 100_000_000;
     const activePayment = netActive / (1 - escrowRate - upfrontRate);
 
     const escrowAmount = activePayment * escrowRate;
@@ -1020,7 +1021,7 @@ const BuyPanel = ({
       formatUnits(
         (BigInt(contractData.totalPaymentsIn || 0n) *
           BigInt(contractData.upfrontRakeBPS || 0n)) /
-          BigInt(10000) || 0n,
+          BigInt(100_000_000) || 0n,
         contractData.paymentTokenDecimals
       )
     );
@@ -1084,13 +1085,14 @@ const BuyPanel = ({
       return "";
 
     const totalPaymentRequired =
-      (contractData.targetLiquidity * BigInt(10000)) /
-      (BigInt(10000) -
+      (contractData.targetLiquidity * BigInt(100_000_000)) /
+      (BigInt(100_000_000) -
         contractData.upfrontRakeBPS -
         contractData.escrowRakeBPS);
     const totalPayTokenRequired =
       totalPaymentRequired -
-      (totalPaymentRequired * contractData.upfrontRakeBPS) / BigInt(10000);
+      (totalPaymentRequired * contractData.upfrontRakeBPS) /
+        BigInt(100_000_000);
 
     return (
       <div className="space-y-2">
@@ -1181,13 +1183,17 @@ const BuyPanel = ({
     if (!contractData || !tokenInfo.payment) return "";
 
     // totalActiveContributions is already the amount for liquidity
-    return `${formatUnits(
-      contractData.totalActiveContributions || 0n,
-      contractData.paymentTokenDecimals
-    )} / ${formatUnits(
-      contractData.targetLiquidity || 0n,
-      contractData.paymentTokenDecimals
-    )} ${tokenInfo.payment?.symbol}`;
+    return `${parseFloat(
+      formatUnits(
+        contractData.totalActiveContributions || 0n,
+        contractData.paymentTokenDecimals
+      )
+    ).toFixed(0)} / ${parseFloat(
+      formatUnits(
+        contractData.targetLiquidity || 0n,
+        contractData.paymentTokenDecimals
+      )
+    ).toFixed(0)} ${tokenInfo.payment?.symbol}`;
   };
 
   const handleShare = () => {
@@ -1307,7 +1313,7 @@ const BuyPanel = ({
                     }}
                   >
                     <Title
-                      level={3}
+                      level={4}
                       style={{ margin: 0, whiteSpace: "nowrap" }}
                     >
                       {parseFloat(
@@ -1315,7 +1321,7 @@ const BuyPanel = ({
                           contractData.currentPrice || 0n,
                           contractData.paymentTokenDecimals
                         )
-                      ).toFixed(3)}{" "}
+                      ).toFixed(4)}{" "}
                       <span style={{ fontSize: "0.9rem" }}>
                         {tokenInfo.payment?.symbol}
                       </span>

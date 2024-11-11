@@ -14,9 +14,15 @@ import {
   FundFilled,
   FundOutlined,
   LoadingOutlined,
+  CheckCircleOutlined,
+  SwapOutlined,
 } from "@ant-design/icons";
 import { CONTRACT_ABI, ContractDataResult } from "../pages/FundPage";
-import { ERC20_ABI, SUPPORTED_CHAINS } from "../config";
+import {
+  ERC20_ABI,
+  getGeckoTerminalChainSlug,
+  SUPPORTED_CHAINS,
+} from "../config";
 import { Address, formatUnits } from "viem";
 
 interface DexTabPaneProps {
@@ -323,7 +329,7 @@ const DexTabPane: React.FC<DexTabPaneProps> = ({
           onClick={handleApproveSaleToken}
           disabled={isTransferring || isTransferLoading}
         >
-          {`Approve Deposit ${requiredAmount} SALE`}
+          {`Approve Deposit ${requiredAmount} ${contractData.saleTokenSymbol}`}
         </Button>
       );
     }
@@ -334,7 +340,7 @@ const DexTabPane: React.FC<DexTabPaneProps> = ({
         onClick={handleTransferSaleToken}
         loading={isTransferring || isTransferLoading}
       >
-        {`Deposit ${requiredAmount} SALE`}
+        {`Deposit ${requiredAmount} ${contractData.saleTokenSymbol}`}
       </Button>
     );
   };
@@ -443,26 +449,72 @@ const DexTabPane: React.FC<DexTabPaneProps> = ({
     }
 
     const explorerUrl = getExplorerUrl();
+    const geckoTerminalChainSlug = getGeckoTerminalChainSlug(chainIdDecimal);
     return (
-      <Result
-        status="success"
-        title="Tokens Successfully Deployed!"
-        extra={[
-          <Button
-            type="primary"
-            key="explorer"
-            icon={<LinkOutlined />}
-            onClick={() =>
-              window.open(
-                `${explorerUrl}/address/${contractData.uniswapPool}`,
-                "_blank"
-              )
-            }
-          >
-            View on Explorer
-          </Button>,
-        ]}
-      />
+      <>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "10px 20px",
+            backgroundColor: "#f6ffed",
+            border: "1px solid #b7eb8f",
+            borderRadius: "4px",
+          }}
+        >
+          <div>
+            <CheckCircleOutlined
+              style={{ color: "#52c41a", fontSize: "20px", marginRight: "8px" }}
+            />
+            <span style={{ fontWeight: "bold", color: "#389e0d" }}>
+              Tokens Successfully Deployed!
+            </span>
+          </div>
+          <div>
+            <Button
+              type="primary"
+              ghost
+              icon={<LinkOutlined />}
+              onClick={() =>
+                window.open(
+                  `${explorerUrl}/address/${contractData.uniswapPool}`,
+                  "_blank"
+                )
+              }
+            >
+              View on Explorer
+            </Button>
+            <Button
+              type="primary"
+              icon={<SwapOutlined />}
+              style={{ marginLeft: "5px" }}
+              onClick={() =>
+                window.open(
+                  `https://app.uniswap.org/swap?inputCurrency=${contractData.paymentTokenAddress}&outputCurrency=${contractData.saleTokenAddress}`,
+                  "_blank"
+                )
+              }
+            >
+              Trade on Uniswap
+            </Button>
+          </div>
+        </div>
+        {geckoTerminalChainSlug && (
+          <iframe
+            height="600px"
+            width="100%"
+            id="geckoterminal-embed"
+            title="GeckoTerminal Embed"
+            src={`https://www.geckoterminal.com/${geckoTerminalChainSlug}/pools/${contractData.uniswapPool}?embed=1&info=0&swaps=0`}
+            // @ts-ignore
+            frameborder="0"
+            allow="clipboard-write"
+            allowfullscreen
+          ></iframe>
+        )}
+      </>
     );
   };
 

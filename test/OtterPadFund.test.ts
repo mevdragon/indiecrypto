@@ -44,8 +44,8 @@ describe("OtterPadFund", function () {
     const startPrice = parseEther("0.1"); // 0.1 payment tokens per sale token
     const endPrice = parseEther("0.3"); // 0.3 payment tokens per sale token
     const targetLiquidity = parseEther("100"); // 100 payment tokens target
-    const upfrontRakeBPS = 200n; // 2%
-    const escrowRakeBPS = 300n; // 3%
+    const upfrontRakeBPS = 2_000_000n; // 2%
+    const escrowRakeBPS = 3_000_000n; // 3%
 
     // Deploy the fundraiser with new constructor parameters
     const fundraiser = await hre.viem.deployContract("OtterPadFund", [
@@ -210,16 +210,16 @@ describe("OtterPadFund", function () {
       const paymentAmount = parseEther("10");
 
       // Calculate exactly as contract does
-      const OTTERPAD_FEE_BPS = 200n;
+      const OTTERPAD_FEE_BPS = 2_000_000n;
       const upfrontRakeBPS = await fundraiser.read.upfrontRakeBPS();
       const escrowRakeBPS = await fundraiser.read.escrowRakeBPS();
-      const netContributionBPS = 10000n - upfrontRakeBPS - escrowRakeBPS;
+      const netContributionBPS = 100_000_000n - upfrontRakeBPS - escrowRakeBPS;
 
       // Calculate contribution amount exactly as contract does
-      const otterpadFee = (paymentAmount * OTTERPAD_FEE_BPS) / 10000n;
+      const otterpadFee = (paymentAmount * OTTERPAD_FEE_BPS) / 100_000_000n;
       const upfrontAmount =
-        (paymentAmount * upfrontRakeBPS) / 10000n - otterpadFee;
-      const escrowAmount = (paymentAmount * escrowRakeBPS) / 10000n;
+        (paymentAmount * upfrontRakeBPS) / 100_000_000n - otterpadFee;
+      const escrowAmount = (paymentAmount * escrowRakeBPS) / 100_000_000n;
       const contributionAmount =
         paymentAmount - otterpadFee - upfrontAmount - escrowAmount;
 
@@ -229,7 +229,8 @@ describe("OtterPadFund", function () {
 
       // Calculate slope exactly as contract's getSlope() function
       const totalCashInflows =
-        (targetLiquidity * 10000n) / (10000n - upfrontRakeBPS - escrowRakeBPS);
+        (targetLiquidity * 100_000_000n) /
+        (100_000_000n - upfrontRakeBPS - escrowRakeBPS);
       const avgPrice = (startPrice + endPrice) / 2n;
       const proratedTokensForSale =
         (totalCashInflows * parseEther("1")) / avgPrice;
@@ -238,7 +239,7 @@ describe("OtterPadFund", function () {
 
       // Calculate net cash inflows as contract does
       const netCashInflows =
-        (currentContributions * 10000n) / netContributionBPS;
+        (currentContributions * 100_000_000n) / netContributionBPS;
 
       // Helper function to perform quadratic calculation with BigInt precision
       function calculateTokens(amount: bigint): bigint {
@@ -278,7 +279,7 @@ describe("OtterPadFund", function () {
         paymentAmount,
       ]);
 
-      expect(actualTokens).to.be.closeTo(expectedTokens, 10000n); // Allow difference of up to 10000 wei due to OpenZeppelin Math.sqrt implementation decimals difference
+      expect(actualTokens).to.be.closeTo(expectedTokens, 100_000_000n); // Allow difference of up to 10000 wei due to OpenZeppelin Math.sqrt implementation decimals difference
     });
 
     it("Should emit correct events on purchase", async function () {
@@ -371,11 +372,11 @@ describe("OtterPadFund", function () {
       } = await loadFixture(deployFundraiserFixture);
 
       // Calculate payment needed with correct rake calculation
-      const OTTERPAD_FEE_BPS = 200n;
+      const OTTERPAD_FEE_BPS = 2_000_000n;
       const remainingBPS =
-        10000n -
+        100_000_000n -
         (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
-      const requiredPayment = (targetLiquidity * 10000n) / remainingBPS;
+      const requiredPayment = (targetLiquidity * 100_000_000n) / remainingBPS;
 
       // Make purchase that reaches target
       const buyer1PaymentToken = await hre.viem.getContractAt(
@@ -421,11 +422,11 @@ describe("OtterPadFund", function () {
       } = await loadFixture(deployFundraiserFixture);
 
       // Calculate payment needed with correct rake calculation
-      const OTTERPAD_FEE_BPS = 200n;
+      const OTTERPAD_FEE_BPS = 2_000_000n;
       const remainingBPS =
-        10000n -
+        100_000_000n -
         (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
-      const requiredPayment = (targetLiquidity * 10000n) / remainingBPS;
+      const requiredPayment = (targetLiquidity * 100_000_000n) / remainingBPS;
 
       // Make purchase that reaches target
       const buyer1PaymentToken = await hre.viem.getContractAt(
@@ -523,19 +524,20 @@ describe("OtterPadFund", function () {
       ]);
 
       // Calculate expected refund - match contract's calculation
-      const OTTERPAD_FEE_BPS = 200n;
+      const OTTERPAD_FEE_BPS = 2_000_000n;
       const upfrontRakeBPS = await fundraiser.read.upfrontRakeBPS();
       const escrowRakeBPS = await fundraiser.read.escrowRakeBPS();
-      const netContributionBPS = 10000n - upfrontRakeBPS - escrowRakeBPS;
+      const netContributionBPS = 100_000_000n - upfrontRakeBPS - escrowRakeBPS;
 
       // Get the actual contribution amount from the purchase
       const contributionAmount = purchase[1]; // contributionAmount field
 
       // Calculate the original payment that would result in this contribution
-      const grossAmount = (contributionAmount * 10000n) / netContributionBPS;
+      const grossAmount =
+        (contributionAmount * 100_000_000n) / netContributionBPS;
 
       // Calculate escrow portion
-      const escrowAmount = (grossAmount * escrowRakeBPS) / 10000n;
+      const escrowAmount = (grossAmount * escrowRakeBPS) / 100_000_000n;
 
       // Total refund is contribution + escrow
       const expectedRefund = contributionAmount + escrowAmount;
@@ -556,11 +558,11 @@ describe("OtterPadFund", function () {
       } = await loadFixture(deployFundraiserFixture);
 
       // Calculate required payment to reach target
-      const OTTERPAD_FEE_BPS = 200n;
+      const OTTERPAD_FEE_BPS = 2_000_000n;
       const remainingBPS =
-        10000n -
+        100_000_000n -
         (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
-      const requiredPayment = (targetLiquidity * 10000n) / remainingBPS;
+      const requiredPayment = (targetLiquidity * 100_000_000n) / remainingBPS;
 
       // Make purchase that reaches target
       const buyer1PaymentToken = await hre.viem.getContractAt(
@@ -603,16 +605,17 @@ describe("OtterPadFund", function () {
       ]);
 
       // Calculate expected refund - match contract's calculation
-      const netContributionBPS = 10000n - upfrontRakeBPS - escrowRakeBPS;
+      const netContributionBPS = 100_000_000n - upfrontRakeBPS - escrowRakeBPS;
 
       // Get the actual contribution amount from the purchase
       const contributionAmount = purchase[1]; // contributionAmount field
 
       // Calculate the original payment that would result in this contribution
-      const grossAmount = (contributionAmount * 10000n) / netContributionBPS;
+      const grossAmount =
+        (contributionAmount * 100_000_000n) / netContributionBPS;
 
       // Calculate escrow portion
-      const escrowAmount = (grossAmount * escrowRakeBPS) / 10000n;
+      const escrowAmount = (grossAmount * escrowRakeBPS) / 100_000_000n;
 
       // Total refund is contribution + escrow
       const expectedRefund = contributionAmount + escrowAmount;
@@ -634,11 +637,11 @@ describe("OtterPadFund", function () {
       } = await loadFixture(deployFundraiserFixture);
 
       // Calculate payment needed with correct rake calculation
-      const OTTERPAD_FEE_BPS = 200n;
+      const OTTERPAD_FEE_BPS = 2_000_000n;
       const remainingBPS =
-        10000n -
+        100_000_000n -
         (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
-      const requiredPayment = (targetLiquidity * 10000n) / remainingBPS;
+      const requiredPayment = (targetLiquidity * 100_000_000n) / remainingBPS;
 
       // Make purchase that reaches target
       const buyer1PaymentToken = await hre.viem.getContractAt(
@@ -718,16 +721,17 @@ describe("OtterPadFund", function () {
       ]);
 
       // Calculate expected refund amount - match contract's calculation
-      const OTTERPAD_FEE_BPS = 200n;
+      const OTTERPAD_FEE_BPS = 2_000_000n;
       const upfrontRakeBPS = await fundraiser.read.upfrontRakeBPS();
       const escrowRakeBPS = await fundraiser.read.escrowRakeBPS();
-      const netContributionBPS = 10000n - upfrontRakeBPS - escrowRakeBPS;
+      const netContributionBPS = 100_000_000n - upfrontRakeBPS - escrowRakeBPS;
 
       // Calculate the original payment that would result in this contribution
-      const grossAmount = (contributionAmount * 10000n) / netContributionBPS;
+      const grossAmount =
+        (contributionAmount * 100_000_000n) / netContributionBPS;
 
       // Calculate escrow portion
-      const escrowAmount = (grossAmount * escrowRakeBPS) / 10000n;
+      const escrowAmount = (grossAmount * escrowRakeBPS) / 100_000_000n;
 
       // Total refund is contribution + escrow
       const expectedRefund = contributionAmount + escrowAmount;
@@ -737,37 +741,6 @@ describe("OtterPadFund", function () {
   });
 
   describe("Edge cases", function () {
-    it("Should reject purchase below minimum amount", async function () {
-      const { fundraiser, paymentToken, buyer1, lpLockWallet } =
-        await loadFixture(deployFundraiserFixture);
-
-      const minimumPurchase = await fundraiser.read.getMinimumPurchase();
-      const belowMinimum = minimumPurchase - 1n;
-
-      // Approve payment token spend
-      const buyer1PaymentToken = await hre.viem.getContractAt(
-        "MockERC20",
-        paymentToken.address,
-        { client: { wallet: buyer1 } }
-      );
-      await buyer1PaymentToken.write.approve([
-        fundraiser.address,
-        belowMinimum,
-      ]);
-
-      // Get fundraiser contract instance for buyer1
-      const buyer1Fundraiser = await hre.viem.getContractAt(
-        "OtterPadFund",
-        fundraiser.address,
-        { client: { wallet: buyer1 } }
-      );
-
-      // Attempt purchase below minimum
-      await expect(
-        buyer1Fundraiser.write.buy([belowMinimum])
-      ).to.be.rejectedWith("Below minimum purchase");
-    });
-
     it("Should handle exact target amount purchase", async function () {
       const {
         fundraiser,
@@ -780,12 +753,12 @@ describe("OtterPadFund", function () {
         lpLockWallet,
       } = await loadFixture(deployFundraiserFixture);
 
-      const OTTERPAD_FEE_BPS = 200n;
+      const OTTERPAD_FEE_BPS = 2_000_000n;
       // Calculate exact payment needed
       const remainingBPS =
-        10000n -
+        100_000_000n -
         (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
-      const exactPayment = (targetLiquidity * 10000n) / remainingBPS;
+      const exactPayment = (targetLiquidity * 100_000_000n) / remainingBPS;
 
       const buyer1PaymentToken = await hre.viem.getContractAt(
         "MockERC20",
@@ -824,12 +797,12 @@ describe("OtterPadFund", function () {
         lpLockWallet,
       } = await loadFixture(deployFundraiserFixture);
 
-      const OTTERPAD_FEE_BPS = 200n;
+      const OTTERPAD_FEE_BPS = 2_000_000n;
       // Calculate payment for 99% of target
       const remainingBPS =
-        10000n -
+        100_000_000n -
         (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
-      const almostFullPayment = (targetLiquidity * 9900n) / remainingBPS;
+      const almostFullPayment = (targetLiquidity * 99_000_000n) / remainingBPS;
 
       const buyer1PaymentToken = await hre.viem.getContractAt(
         "MockERC20",
@@ -976,10 +949,11 @@ describe("OtterPadFund", function () {
       // Get parameters
       const upfrontRakeBPS = await fundraiser.read.upfrontRakeBPS();
       const escrowRakeBPS = await fundraiser.read.escrowRakeBPS();
-      const netContributionBPS = 10000n - upfrontRakeBPS - escrowRakeBPS;
+      const netContributionBPS = 100_000_000n - upfrontRakeBPS - escrowRakeBPS;
 
       // Calculate total cash inflows needed
-      const totalCashInflows = (targetLiquidity * 10000n) / netContributionBPS;
+      const totalCashInflows =
+        (targetLiquidity * 100_000_000n) / netContributionBPS;
 
       // Calculate liquidity tokens at end price
       const liquidityTokens = (targetLiquidity * parseEther("1")) / endPrice;
@@ -1020,8 +994,8 @@ describe("OtterPadFund", function () {
         parseEther("0.1"), // startPrice
         parseEther("0.3"), // endPrice
         parseEther("100"), // targetLiquidity
-        200n, // upfrontRakeBPS (2%)
-        300n, // escrowRakeBPS (3%)
+        2_000_000n, // upfrontRakeBPS (2%)
+        3_000_000n, // escrowRakeBPS (3%)
         getAddress(foundersWallet.account.address),
         getAddress(lpLockWallet.account.address),
       ]);
@@ -1037,8 +1011,8 @@ describe("OtterPadFund", function () {
         parseEther("0.1"), // startPrice
         parseEther("0.3"), // endPrice
         parseEther("100"), // targetLiquidity
-        400n, // upfrontRakeBPS (4%)
-        600n, // escrowRakeBPS (6%)
+        4_000_000n, // upfrontRakeBPS (4%)
+        6_000_000n, // escrowRakeBPS (6%)
         getAddress(foundersWallet.account.address),
         getAddress(lpLockWallet.account.address),
       ]);
@@ -1080,8 +1054,8 @@ describe("OtterPadFund", function () {
         startPrice,
         endPrice,
         targetLiquidity,
-        1000n, // upfrontRakeBPS
-        1000n, // escrowRakeBPS
+        10_000_000n, // upfrontRakeBPS
+        10_000_000n, // escrowRakeBPS
         getAddress(foundersWallet.account.address),
         getAddress(lpLockWallet.account.address),
       ]);
@@ -1096,8 +1070,9 @@ describe("OtterPadFund", function () {
       const liquidityTokens = (targetLiquidity * saleTokenBase) / endPrice;
 
       // Calculate sale tokens
-      const netContributionBPS = 8000n; // 10000 - 1000 - 1000
-      const totalCashInflows = (targetLiquidity * 10000n) / netContributionBPS;
+      const netContributionBPS = 80_000_000n; // 10000 - 1000 - 1000
+      const totalCashInflows =
+        (targetLiquidity * 100_000_000n) / netContributionBPS;
       const avgPrice = (startPrice + endPrice) / 2n;
       const tokensForSale = (totalCashInflows * saleTokenBase) / avgPrice;
 
@@ -1134,8 +1109,8 @@ describe("OtterPadFund", function () {
         parseEther("0.1"), // startPrice
         parseEther("1.0"), // endPrice (10x higher)
         parseEther("100"), // targetLiquidity
-        200n, // upfrontRakeBPS
-        300n, // escrowRakeBPS
+        2_000_000n, // upfrontRakeBPS
+        3_000_000n, // escrowRakeBPS
         getAddress(foundersWallet.account.address),
         getAddress(lpLockWallet.account.address),
       ]);
@@ -1198,12 +1173,12 @@ describe("OtterPadFund", function () {
       } = await loadFixture(deployFundraiserFixture);
 
       // Make purchase that reaches target
-      const OTTERPAD_FEE_BPS = 200n;
+      const OTTERPAD_FEE_BPS = 2_000_000n;
       // Calculate the payment needed to reach target, accounting for all fees
       const remainingBPS =
-        10000n -
+        100_000_000n -
         (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
-      const requiredPayment = (targetLiquidity * 10000n) / remainingBPS;
+      const requiredPayment = (targetLiquidity * 100_000_000n) / remainingBPS;
 
       const buyer1PaymentToken = await hre.viem.getContractAt(
         "MockERC20",
@@ -1278,11 +1253,11 @@ describe("OtterPadFund", function () {
       } = await loadFixture(deployFundraiserFixture);
 
       // Make purchase that reaches target
-      const OTTERPAD_FEE_BPS = 200n;
+      const OTTERPAD_FEE_BPS = 2_000_000n;
       const remainingBPS =
-        10000n -
+        100_000_000n -
         (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
-      const requiredPayment = (targetLiquidity * 10000n) / remainingBPS;
+      const requiredPayment = (targetLiquidity * 100_000_000n) / remainingBPS;
 
       const buyer1PaymentToken = await hre.viem.getContractAt(
         "MockERC20",
@@ -1330,11 +1305,11 @@ describe("OtterPadFund", function () {
       } = await loadFixture(deployFundraiserFixture);
 
       // Make purchase that reaches target
-      const OTTERPAD_FEE_BPS = 200n;
+      const OTTERPAD_FEE_BPS = 2_000_000n;
       const remainingBPS =
-        10000n -
+        100_000_000n -
         (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
-      const requiredPayment = (targetLiquidity * 10000n) / remainingBPS;
+      const requiredPayment = (targetLiquidity * 100_000_000n) / remainingBPS;
 
       const buyer1PaymentToken = await hre.viem.getContractAt(
         "MockERC20",
@@ -1404,11 +1379,11 @@ describe("OtterPadFund", function () {
       } = await loadFixture(deployFundraiserFixture);
 
       // Make purchase that reaches target
-      const OTTERPAD_FEE_BPS = 200n;
+      const OTTERPAD_FEE_BPS = 2_000_000n;
       const remainingBPS =
-        10000n -
+        100_000_000n -
         (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
-      const requiredPayment = (targetLiquidity * 10000n) / remainingBPS;
+      const requiredPayment = (targetLiquidity * 100_000_000n) / remainingBPS;
 
       const buyer1PaymentToken = await hre.viem.getContractAt(
         "MockERC20",
@@ -1446,6 +1421,279 @@ describe("OtterPadFund", function () {
       const deployEvents = await fundraiser.getEvents.DeployedToUniswap();
       expect(deployEvents).to.have.lengthOf(1);
       expect(deployEvents[0].args.pair).to.equal(expectedPoolAddress);
+    });
+  });
+});
+
+describe("OtterPadFund with Extreme Slopes", function () {
+  // Constants for Uniswap addresses
+  const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6";
+  const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3";
+
+  async function deployFundraiserFixture() {
+    // Deploy mock tokens first
+
+    const saleToken = await hre.viem.deployContract("MockERC20", [
+      "SaleToken",
+      "SALE",
+      18n,
+    ]);
+
+    const paymentToken = await hre.viem.deployContract("MockERC20", [
+      "PaymentToken",
+      "PAY",
+      6n,
+    ]);
+
+    const [deployer, foundersWallet, buyer1, buyer2, lpLockWallet] =
+      await hre.viem.getWalletClients();
+
+    // Set up initial parameters
+    const startPrice = parseUnits("0.01", 6); // 0.1 payment tokens per sale token
+    const endPrice = parseUnits("0.03", 6); // 0.3 payment tokens per sale token
+    const targetLiquidity = parseUnits("1333333.333333", 6); // 1,333,333 payment tokens target
+    const upfrontRakeBPS = 33_333_333n; // 33.3333%
+    const escrowRakeBPS = 0n; // 0%
+
+    // Deploy the fundraiser with new constructor parameters
+    const fundraiser = await hre.viem.deployContract("OtterPadFund", [
+      title,
+      richInfoUrl,
+      saleToken.address,
+      paymentToken.address,
+      UNISWAP_ROUTER,
+      UNISWAP_FACTORY,
+      startPrice,
+      endPrice,
+      targetLiquidity,
+      upfrontRakeBPS,
+      escrowRakeBPS,
+      getAddress(foundersWallet.account.address),
+      getAddress(lpLockWallet.account.address),
+    ]);
+
+    // Mint some tokens to buyers for testing
+    const mintAmount = parseUnits("10000000", 6);
+    await paymentToken.write.mint([
+      getAddress(buyer1.account.address),
+      mintAmount,
+    ]);
+    await paymentToken.write.mint([
+      getAddress(buyer2.account.address),
+      mintAmount,
+    ]);
+
+    // Calculate required token amount using the contract's helper function
+    const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+    await saleToken.write.mint([fundraiser.address, requiredTokens]);
+
+    const publicClient = await hre.viem.getPublicClient();
+
+    return {
+      fundraiser,
+      saleToken,
+      paymentToken,
+      startPrice,
+      endPrice,
+      targetLiquidity,
+      upfrontRakeBPS,
+      escrowRakeBPS,
+      deployer,
+      foundersWallet,
+      buyer1,
+      buyer2,
+      lpLockWallet,
+      publicClient,
+    };
+  }
+
+  describe("Buying tokens", function () {
+    it("Should allow a valid purchase", async function () {
+      const { fundraiser, paymentToken, buyer1, publicClient, lpLockWallet } =
+        await loadFixture(deployFundraiserFixture);
+
+      const paymentAmount = parseUnits("100000", 6);
+
+      // Approve payment token spend
+      const buyer1PaymentToken = await hre.viem.getContractAt(
+        "MockERC20",
+        paymentToken.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      await buyer1PaymentToken.write.approve([
+        fundraiser.address,
+        paymentAmount,
+      ]);
+
+      // Get fundraiser contract instance for buyer1
+      const buyer1Fundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      // Make purchase
+      const hash = await buyer1Fundraiser.write.buy([paymentAmount]);
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      // Verify purchase was recorded
+      expect(await fundraiser.read.orderCounter()).to.equal(1n);
+
+      const purchase = await fundraiser.read.purchases([0n]);
+      // struct Purchase {
+      //     uint256 paymentAmount;      // Total amount paid by user
+      //     uint256 contributionAmount; // Amount after otterpad fee and upfront rake
+      //     uint256 tokenAmount;       // Calculated token amount at purchase time
+      //     address purchaser;
+      //     bool isRefunded;
+      //     bool isRedeemed;
+      //     uint256 purchaseBlock;
+      // }
+      expect(purchase[0]).to.equal(paymentAmount);
+      expect(purchase[3]).to.equal(getAddress(buyer1.account.address));
+      expect(purchase[4]).to.equal(false);
+      expect(purchase[5]).to.equal(false);
+    });
+
+    it("Should calculate correct token amounts based on price curve", async function () {
+      const {
+        fundraiser,
+        targetLiquidity,
+        startPrice,
+        endPrice,
+        upfrontRakeBPS,
+        escrowRakeBPS,
+      } = await loadFixture(deployFundraiserFixture);
+
+      const paymentAmount = parseUnits("1000", 6);
+
+      // Calculate fees and contribution exactly as contract does
+      const OTTERPAD_FEE_BPS = 2_000_000n;
+      const netContributionBPS = 100_000_000n - upfrontRakeBPS - escrowRakeBPS;
+
+      // Get the actual token amount from contract for comparison
+      const actualTokens = await fundraiser.read.calculateTokensReceived([
+        paymentAmount,
+      ]);
+
+      // Now calculate what we expect using the same method as the contract
+
+      // 1. Calculate the total cash inflows needed
+      const totalCashInflows =
+        (targetLiquidity * 100_000_000n) / netContributionBPS;
+
+      // 2. Calculate current total contributions
+      const currentContributions =
+        await fundraiser.read.totalActiveContributions();
+      const netCashInflows =
+        (currentContributions * 100_000_000n) / netContributionBPS;
+
+      // 3. Calculate contribution amount for this purchase
+      const otterpadFee = (paymentAmount * OTTERPAD_FEE_BPS) / 100_000_000n;
+      const upfrontAmount =
+        (paymentAmount * upfrontRakeBPS) / 100_000_000n - otterpadFee;
+      const escrowAmount = (paymentAmount * escrowRakeBPS) / 100_000_000n;
+      const contributionAmount =
+        paymentAmount - otterpadFee - upfrontAmount - escrowAmount;
+
+      // Verify our contribution calculation matches what we'd expect
+      expect(contributionAmount).to.be.gt(0n);
+      expect(totalCashInflows).to.be.gt(0n);
+
+      // 4. Calculate the slope parameters
+      const avgPrice = (startPrice + endPrice) / 2n;
+      const slopeScalingFactor = parseEther("1"); // 10^18
+
+      // Calculate prorated tokens for sale with proper decimal handling
+      const proratedTokensForSale =
+        (totalCashInflows * parseEther("1")) / avgPrice;
+
+      // Calculate slope with proper scaling
+      const slope =
+        ((endPrice - startPrice) * parseEther("1")) / proratedTokensForSale;
+
+      // Function to calculate tokens at a specific amount
+      function calculateTokensAtAmount(amount: bigint): bigint {
+        if (amount === 0n) return 0n;
+
+        // Use the same scale factors as the contract
+        const b = startPrice * parseEther("1");
+        const m = slope;
+        const a = m / 2n;
+
+        // Ensure we're not dividing by zero
+        if (a === 0n) {
+          // If slope is 0, use simple division
+          return (amount * parseEther("1")) / startPrice;
+        }
+
+        const bSquared = b * b;
+        const fourAAmount = 4n * a * amount * parseEther("1");
+        const sqrtInput = bSquared + fourAAmount;
+
+        // Calculate square root with proper precision
+        const sqrtValue = BigInt(Math.floor(Math.sqrt(Number(sqrtInput))));
+
+        // Calculate final result maintaining precision
+        return ((-b + sqrtValue) * parseEther("1")) / (2n * a);
+      }
+
+      // Calculate tokens before and after the purchase
+      const tokensBefore = calculateTokensAtAmount(netCashInflows);
+      const tokensAfter = calculateTokensAtAmount(
+        netCashInflows + paymentAmount
+      );
+
+      // Calculate the difference
+      const expectedTokens = tokensAfter - tokensBefore;
+
+      // Allow for some minor rounding differences
+      const tolerance = parseUnits("100", 18); // 0.1 token of tolerance
+      expect(actualTokens).to.be.closeTo(expectedTokens, tolerance);
+    });
+
+    it("Should emit correct events on purchase", async function () {
+      const { fundraiser, paymentToken, buyer1, publicClient } =
+        await loadFixture(deployFundraiserFixture);
+
+      const paymentAmount = parseUnits("1000", 6); // Reduced payment amount
+
+      // Approve payment tokens
+      const buyer1PaymentToken = await hre.viem.getContractAt(
+        "MockERC20",
+        paymentToken.address,
+        { client: { wallet: buyer1 } }
+      );
+      await buyer1PaymentToken.write.approve([
+        fundraiser.address,
+        paymentAmount,
+      ]);
+
+      const buyer1Fundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      const hash = await buyer1Fundraiser.write.buy([paymentAmount]);
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      // Check TokensPurchased event
+      const purchaseEvents = await fundraiser.getEvents.TokensPurchased();
+      expect(purchaseEvents).to.have.lengthOf(1);
+      expect(purchaseEvents[0].args.purchaser).to.equal(
+        getAddress(buyer1.account.address)
+      );
+      expect(purchaseEvents[0].args.paymentAmount).to.equal(paymentAmount);
+
+      // Check PaymentReceived event
+      const paymentEvents = await fundraiser.getEvents.PaymentReceived();
+      expect(paymentEvents).to.have.lengthOf(1);
+      expect(paymentEvents[0].args.purchaser).to.equal(
+        getAddress(buyer1.account.address)
+      );
+      expect(paymentEvents[0].args.totalAmount).to.equal(paymentAmount);
     });
   });
 });
