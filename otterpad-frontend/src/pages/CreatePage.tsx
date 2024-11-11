@@ -312,6 +312,7 @@ const CreatePage: React.FC = () => {
             initialValues={{
               useCustomRichInfo: false,
               upfrontRakeBPS: 2_000_000,
+              escrowRakeBPS: 0,
               lockedLPWallet: zeroAddress,
             }}
           >

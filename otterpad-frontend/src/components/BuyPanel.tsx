@@ -172,6 +172,7 @@ const BuyPanel = ({
       message.success("Refund Successful");
       // Refresh contract details
       refetchContractDetails();
+      setRefreshCounter((prev) => prev + 1);
     }
   }, [isRefundSuccess]);
 
@@ -321,7 +322,7 @@ const BuyPanel = ({
 
   // Helper function to format BPS values to percentage
   const formatBPStoPercentage = (bps: bigint) => {
-    return (Number(bps) / 100).toFixed(2);
+    return (Number(bps) / 1000000).toFixed(2);
   };
 
   // Add tooltip content for max remain explanation
@@ -370,8 +371,21 @@ const BuyPanel = ({
     data: buyTxHash,
     error: prepareBuyError,
   } = useWriteContract();
-  const { writeContract: redeemTokens, data: redeemTxHash } =
-    useWriteContract();
+  const {
+    writeContract: redeemTokens,
+    data: redeemTxHash,
+    isPending: loadingRedeem,
+    isSuccess: redeemSuccessful,
+  } = useWriteContract();
+
+  const [refreshCounter, setRefreshCounter] = useState(0);
+
+  useEffect(() => {
+    if (redeemSuccessful) {
+      message.success("Redeem Successful");
+      setRefreshCounter((prev) => prev + 1);
+    }
+  }, [redeemSuccessful]);
 
   // Add hooks for tracking transactions
   const { isLoading: isApprovalLoading, isSuccess: isApprovalSuccess } =
@@ -454,7 +468,7 @@ const BuyPanel = ({
     };
 
     fetchPurchaseData();
-  }, [contractData?.userOrders]);
+  }, [contractData?.userOrders, refreshCounter]);
 
   const calculateEstimatedTokens = async (
     paymentAmount: string,
@@ -1350,7 +1364,9 @@ const BuyPanel = ({
                     }}
                   >
                     <Text strong style={{ flex: "1" }}>
-                      Progress to Liquidity Goal
+                      {`${getLiquidityProgress().toFixed(
+                        2
+                      )}% Progress to Liquidity Goal`}
                     </Text>
                     <Tooltip title={getEscrowInfo()}>
                       <InfoCircleOutlined
@@ -1649,6 +1665,7 @@ const BuyPanel = ({
                                 type="primary"
                                 icon={<GiftOutlined />}
                                 onClick={() => handleRedeem(Number(orderIndex))}
+                                loading={loadingRedeem}
                                 disabled={
                                   !contractData.targetReached ||
                                   !contractData.isDeployedToUniswap ||

@@ -6,6 +6,7 @@ export interface ChainConfig {
   isDisabled: boolean;
   explorerUrl: string;
   geckoTerminalChainSlug?: string;
+  dexScreenerSlug?: string;
 }
 
 export const SUPPORTED_CHAINS: ChainConfig[] = [
@@ -16,23 +17,25 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     isDisabled: false,
     explorerUrl: "https://sepolia.etherscan.io",
     geckoTerminalChainSlug: "sepolia-testnet",
+    dexScreenerSlug: "sepolia",
   },
   {
     chain: "Polygon",
     chainIdDecimal: "137",
-    factoryAddress: "0xBc255963Da9C9bdeD90774c821B3FAC81Bf487C1", // To be filled
+    factoryAddress: "0xf2B684e5D1C9Aa709f38786637E42c6B837c88D5",
     isDisabled: false,
     explorerUrl: "https://polygonscan.com",
     geckoTerminalChainSlug: "polygon_pos",
+    dexScreenerSlug: "polygon",
   },
-  {
-    chain: "Arbitrum One",
-    chainIdDecimal: "42161",
-    factoryAddress: "0x4BaC8705e5029a028ee67fDbC6767598fB1E6fEc",
-    isDisabled: false,
-    explorerUrl: "https://arbiscan.io",
-    geckoTerminalChainSlug: "arbitrum",
-  },
+  // {
+  //   chain: "Arbitrum One",
+  //   chainIdDecimal: "42161",
+  //   factoryAddress: "0x4BaC8705e5029a028ee67fDbC6767598fB1E6fEc",
+  //   isDisabled: false,
+  //   explorerUrl: "https://arbiscan.io",
+  //   geckoTerminalChainSlug: "arbitrum",
+  // },
   // {
   //   chain: "Base Mainnet",
   //   chainIdDecimal: "8453",
@@ -59,6 +62,13 @@ export const getGeckoTerminalChainSlug = (
 ): string | undefined => {
   const chain = SUPPORTED_CHAINS.find((c) => c.chainIdDecimal === chainId);
   return chain?.geckoTerminalChainSlug;
+};
+
+export const getDexScreenerChainSlug = (
+  chainId: string
+): string | undefined => {
+  const chain = SUPPORTED_CHAINS.find((c) => c.chainIdDecimal === chainId);
+  return chain?.dexScreenerSlug;
 };
 
 export const ERC20_ABI = [

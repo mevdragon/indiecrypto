@@ -20,6 +20,7 @@ import {
 import { CONTRACT_ABI, ContractDataResult } from "../pages/FundPage";
 import {
   ERC20_ABI,
+  getDexScreenerChainSlug,
   getGeckoTerminalChainSlug,
   SUPPORTED_CHAINS,
 } from "../config";
@@ -450,6 +451,7 @@ const DexTabPane: React.FC<DexTabPaneProps> = ({
 
     const explorerUrl = getExplorerUrl();
     const geckoTerminalChainSlug = getGeckoTerminalChainSlug(chainIdDecimal);
+    const dexScreenerSlug = getDexScreenerChainSlug(chainIdDecimal);
     return (
       <>
         <div
@@ -501,7 +503,7 @@ const DexTabPane: React.FC<DexTabPaneProps> = ({
             </Button>
           </div>
         </div>
-        {geckoTerminalChainSlug && (
+        {/* {geckoTerminalChainSlug && (
           <iframe
             height="600px"
             width="100%"
@@ -513,6 +515,14 @@ const DexTabPane: React.FC<DexTabPaneProps> = ({
             allow="clipboard-write"
             allowfullscreen
           ></iframe>
+        )} */}
+        {dexScreenerSlug && (
+          <div id="dexscreener-embed">
+            <iframe
+              src={`https://dexscreener.com/${dexScreenerSlug}/${contractData.uniswapPool}?embed=1&theme=dark&trades=0&info=0`}
+              style={{ width: "100%", height: "600px" }}
+            ></iframe>
+          </div>
         )}
       </>
     );

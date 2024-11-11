@@ -25,7 +25,15 @@ import TrendingPage from "./pages/TrendingPage";
 
 // Create wagmi config
 const config = createConfig({
-  chains: [base, bsc, optimism, polygon, arbitrum, mainnet, sepolia],
+  chains: [
+    // base,
+    // bsc,
+    // optimism,
+    polygon,
+    // arbitrum,
+    // mainnet,
+    sepolia,
+  ],
   transports: {
     [sepolia.id]: http(
       "https://sepolia.infura.io/v3/2d52e9fd20f643629739fc0513d6e0b3"
