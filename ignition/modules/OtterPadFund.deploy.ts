@@ -37,17 +37,17 @@ export default buildModule("OtterPadFundraiserModule", (m) => {
   const useMockTokens = m.getParameter("useMockTokens", true);
   const saleTokenAddress = m.getParameter<string>(
     "saleToken",
-    "0xA3cFb5CD4Ac9dAf597c9BB3b739bCB2B2e162F5A" // polygon mainnet
-    // "0x9eC6b6f455B45fe44d0Edff3d10F7e6219C1202e" // sepolia
+    "0xa9A1fA4f13f58E38AF86E7EC4669cfb7f85e7704" // polygon $WINGS
+    // "0xa7E044179fB5143DF0Bd408599dBa37E275D9917" // sepolia $WINGS
   );
   const paymentTokenAddress = m.getParameter<string>(
     "paymentToken",
-    "0xf4e7fe081c3D5b463Ce882deCa5Ca8a47D3952D3" // polygon
-    // "0x9AcF3D5E879Affd4a718dF1526a44f0303854d98" // sepolia
+    "0xc0f1fDc19F557b8A35ac6d3e58B6a4fee6E874CE" // polygon $USDT
+    // "0x385Bcb72e579C7A7D4c9C42DC089733c1675EDE6" // sepolia $USDT
   );
   const foundersWallet = m.getParameter<string>(
     "foundersWallet",
-    "0x99efDe4Ed41D5d1318dEa9574679275c21e6895D"
+    "0x0114413DcDe03fd10519Fad67Bf38c455AE5F921"
   );
 
   const startPrice = m.getParameter("startPrice", DEFAULT_START_PRICE);

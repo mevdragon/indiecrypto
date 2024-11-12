@@ -1202,12 +1202,12 @@ const BuyPanel = ({
         contractData.totalActiveContributions || 0n,
         contractData.paymentTokenDecimals
       )
-    ).toFixed(0)} / ${parseFloat(
+    ).toFixed(1)} / ${parseFloat(
       formatUnits(
         contractData.targetLiquidity || 0n,
         contractData.paymentTokenDecimals
       )
-    ).toFixed(0)} ${tokenInfo.payment?.symbol}`;
+    ).toFixed(1)} ${tokenInfo.payment?.symbol}`;
   };
 
   const handleShare = () => {
@@ -1669,7 +1669,8 @@ const BuyPanel = ({
                                 disabled={
                                   !contractData.targetReached ||
                                   !contractData.isDeployedToUniswap ||
-                                  purchase.isRedeemed
+                                  purchase.isRedeemed ||
+                                  purchase.isRefunded
                                 }
                               >
                                 Redeem

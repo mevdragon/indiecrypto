@@ -204,7 +204,7 @@ const Charts = ({
 
       setIsFetchingHistory(true);
 
-      const timeInterval = INTERVAL.HOUR;
+      const timeInterval = INTERVAL.MINUTE;
       const blocksPerDay = (24 * 60 * 60) / 12;
       const startBlock = currentBlock - BigInt(Math.floor(blocksPerDay * 7));
 

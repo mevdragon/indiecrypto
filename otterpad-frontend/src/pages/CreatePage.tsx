@@ -534,7 +534,7 @@ const CreatePage: React.FC = () => {
               label={
                 <Space>
                   Escrow Rake (BPS)
-                  <Tooltip title="Escrow fee in basis points (100 = 1%). Minimum is 0">
+                  <Tooltip title="Escrow fee in basis points (1000000 = 1%). Minimum is 0">
                     <InfoCircleOutlined />
                   </Tooltip>
                 </Space>

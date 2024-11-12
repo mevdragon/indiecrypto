@@ -1,4 +1,6 @@
 {
-  "OtterPadFactoryModule#OtterPadFactory": "0xAd6b2b459EA1193Ede38739fb54F7Bbc8c49e7AD",
-  "OtterPadFundraiserModule#OtterPadFund": "0xD247fEfB124De1738ac9b5462cEe56180b374aA9"
+  "OtterPadFundraiserModule#OtterPadFund": "0x233b98d533525eD701587f5257a525a79351e2e1",
+  "OtterPadFactoryModule#OtterPadFactory": "0xc0ba341cBc73e59B027a721edD6A90Cfe90ab248",
+  "TokenDeploymentModule#ChickenWings": "0x0B643543FAD6b72F1E459C6BD2648A611E40Cf06",
+  "TokenDeploymentModule#Tether": "0x36db316154b5A0BA0A2A0B5B5abF175B9130eDE4"
 }

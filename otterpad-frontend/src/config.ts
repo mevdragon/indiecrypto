@@ -13,7 +13,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Sepolia",
     chainIdDecimal: "11155111",
-    factoryAddress: "0xAd6b2b459EA1193Ede38739fb54F7Bbc8c49e7AD",
+    factoryAddress: "0xc0ba341cBc73e59B027a721edD6A90Cfe90ab248",
     isDisabled: false,
     explorerUrl: "https://sepolia.etherscan.io",
     geckoTerminalChainSlug: "sepolia-testnet",
@@ -22,7 +22,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Polygon",
     chainIdDecimal: "137",
-    factoryAddress: "0xf2B684e5D1C9Aa709f38786637E42c6B837c88D5",
+    factoryAddress: "0xD72774b1B35FDD8fE8235fA322b35030e13F6267",
     isDisabled: false,
     explorerUrl: "https://polygonscan.com",
     geckoTerminalChainSlug: "polygon_pos",

@@ -45,7 +45,7 @@ contract OtterPadFund is ReentrancyGuard {
     uint256 private immutable wei_forgiveness_buffer = 100; // 100 wei allowed difference for deployment
     
     address public immutable foundersWallet;
-    address public constant OTTERPAD_DAO = 0x6c83e86e05697C995d718C1cfA3F9045A38C7cd4;
+    address public constant OTTERPAD_DAO = 0xC6F778fb08f40c0305c3c056c42406614492de44;
     address public immutable lockLPTokenWallet;
     address public uniswapPool;
     
@@ -273,16 +273,15 @@ contract OtterPadFund is ReentrancyGuard {
         require(targetReached, "Target not reached yet");
         require(isDeployedToUniswap, "Not yet deployed to DEX");
         Purchase storage purchase = purchases[orderIndex];
-        require(purchase.purchaser == msg.sender, "Not the purchaser");
         require(!purchase.isRefunded, "Order was refunded");
         require(!purchase.isRedeemed, "Already redeemed");
         
         require(purchase.tokenAmount > 0, "No tokens to redeem");
         
         purchase.isRedeemed = true;
-        require(saleToken.transfer(msg.sender, purchase.tokenAmount), "Token transfer failed");
+        require(saleToken.transfer(purchase.purchaser, purchase.tokenAmount), "Token transfer failed");
         
-        emit TokensRedeemed(msg.sender, purchase.tokenAmount, orderIndex);
+        emit TokensRedeemed(purchase.purchaser, purchase.tokenAmount, orderIndex);
     }
 
     function refund(uint256 orderIndex) external nonReentrant {
