@@ -24,23 +24,30 @@ const DEFAULT_TARGET = parseUnits("1333333", 6); // 1.3M PAY
 const DEFAULT_UPFRONT_RAKE_BPS = 30_000_000n; // 30%
 const DEFAULT_ESCROW_RAKE_BPS = 0n; // 0%
 
-const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3"; // Mainnet V2 Router
-const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6"; // Mainnet V2 Factory
+// Sepolia
+// const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3"; // Mainnet V2 Router
+// const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6"; // Mainnet V2 Factory
+
+// Polygon
+const UNISWAP_ROUTER = "0xedf6066a2b290C185783862C7F4776A2C8077AD1"; // Mainnet V2 Router
+const UNISWAP_FACTORY = "0x9e5A52f57b3038F1B8EeE45F28b3C1967e22799C"; // Mainnet V2 Factory
 
 export default buildModule("OtterPadFundraiserModule", (m) => {
   // Get parameters with defaults
   const useMockTokens = m.getParameter("useMockTokens", true);
   const saleTokenAddress = m.getParameter<string>(
     "saleToken",
-    "0x9eC6b6f455B45fe44d0Edff3d10F7e6219C1202e"
+    "0xa9A1fA4f13f58E38AF86E7EC4669cfb7f85e7704" // polygon $WINGS
+    // "0xa7E044179fB5143DF0Bd408599dBa37E275D9917" // sepolia $WINGS
   );
   const paymentTokenAddress = m.getParameter<string>(
     "paymentToken",
-    "0x9AcF3D5E879Affd4a718dF1526a44f0303854d98"
+    "0xc0f1fDc19F557b8A35ac6d3e58B6a4fee6E874CE" // polygon $USDT
+    // "0x385Bcb72e579C7A7D4c9C42DC089733c1675EDE6" // sepolia $USDT
   );
   const foundersWallet = m.getParameter<string>(
     "foundersWallet",
-    "0x99efDe4Ed41D5d1318dEa9574679275c21e6895D"
+    "0x0114413DcDe03fd10519Fad67Bf38c455AE5F921"
   );
 
   const startPrice = m.getParameter("startPrice", DEFAULT_START_PRICE);

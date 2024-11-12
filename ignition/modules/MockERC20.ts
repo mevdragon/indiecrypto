@@ -5,23 +5,27 @@ import { parseEther } from "viem";
 
 const RECIPIENT_ADDRESS = "0x1e8133a74C3Ed3669210860451BF4db2b9c25887";
 const INITIAL_SUPPLY = parseEther("1000000"); // 1 million tokens with 18 decimals
-const INITIAL_SUPPLY_PAY = 1_000_000_000_000; // 1 million tokens with 6 decimals
+const INITIAL_SUPPLY_PAY = 100_000_000_000_000; // 100 million tokens with 6 decimals
 
 const TokenDeploymentModule = buildModule("TokenDeploymentModule", (m) => {
   // Deploy SALE token
   // const saleToken = m.contract("MockERC20", ["Sale Token", "SALE", 18n], {
   //   id: "SaleTokenMock",
   // });
-  const saleToken = m.contract("MockERC20", ["Chicken Wings", "WINGS", 18n], {
-    id: "ChickenWings2",
-  });
+  const saleToken = m.contract(
+    "MockERC20",
+    ["Chicken Nuggets", "NUGGETS", 18n],
+    {
+      id: "ChickenNuggets",
+    }
+  );
 
   // Deploy PAY token
   // const payToken = m.contract("MockERC20", ["Payment Token", "PAY", 6n], {
   //   id: "PayTokenMock",
   // });
-  const payToken = m.contract("MockERC20", ["Tether USD", "USDT", 6n], {
-    id: "Tether2",
+  const payToken = m.contract("MockERC20", ["USDC", "USDC", 6n], {
+    id: "USDC",
   });
 
   // Mint SALE tokens after deployment

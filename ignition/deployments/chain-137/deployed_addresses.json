@@ -1,5 +1,4 @@
 {
-  "OtterPadFactoryModule#OtterPadFactory": "0xBc255963Da9C9bdeD90774c821B3FAC81Bf487C1",
-  "TokenDeploymentModule#ChickenWings": "0xea0D03c0aBc36a1Ca7864e03f2E40333D6F4D0F4",
-  "TokenDeploymentModule#Tether": "0xE18f4828148dBDAdD17de6528042bD5CD9262B7d"
+  "TokenDeploymentModule#ChickenNuggets": "0xC494143E4b32Eda00E134678C14388C65fd5c970",
+  "TokenDeploymentModule#USDC": "0x09f56eC05e0EC0B819240Bdc87B572591BB0Bc89"
 }

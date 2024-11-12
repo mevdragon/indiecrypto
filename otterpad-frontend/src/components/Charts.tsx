@@ -88,6 +88,16 @@ const Charts = ({
   const publicClient = usePublicClient();
   const isDesktop = window.innerWidth >= 1024; // You can also use your useMediaQuery hook here
   const { data: currentBlock } = useBlockNumber();
+  const [activeTab, setActiveTab] = useState("dex");
+
+  const defaultTabPane = contractData?.isDeployedToUniswap ? "dex" : "price";
+
+  useEffect(() => {
+    if (contractData?.isDeployedToUniswap) {
+      setActiveTab("dex");
+    }
+  }, [contractData?.isDeployedToUniswap]);
+
   const [chartData, setChartData] = useState<{
     tvl: ChartData;
     price: ChartData;
@@ -194,7 +204,7 @@ const Charts = ({
 
       setIsFetchingHistory(true);
 
-      const timeInterval = INTERVAL.HOUR;
+      const timeInterval = INTERVAL.MINUTE;
       const blocksPerDay = (24 * 60 * 60) / 12;
       const startBlock = currentBlock - BigInt(Math.floor(blocksPerDay * 7));
 
@@ -590,7 +600,8 @@ const Charts = ({
       }}
     >
       <Tabs
-        defaultActiveKey="price"
+        defaultActiveKey={defaultTabPane}
+        onTabClick={(key) => setActiveTab(key)}
         style={{
           background: "white",
           borderRadius: "8px",

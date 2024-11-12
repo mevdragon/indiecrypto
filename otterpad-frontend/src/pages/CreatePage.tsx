@@ -312,6 +312,7 @@ const CreatePage: React.FC = () => {
             initialValues={{
               useCustomRichInfo: false,
               upfrontRakeBPS: 2_000_000,
+              escrowRakeBPS: 0,
               lockedLPWallet: zeroAddress,
             }}
           >
@@ -533,7 +534,7 @@ const CreatePage: React.FC = () => {
               label={
                 <Space>
                   Escrow Rake (BPS)
-                  <Tooltip title="Escrow fee in basis points (100 = 1%). Minimum is 0">
+                  <Tooltip title="Escrow fee in basis points (1000000 = 1%). Minimum is 0">
                     <InfoCircleOutlined />
                   </Tooltip>
                 </Space>
