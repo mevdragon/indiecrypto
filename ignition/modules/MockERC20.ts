@@ -14,9 +14,9 @@ const TokenDeploymentModule = buildModule("TokenDeploymentModule", (m) => {
   // });
   const saleToken = m.contract(
     "MockERC20",
-    ["Chicken Nuggets", "NUGGETS", 18n],
+    ["Rare Coffee Beans", "BEANS", 18n],
     {
-      id: "ChickenNuggets",
+      id: "CoffeeBeans",
     }
   );
 

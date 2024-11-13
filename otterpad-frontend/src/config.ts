@@ -1,3 +1,5 @@
+import { Address } from "viem";
+
 // src/config/chains.ts
 export interface ChainConfig {
   chain: string;
@@ -5,6 +7,7 @@ export interface ChainConfig {
   factoryAddress: string;
   isDisabled: boolean;
   explorerUrl: string;
+  uniswapV2Factory: Address;
   geckoTerminalChainSlug?: string;
   dexScreenerSlug?: string;
 }
@@ -13,18 +16,20 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Sepolia",
     chainIdDecimal: "11155111",
-    factoryAddress: "0xc0ba341cBc73e59B027a721edD6A90Cfe90ab248",
+    factoryAddress: "0xb2ffdA77a0DfC309e7d0c14E9A1f93759ac15963",
     isDisabled: false,
     explorerUrl: "https://sepolia.etherscan.io",
+    uniswapV2Factory: "0xF62c03E08ada871A0bEb309762E260a7a6a880E6",
     geckoTerminalChainSlug: "sepolia-testnet",
     dexScreenerSlug: "sepolia",
   },
   {
     chain: "Polygon",
     chainIdDecimal: "137",
-    factoryAddress: "0xD72774b1B35FDD8fE8235fA322b35030e13F6267",
+    factoryAddress: "0xEe2D1300f15723F2fAB51512445AfF2F39B60234",
     isDisabled: false,
     explorerUrl: "https://polygonscan.com",
+    uniswapV2Factory: "0x9e5A52f57b3038F1B8EeE45F28b3C1967e22799C",
     geckoTerminalChainSlug: "polygon_pos",
     dexScreenerSlug: "polygon",
   },
@@ -51,10 +56,22 @@ export const getFactoryAddress = (chainId: string): string => {
   return chain.factoryAddress;
 };
 
+export const getUniswapV2Factory = (chainId: string): Address => {
+  const chain = SUPPORTED_CHAINS.find((c) => c.chainIdDecimal === chainId);
+  if (!chain) throw new Error(`Unsupported chain ID: ${chainId}`);
+  return chain.uniswapV2Factory;
+};
+
 export const getChainName = (chainId: string): string => {
   const chain = SUPPORTED_CHAINS.find((c) => c.chainIdDecimal === chainId);
   if (!chain) throw new Error(`Unsupported chain ID: ${chainId}`);
   return chain.chain;
+};
+
+export const getExplorerUrl = (chainId: string): string => {
+  const chain = SUPPORTED_CHAINS.find((c) => c.chainIdDecimal === chainId);
+  if (!chain) throw new Error(`Unsupported chain ID: ${chainId}`);
+  return chain.explorerUrl;
 };
 
 export const getGeckoTerminalChainSlug = (
