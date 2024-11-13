@@ -29,7 +29,12 @@ import { useMediaQuery } from "react-responsive";
 import { OtterPadFactory__factory } from "../typechain-types";
 import { v4 as uuidv4 } from "uuid";
 import { OtterpadInfo } from "../components/Charts";
-import { getFactoryAddress, SUPPORTED_CHAINS } from "../config";
+import {
+  getExplorerUrl,
+  getFactoryAddress,
+  getUniswapV2Factory,
+  SUPPORTED_CHAINS,
+} from "../config";
 import ChainWarning from "../components/ChainWarning";
 
 interface FundForm {
@@ -278,6 +283,9 @@ const CreatePage: React.FC = () => {
     setUseCustomInfo(checked);
     form.setFieldsValue({ useCustomRichInfo: checked });
   };
+
+  const explorerUrl = getExplorerUrl(selectedChain);
+  const uniswapV2Factory = getUniswapV2Factory(selectedChain);
 
   return (
     <AppLayout>
@@ -657,10 +665,16 @@ const CreatePage: React.FC = () => {
                 description={
                   <>
                     <p>
-                      This fundraiser is only for tokens that are not already
-                      listed on Uniswap V2. Using this for already listed tokens
-                      may result in unexpected behavior and potential loss of
-                      funds.{" "}
+                      This fundraiser is only for tokens that are not already{" "}
+                      <a
+                        href={`${explorerUrl}/address/${uniswapV2Factory}#readContract`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        listed
+                      </a>{" "}
+                      on Uniswap V2. Using this for already listed tokens may
+                      result in unexpected behavior and potential loss of funds.{" "}
                       <a
                         href="https://docs.indiecrypto.club/requirements"
                         target="_blank"

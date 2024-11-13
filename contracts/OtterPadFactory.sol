@@ -6,16 +6,18 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 // github@mevdragon
+// OtterPad aka IndieCrypto
 contract OtterPadFactory {
-    // Immutable variables from constructor
+
+    // UniswapV2 Router and Factory
     IUniswapV2Router02 public immutable uniswapRouter;
     IUniswapV2Factory public immutable uniswapFactory;
     
-    // Fund tracking
+    // History of created fundraisers
     uint256 public fundCounterIndex;
     mapping(uint256 => address) public funds;
     
-    // Events
+    // Tracks the creation of a new fundraiser
     event FundCreated(
         uint256 indexed fundIndex,
         address indexed fund,
@@ -29,6 +31,7 @@ contract OtterPadFactory {
         address lockLPTokenWallet
     );
     
+    // Initialize the factory
     constructor(
         address _uniswapRouter,
         address _uniswapFactory
@@ -39,10 +42,10 @@ contract OtterPadFactory {
         uniswapRouter = IUniswapV2Router02(_uniswapRouter);
         uniswapFactory = IUniswapV2Factory(_uniswapFactory);
         
-        // Initialize counter
         fundCounterIndex = 0;
     }
     
+    // Create a new fundraiser
     function createFundraiser(
         uint256 upfrontRakeBPS,
         uint256 escrowRakeBPS,
@@ -56,7 +59,6 @@ contract OtterPadFactory {
         string memory richInfoUrl,
         address lockLPTokenWallet
     ) external returns (address) {
-        // Input validation
         require(saleToken != address(0), "Invalid sale token");
         require(paymentToken != address(0), "Invalid payment token");
         require(foundersWallet != address(0), "Invalid founders wallet");
@@ -65,7 +67,6 @@ contract OtterPadFactory {
         require(endPrice > startPrice, "End price must exceed start price");
         require(targetLiquidity > 0, "Invalid target liquidity");
         
-        // Create new fundraiser instance
         OtterPadFund fundraiser = new OtterPadFund(
             title,
             richInfoUrl,
@@ -82,14 +83,11 @@ contract OtterPadFactory {
             lockLPTokenWallet
         );
         
-        // Store fundraiser address in mapping
         uint256 currentIndex = fundCounterIndex;
         funds[currentIndex] = address(fundraiser);
         
-        // Increment counter for next deployment
         fundCounterIndex++;
         
-        // Emit creation event with fund index and additional parameters
         emit FundCreated(
             currentIndex,
             address(fundraiser),
