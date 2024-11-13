@@ -33,6 +33,16 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     geckoTerminalChainSlug: "polygon_pos",
     dexScreenerSlug: "polygon",
   },
+  {
+    chain: "Base",
+    chainIdDecimal: "8453",
+    factoryAddress: "0xC4B86556E68E6A6B98f72DaD15B0273883e45489",
+    isDisabled: false,
+    explorerUrl: "https://basescan.org/",
+    uniswapV2Factory: "0x8909Dc15e40173Ff4699343b6eB8132c65e18eC6",
+    geckoTerminalChainSlug: "base",
+    dexScreenerSlug: "base",
+  },
   // {
   //   chain: "Arbitrum One",
   //   chainIdDecimal: "42161",

@@ -26,7 +26,7 @@ import TrendingPage from "./pages/TrendingPage";
 // Create wagmi config
 const config = createConfig({
   chains: [
-    // base,
+    base,
     // bsc,
     // optimism,
     polygon,
