@@ -2,19 +2,28 @@
 
 Aka IndieCrypto.Club
 
-Deployed Addresses:
+## Deployed Addresses:
 
-- Base Mainnet:
-  Factory: `0x7F83c2550322341a561F8c8C31143a6B0d594994`
-  [View Sample Fund](https://basescan.org/address/0xABE3dA25816E4fE5a7675fB77B2A3ac61af69e4f#code)
+### Base Mainnet:
 
-- Polygon Mainnet:
-  Factory: `0x88C9C5a812ca68a20DEc56CFc7C36b5D5B31689f`
-  [View Sample Fund](https://polygonscan.com/address/0x137d2908A3992830F639d3Ea74b0eD10AD6Ad63E#code)
+- Fund Factory: `0x7F83c2550322341a561F8c8C31143a6B0d594994`
+- [View Sample Fund](https://basescan.org/address/0xABE3dA25816E4fE5a7675fB77B2A3ac61af69e4f#code)
+- [PresaleLock Factory](https://basescan.org/address/0x9A8059791de3DD54f3F337bDDf0f16E35c3881bb#code)
+- [View Sample PreSaleLock](https://basescan.org/address/0x69d023351e242238acb924c02123BA75E66CdF95#code)
 
-- Sepolia Testnet:
-  Factory: `0xD818eB3215fB5c68540967e7615B3dE48c4Df55d`
-  [View Sample Fund](https://sepolia.etherscan.io/address/0xBC285Fcc79523B2fef192ec1Fa4A2c12a33b03C1#code)
+### Polygon Mainnet:
+
+- Factory: `0x88C9C5a812ca68a20DEc56CFc7C36b5D5B31689f`
+- [View Sample Fund](https://polygonscan.com/address/0x137d2908A3992830F639d3Ea74b0eD10AD6Ad63E#code)
+- [PresaleLock Factory](https://polygonscan.com/address/0x02d1316EeD812016746BeFfCbcDc6E0f2a9eCfd4#code)
+- [View Sample PreSaleLock](https://polygonscan.com/address/0x73532D63b38e935E89Df5Bd9Eb28a99F527Efa08#code)
+
+### Sepolia Testnet:
+
+- Factory: `0xD818eB3215fB5c68540967e7615B3dE48c4Df55d`
+- [View Sample Fund](https://sepolia.etherscan.io/address/0xBC285Fcc79523B2fef192ec1Fa4A2c12a33b03C1#code)
+- [PresaleLock Factory](https://sepolia.etherscan.io/address/0xc464b255D4F1Dd95d33749702632A3E6812ABF13#code)
+- [View Sample PreSaleLock](https://sepolia.etherscan.io/address/0xc0147F3C59D07FeD9025A47f62d7E5F31eA1E6Ef#code)
 
 ## Posters
 

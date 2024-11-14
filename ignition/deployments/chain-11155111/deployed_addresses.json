@@ -1,4 +1,4 @@
 {
-  "OtterPadFundraiserModule#OtterPadFund": "0xBC285Fcc79523B2fef192ec1Fa4A2c12a33b03C1",
-  "OtterPadFactoryModule#OtterPadFactory": "0xD818eB3215fB5c68540967e7615B3dE48c4Df55d"
+  "PresaleLockModule#PresaleLock": "0xc0147F3C59D07FeD9025A47f62d7E5F31eA1E6Ef",
+  "OtterPadFactoryModule#PresaleLockFactory": "0xc464b255D4F1Dd95d33749702632A3E6812ABF13"
 }

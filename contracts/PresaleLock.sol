@@ -12,6 +12,7 @@ interface IOtterpadFund {
 // github@mevdragon
 // PresaleLock contract for OtterPad (aka IndieCrypto)
 // Use this to lock presale tokens so that they can be redeemed at the same time as the OtterPad fundraiser
+// Also can accept plain erc20 transfers and founders manually use the tx history to determine presale token entitlement
 contract PresaleLock is ReentrancyGuard {
 
     // Deposit tracks individual presale buys
@@ -21,96 +22,119 @@ contract PresaleLock is ReentrancyGuard {
         uint256 unlockUnixTime;
         uint256 depositId;
         bool isRedeemed;
+        bytes32 txHash;
     }
 
     // State variables
-    address public immutable otterpadFund;
-    IERC20 public immutable saleToken;
-    uint256 public depositCounter;
+    string public title;
+    address public foundersWallet;
+    address public otterpadFund = address(0);
+    address public saleToken = address(0);
+    uint256 public depositCounter = 0;
     
     // Mappings
     mapping(uint256 => Deposit) public deposits;
     mapping(address => uint256[]) public userDepositIds;
+    mapping(bytes32 => uint256[]) public txHashToDepositIds;
+
+    // Fees
+    uint256 public constant BPS_FACTOR = 100_000_000;       // 100% in 6 decimals
+    uint256 public constant OTTERPAD_FEE_BPS = 2_000_000;   // 2% in 6 decimals
+    address public constant OTTERPAD_DAO = 0xC6F778fb08f40c0305c3c056c42406614492de44; // OtterPad DAO address
     
     // Events
     event DepositLocked(
+        uint256 indexed depositId,
         address indexed recipient,
         uint256 amount,
         uint256 unlockUnixTime,
-        uint256 indexed depositId,
         uint256 blockNumber,
-        uint256 timestamp
+        uint256 timestamp,
+        bytes32 txHash
     );
     
     event RedeemUnlocked(
+        uint256 indexed depositId,
         address indexed recipient,
         uint256 amount,
-        uint256 indexed depositId,
+        uint256 timestamp
+    );
+
+    event CollectTokens(
+        address indexed tokenAddress,
+        address indexed recipient,
+        uint256 amount,
+        uint256 feeAmount,
         uint256 timestamp
     );
     
-    constructor(address _otterpadFund, address _saleToken) {
+    constructor(string memory _title, address _foundersWallet) {
+        title = _title;
+        foundersWallet = _foundersWallet;
+    }
+
+    function setFundraiser(address _otterpadFund) external nonReentrant {
         require(_otterpadFund != address(0), "Invalid OtterPad fund address");
-        require(_saleToken != address(0), "Invalid sale token address");
-        
-        // Verify sale token matches OtterpadFund's sale token
-        require(
-            IOtterpadFund(_otterpadFund).saleToken() == IERC20(_saleToken),
-            "Sale token mismatch"
-        );
         
         otterpadFund = _otterpadFund;
-        saleToken = IERC20(_saleToken);
+        saleToken = address(IOtterpadFund(_otterpadFund).saleToken());
     }
 
     function deposit(
         uint256 amount,
         address recipient,
-        uint256 unlockUnixTime
+        uint256 unlockUnixTime, // unix seconds, not milliseconds
+        bytes32 txHash // pass in zero address if no txHash. we use txHash to avoid accidental double deposits
     ) external nonReentrant {
+        require(otterpadFund != address(0), "OtterPad fund not set yet");
+        require(saleToken != address(0), "Sale token not set yet");
         require(amount > 0, "Amount must be greater than 0");
         require(recipient != address(0), "Invalid recipient address");
         
         // Approve and transfer tokens to this contract
         require(
-            saleToken.approve(address(this), amount),
+            IERC20(saleToken).approve(address(this), amount),
             "Approval failed"
         );
         require(
-            saleToken.transferFrom(msg.sender, address(this), amount),
+            IERC20(saleToken).transferFrom(msg.sender, address(this), amount),
             "Token transfer failed"
         );
         
         // Create and store deposit
-        uint256 currentId = depositCounter;
-        deposits[currentId] = Deposit({
+        uint256 currentDepositId = depositCounter;
+        deposits[currentDepositId] = Deposit({
             recipient: recipient,
             amount: amount,
             unlockUnixTime: unlockUnixTime,
-            depositId: currentId,
-            isRedeemed: false
+            depositId: currentDepositId,
+            isRedeemed: false,
+            txHash: txHash
         });
         
         // Store deposit id for recipient
-        userDepositIds[recipient].push(currentId);
+        userDepositIds[recipient].push(currentDepositId);
+        txHashToDepositIds[txHash].push(currentDepositId);
         
         // Increment counter for next deposit
         depositCounter++;
         
         // Emit event
         emit DepositLocked(
+            currentDepositId,
             recipient,
             amount,
             unlockUnixTime,
-            currentId,
             block.number,
-            block.timestamp
+            block.timestamp,
+            txHash
         );
     }
     
     function redeem(uint256 depositId) external nonReentrant {
+        require(otterpadFund != address(0), "OtterPad fund not set yet");
+        require(saleToken != address(0), "Sale token not set yet");
         Deposit storage dep = deposits[depositId];
-        require(dep.recipient != address(0), "Invalid deposit");
         require(!dep.isRedeemed, "Already redeemed");
         
         // Check if OtterPad sale is complete
@@ -130,15 +154,15 @@ contract PresaleLock is ReentrancyGuard {
         
         // Transfer tokens to recipient
         require(
-            saleToken.transfer(dep.recipient, dep.amount),
+            IERC20(saleToken).transfer(dep.recipient, dep.amount),
             "Token transfer failed"
         );
         
         // Emit event
         emit RedeemUnlocked(
+            depositId,
             dep.recipient,
             dep.amount,
-            depositId,
             block.timestamp
         );
     }
@@ -148,6 +172,43 @@ contract PresaleLock is ReentrancyGuard {
     }
 
     function getSaleTokenBalance() external view returns (uint256) {
-        return saleToken.balanceOf(address(this));
+        return IERC20(saleToken).balanceOf(address(this));
+    }
+
+    function getERC20TokenBalance(address tokenAddress) external view returns (uint256) {
+        return IERC20(tokenAddress).balanceOf(address(this));
+    }
+
+    function checkIfTxHashHasDeposits(bytes32 txHash) external view returns (uint256[] memory) {
+        return txHashToDepositIds[txHash];
+    }
+
+    // Recover any remaining tokens in the contract after DEX deployment
+    // Only founders can recover any token except the sale token
+    function collectTokensAsFounders(
+        address tokenAddress
+    ) external nonReentrant {
+        require(tokenAddress != address(saleToken), "Cannot recover sale token");
+        
+        IERC20 token = IERC20(tokenAddress);
+        uint256 balance = token.balanceOf(address(this));
+        
+        // Calculate fee
+        uint256 feeAmount = (balance * OTTERPAD_FEE_BPS) / BPS_FACTOR;
+        uint256 foundersAmount = balance - feeAmount;
+        
+        // Transfer fee to OtterPad DAO
+        require(token.transfer(OTTERPAD_DAO, feeAmount), "Fee transfer failed");
+        
+        // Transfer remaining tokens to founders
+        require(token.transfer(foundersWallet, foundersAmount), "Founders transfer failed");
+
+        emit CollectTokens(
+            tokenAddress,
+            foundersWallet,
+            foundersAmount,
+            feeAmount,
+            block.timestamp
+        );
     }
 }
