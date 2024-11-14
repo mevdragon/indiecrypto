@@ -224,7 +224,7 @@ describe("PresaleLock", function () {
       expect(deposit[2]).to.equal(unlockTime); // unlockUnixTime
       expect(deposit[3]).to.equal(depositId); // depositId
       expect(deposit[4]).to.equal(false); // isRedeemed
-      expect(deposit[5]).to.equal(txHash); // txHash
+      expect(deposit[6]).to.equal(txHash); // txHash
 
       // Verify tracking arrays
       const userDepositIds = await presaleLock.read.getUserDepositIds([
@@ -261,6 +261,109 @@ describe("PresaleLock", function () {
           txHash,
         ])
       ).to.be.rejectedWith("OtterPad fund not set yet");
+    });
+
+    it("Should allow founders to cancel deposits", async function () {
+      const {
+        presaleLock,
+        saleToken,
+        fund,
+        foundersWallet,
+        buyer1,
+        publicClient,
+      } = await loadFixture(deployFixture);
+
+      // Set up presale and create deposit
+      const founderPresaleLock = await hre.viem.getContractAt(
+        "PresaleLock",
+        presaleLock.address,
+        { client: { wallet: foundersWallet } }
+      );
+      await founderPresaleLock.write.setFundraiser([fund.address]);
+
+      const depositAmount = parseEther("10");
+      const txHash =
+        "0x1234567890123456789012345678901234567890123456789012345678901234";
+
+      const founderSaleToken = await hre.viem.getContractAt(
+        "MockERC20",
+        saleToken.address,
+        { client: { wallet: foundersWallet } }
+      );
+
+      await founderSaleToken.write.approve([
+        presaleLock.address,
+        depositAmount,
+      ]);
+      await founderPresaleLock.write.deposit([
+        depositAmount,
+        getAddress(buyer1.account.address),
+        0n,
+        txHash,
+      ]);
+
+      const initialBalance = await saleToken.read.balanceOf([
+        getAddress(foundersWallet.account.address),
+      ]);
+
+      // Cancel deposit
+      const hash = await founderPresaleLock.write.cancelDeposit([0n]);
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      // Verify canceled state
+      const deposit = await presaleLock.read.deposits([0n]);
+      expect(deposit[5]).to.be.true; // isCanceled
+
+      // Verify tokens returned
+      const finalBalance = await saleToken.read.balanceOf([
+        getAddress(foundersWallet.account.address),
+      ]);
+      expect(finalBalance - initialBalance).to.equal(depositAmount);
+    });
+
+    it("Should prevent non-founders from canceling deposits", async function () {
+      const { presaleLock, saleToken, fund, foundersWallet, buyer1, buyer2 } =
+        await loadFixture(deployFixture);
+
+      // Set up presale and create deposit
+      const founderPresaleLock = await hre.viem.getContractAt(
+        "PresaleLock",
+        presaleLock.address,
+        { client: { wallet: foundersWallet } }
+      );
+      await founderPresaleLock.write.setFundraiser([fund.address]);
+
+      const depositAmount = parseEther("10");
+      const txHash =
+        "0x1234567890123456789012345678901234567890123456789012345678901234";
+
+      const founderSaleToken = await hre.viem.getContractAt(
+        "MockERC20",
+        saleToken.address,
+        { client: { wallet: foundersWallet } }
+      );
+
+      await founderSaleToken.write.approve([
+        presaleLock.address,
+        depositAmount,
+      ]);
+      await founderPresaleLock.write.deposit([
+        depositAmount,
+        getAddress(buyer1.account.address),
+        0n,
+        txHash,
+      ]);
+
+      // Try to cancel as non-founder
+      const buyer2PresaleLock = await hre.viem.getContractAt(
+        "PresaleLock",
+        presaleLock.address,
+        { client: { wallet: buyer2 } }
+      );
+
+      await expect(
+        buyer2PresaleLock.write.cancelDeposit([0n])
+      ).to.be.rejectedWith("Only founders can cancel deposits");
     });
   });
 
@@ -509,6 +612,99 @@ describe("PresaleLock", function () {
         getAddress(buyer2.account.address),
       ]);
       expect(userDeposits.length).to.equal(1);
+    });
+
+    it("Should prevent canceling already redeemed deposits", async function () {
+      const { presaleLock, buyer1, foundersWallet, unlockTime } =
+        await loadFixture(setupFundAndPresale);
+
+      // Increase time past unlock
+      await time.increaseTo(unlockTime + 1n);
+
+      // Redeem first
+      const buyer1PresaleLock = await hre.viem.getContractAt(
+        "PresaleLock",
+        presaleLock.address,
+        { client: { wallet: buyer1 } }
+      );
+      await buyer1PresaleLock.write.redeem([0n]);
+
+      // Try to cancel redeemed deposit
+      const founderPresaleLock = await hre.viem.getContractAt(
+        "PresaleLock",
+        presaleLock.address,
+        { client: { wallet: foundersWallet } }
+      );
+
+      await expect(
+        founderPresaleLock.write.cancelDeposit([0n])
+      ).to.be.rejectedWith("Already redeemed");
+    });
+
+    it("Should prevent canceling already redeemed or canceled deposits", async function () {
+      const {
+        presaleLock,
+        saleToken,
+        buyer1,
+        foundersWallet,
+        publicClient,
+        unlockTime,
+      } = await loadFixture(setupFundAndPresale);
+
+      // Create a second deposit
+      const founderPresaleLock = await hre.viem.getContractAt(
+        "PresaleLock",
+        presaleLock.address,
+        { client: { wallet: foundersWallet } }
+      );
+
+      const depositAmount = parseEther("10");
+      const NEW_TX_HASH =
+        "0x2234567890123456789012345678901234567890123456789012345678901234";
+
+      // Approve tokens for second deposit
+      const founderSaleToken = await hre.viem.getContractAt(
+        "MockERC20",
+        saleToken.address,
+        { client: { wallet: foundersWallet } }
+      );
+
+      await founderSaleToken.write.approve([
+        presaleLock.address,
+        depositAmount,
+      ]);
+
+      // Create second deposit
+      await founderPresaleLock.write.deposit([
+        depositAmount,
+        getAddress(buyer1.account.address),
+        0n,
+        NEW_TX_HASH,
+      ]);
+
+      // Cancel the second deposit
+      await founderPresaleLock.write.cancelDeposit([1n]);
+
+      // Try to cancel again
+      await expect(
+        founderPresaleLock.write.cancelDeposit([1n])
+      ).to.be.rejectedWith("Already canceled");
+
+      // Increase time past unlock for first deposit
+      await time.increaseTo(unlockTime + 1n);
+
+      // Redeem first deposit
+      const buyer1PresaleLock = await hre.viem.getContractAt(
+        "PresaleLock",
+        presaleLock.address,
+        { client: { wallet: buyer1 } }
+      );
+      await buyer1PresaleLock.write.redeem([0n]);
+
+      // Try to cancel redeemed deposit
+      await expect(
+        founderPresaleLock.write.cancelDeposit([0n])
+      ).to.be.rejectedWith("Already redeemed");
     });
   });
 
