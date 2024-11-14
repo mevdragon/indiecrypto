@@ -16,7 +16,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Sepolia",
     chainIdDecimal: "11155111",
-    factoryAddress: "0xb2ffdA77a0DfC309e7d0c14E9A1f93759ac15963",
+    factoryAddress: "0xD818eB3215fB5c68540967e7615B3dE48c4Df55d",
     isDisabled: false,
     explorerUrl: "https://sepolia.etherscan.io",
     uniswapV2Factory: "0xF62c03E08ada871A0bEb309762E260a7a6a880E6",
@@ -32,6 +32,16 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     uniswapV2Factory: "0x9e5A52f57b3038F1B8EeE45F28b3C1967e22799C",
     geckoTerminalChainSlug: "polygon_pos",
     dexScreenerSlug: "polygon",
+  },
+  {
+    chain: "Base",
+    chainIdDecimal: "8453",
+    factoryAddress: "0xC4B86556E68E6A6B98f72DaD15B0273883e45489",
+    isDisabled: false,
+    explorerUrl: "https://basescan.org/",
+    uniswapV2Factory: "0x8909Dc15e40173Ff4699343b6eB8132c65e18eC6",
+    geckoTerminalChainSlug: "base",
+    dexScreenerSlug: "base",
   },
   // {
   //   chain: "Arbitrum One",

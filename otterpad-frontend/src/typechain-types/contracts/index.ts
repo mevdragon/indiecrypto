@@ -3,6 +3,8 @@
 /* eslint-disable */
 import type * as mockErc20Sol from "./MockERC20.sol";
 export type { mockErc20Sol };
+import type * as presaleLockSol from "./PresaleLock.sol";
+export type { presaleLockSol };
 export type { Lock } from "./Lock";
 export type { OtterPadFactory } from "./OtterPadFactory";
 export type { OtterPadFund } from "./OtterPadFund";

@@ -66,6 +66,7 @@ const FundPage = () => {
     data: contractResults,
     isError,
     refetch: refetchContractDetails,
+    // @ts-ignore
   } = useContractReads({
     contracts: [
       {

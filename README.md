@@ -4,13 +4,17 @@ Aka IndieCrypto.Club
 
 Deployed Addresses:
 
+- Base Mainnet:
+  Factory: `0x7F83c2550322341a561F8c8C31143a6B0d594994`
+  [View Sample Fund](https://basescan.org/address/0xABE3dA25816E4fE5a7675fB77B2A3ac61af69e4f#code)
+
 - Polygon Mainnet:
-  Factory: `0xEe2D1300f15723F2fAB51512445AfF2F39B60234`
-  [View Sample Fund](https://polygonscan.com/address/0x3dE55F3402B0B37396E5Ff320de2e3a675dA5727#readContract)
+  Factory: `0x88C9C5a812ca68a20DEc56CFc7C36b5D5B31689f`
+  [View Sample Fund](https://polygonscan.com/address/0x137d2908A3992830F639d3Ea74b0eD10AD6Ad63E#code)
 
 - Sepolia Testnet:
-  Factory: `0xb2ffdA77a0DfC309e7d0c14E9A1f93759ac15963`
-  [View Sample Fund](https://sepolia.etherscan.io/address/0x4b4994403FDDCE967c7D92AD047c3230762cD328#readContract)
+  Factory: `0xD818eB3215fB5c68540967e7615B3dE48c4Df55d`
+  [View Sample Fund](https://sepolia.etherscan.io/address/0xBC285Fcc79523B2fef192ec1Fa4A2c12a33b03C1#code)
 
 ## Posters
 

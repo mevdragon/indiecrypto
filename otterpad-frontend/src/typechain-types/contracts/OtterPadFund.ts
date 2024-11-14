@@ -26,6 +26,7 @@ import type {
 export interface OtterPadFundInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "BPS_FACTOR"
       | "OTTERPAD_DAO"
       | "OTTERPAD_FEE_BPS"
       | "buy"
@@ -38,9 +39,9 @@ export interface OtterPadFundInterface extends Interface {
       | "getAllocation"
       | "getCurrentPrice"
       | "getEscrowedAmount"
-      | "getMinimumPurchase"
       | "getPaymentTokenBalance"
       | "getSaleTokenBalance"
+      | "getSlope"
       | "getUserOrderIndices"
       | "hasSufficientSaleTokens"
       | "isDeployedToUniswap"
@@ -57,6 +58,7 @@ export interface OtterPadFundInterface extends Interface {
       | "saleToken"
       | "saleTokenDecimals"
       | "saleTokenSymbol"
+      | "slopeScalingFactor"
       | "startPrice"
       | "targetLiquidity"
       | "targetReached"
@@ -82,6 +84,10 @@ export interface OtterPadFundInterface extends Interface {
   ): EventFragment;
 
   encodeFunctionData(
+    functionFragment: "BPS_FACTOR",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "OTTERPAD_DAO",
     values?: undefined
   ): string;
@@ -89,7 +95,10 @@ export interface OtterPadFundInterface extends Interface {
     functionFragment: "OTTERPAD_FEE_BPS",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "buy", values: [BigNumberish]): string;
+  encodeFunctionData(
+    functionFragment: "buy",
+    values: [BigNumberish, AddressLike]
+  ): string;
   encodeFunctionData(
     functionFragment: "calculateTokensReceived",
     values: [BigNumberish]
@@ -124,10 +133,6 @@ export interface OtterPadFundInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "getMinimumPurchase",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "getPaymentTokenBalance",
     values?: undefined
   ): string;
@@ -135,6 +140,7 @@ export interface OtterPadFundInterface extends Interface {
     functionFragment: "getSaleTokenBalance",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "getSlope", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "getUserOrderIndices",
     values: [AddressLike]
@@ -173,7 +179,7 @@ export interface OtterPadFundInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "recoverStuckTokens",
-    values: [AddressLike, BigNumberish]
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "redeem",
@@ -194,6 +200,10 @@ export interface OtterPadFundInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "saleTokenSymbol",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "slopeScalingFactor",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -242,6 +252,7 @@ export interface OtterPadFundInterface extends Interface {
     values: [AddressLike, BigNumberish]
   ): string;
 
+  decodeFunctionResult(functionFragment: "BPS_FACTOR", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "OTTERPAD_DAO",
     data: BytesLike
@@ -285,10 +296,6 @@ export interface OtterPadFundInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getMinimumPurchase",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "getPaymentTokenBalance",
     data: BytesLike
   ): Result;
@@ -296,6 +303,7 @@ export interface OtterPadFundInterface extends Interface {
     functionFragment: "getSaleTokenBalance",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "getSlope", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getUserOrderIndices",
     data: BytesLike
@@ -346,6 +354,10 @@ export interface OtterPadFundInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "saleTokenSymbol",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "slopeScalingFactor",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "startPrice", data: BytesLike): Result;
@@ -421,6 +433,7 @@ export namespace EscrowReleasedEvent {
 export namespace PaymentReceivedEvent {
   export type InputTuple = [
     purchaser: AddressLike,
+    recipient: AddressLike,
     totalAmount: BigNumberish,
     otterpadFee: BigNumberish,
     upfrontAmount: BigNumberish,
@@ -429,6 +442,7 @@ export namespace PaymentReceivedEvent {
   ];
   export type OutputTuple = [
     purchaser: string,
+    recipient: string,
     totalAmount: bigint,
     otterpadFee: bigint,
     upfrontAmount: bigint,
@@ -437,6 +451,7 @@ export namespace PaymentReceivedEvent {
   ];
   export interface OutputObject {
     purchaser: string;
+    recipient: string;
     totalAmount: bigint;
     otterpadFee: bigint;
     upfrontAmount: bigint;
@@ -480,6 +495,7 @@ export namespace RefundedEvent {
 export namespace TokensPurchasedEvent {
   export type InputTuple = [
     purchaser: AddressLike,
+    recipient: AddressLike,
     paymentAmount: BigNumberish,
     contributionAmount: BigNumberish,
     tokenAmount: BigNumberish,
@@ -489,6 +505,7 @@ export namespace TokensPurchasedEvent {
   ];
   export type OutputTuple = [
     purchaser: string,
+    recipient: string,
     paymentAmount: bigint,
     contributionAmount: bigint,
     tokenAmount: bigint,
@@ -498,6 +515,7 @@ export namespace TokensPurchasedEvent {
   ];
   export interface OutputObject {
     purchaser: string;
+    recipient: string;
     paymentAmount: bigint;
     contributionAmount: bigint;
     tokenAmount: bigint;
@@ -513,17 +531,17 @@ export namespace TokensPurchasedEvent {
 
 export namespace TokensRedeemedEvent {
   export type InputTuple = [
-    purchaser: AddressLike,
+    recipient: AddressLike,
     tokenAmount: BigNumberish,
     orderIndex: BigNumberish
   ];
   export type OutputTuple = [
-    purchaser: string,
+    recipient: string,
     tokenAmount: bigint,
     orderIndex: bigint
   ];
   export interface OutputObject {
-    purchaser: string;
+    recipient: string;
     tokenAmount: bigint;
     orderIndex: bigint;
   }
@@ -576,11 +594,17 @@ export interface OtterPadFund extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  BPS_FACTOR: TypedContractMethod<[], [bigint], "view">;
+
   OTTERPAD_DAO: TypedContractMethod<[], [string], "view">;
 
   OTTERPAD_FEE_BPS: TypedContractMethod<[], [bigint], "view">;
 
-  buy: TypedContractMethod<[paymentAmount: BigNumberish], [void], "nonpayable">;
+  buy: TypedContractMethod<
+    [paymentAmount: BigNumberish, recipient: AddressLike],
+    [void],
+    "nonpayable"
+  >;
 
   calculateTokensReceived: TypedContractMethod<
     [paymentAmount: BigNumberish],
@@ -604,11 +628,11 @@ export interface OtterPadFund extends BaseContract {
 
   getEscrowedAmount: TypedContractMethod<[], [bigint], "view">;
 
-  getMinimumPurchase: TypedContractMethod<[], [bigint], "view">;
-
   getPaymentTokenBalance: TypedContractMethod<[], [bigint], "view">;
 
   getSaleTokenBalance: TypedContractMethod<[], [bigint], "view">;
+
+  getSlope: TypedContractMethod<[], [bigint], "view">;
 
   getUserOrderIndices: TypedContractMethod<
     [user: AddressLike],
@@ -633,11 +657,12 @@ export interface OtterPadFund extends BaseContract {
   purchases: TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [bigint, bigint, bigint, string, boolean, boolean, bigint] & {
+      [bigint, bigint, bigint, string, string, boolean, boolean, bigint] & {
         paymentAmount: bigint;
         contributionAmount: bigint;
         tokenAmount: bigint;
         purchaser: string;
+        recipient: string;
         isRefunded: boolean;
         isRedeemed: boolean;
         purchaseBlock: bigint;
@@ -647,7 +672,7 @@ export interface OtterPadFund extends BaseContract {
   >;
 
   recoverStuckTokens: TypedContractMethod<
-    [tokenAddress: AddressLike, amount: BigNumberish],
+    [tokenAddress: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -663,6 +688,8 @@ export interface OtterPadFund extends BaseContract {
   saleTokenDecimals: TypedContractMethod<[], [bigint], "view">;
 
   saleTokenSymbol: TypedContractMethod<[], [string], "view">;
+
+  slopeScalingFactor: TypedContractMethod<[], [bigint], "view">;
 
   startPrice: TypedContractMethod<[], [bigint], "view">;
 
@@ -697,6 +724,9 @@ export interface OtterPadFund extends BaseContract {
   ): T;
 
   getFunction(
+    nameOrSignature: "BPS_FACTOR"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
     nameOrSignature: "OTTERPAD_DAO"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
@@ -704,7 +734,11 @@ export interface OtterPadFund extends BaseContract {
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "buy"
-  ): TypedContractMethod<[paymentAmount: BigNumberish], [void], "nonpayable">;
+  ): TypedContractMethod<
+    [paymentAmount: BigNumberish, recipient: AddressLike],
+    [void],
+    "nonpayable"
+  >;
   getFunction(
     nameOrSignature: "calculateTokensReceived"
   ): TypedContractMethod<[paymentAmount: BigNumberish], [bigint], "view">;
@@ -733,13 +767,13 @@ export interface OtterPadFund extends BaseContract {
     nameOrSignature: "getEscrowedAmount"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
-    nameOrSignature: "getMinimumPurchase"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
     nameOrSignature: "getPaymentTokenBalance"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "getSaleTokenBalance"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "getSlope"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "getUserOrderIndices"
@@ -770,11 +804,12 @@ export interface OtterPadFund extends BaseContract {
   ): TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [bigint, bigint, bigint, string, boolean, boolean, bigint] & {
+      [bigint, bigint, bigint, string, string, boolean, boolean, bigint] & {
         paymentAmount: bigint;
         contributionAmount: bigint;
         tokenAmount: bigint;
         purchaser: string;
+        recipient: string;
         isRefunded: boolean;
         isRedeemed: boolean;
         purchaseBlock: bigint;
@@ -784,11 +819,7 @@ export interface OtterPadFund extends BaseContract {
   >;
   getFunction(
     nameOrSignature: "recoverStuckTokens"
-  ): TypedContractMethod<
-    [tokenAddress: AddressLike, amount: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
+  ): TypedContractMethod<[tokenAddress: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "redeem"
   ): TypedContractMethod<[orderIndex: BigNumberish], [void], "nonpayable">;
@@ -807,6 +838,9 @@ export interface OtterPadFund extends BaseContract {
   getFunction(
     nameOrSignature: "saleTokenSymbol"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "slopeScalingFactor"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "startPrice"
   ): TypedContractMethod<[], [bigint], "view">;
@@ -914,7 +948,7 @@ export interface OtterPadFund extends BaseContract {
       EscrowReleasedEvent.OutputObject
     >;
 
-    "PaymentReceived(address,uint256,uint256,uint256,uint256,uint256)": TypedContractEvent<
+    "PaymentReceived(address,address,uint256,uint256,uint256,uint256,uint256)": TypedContractEvent<
       PaymentReceivedEvent.InputTuple,
       PaymentReceivedEvent.OutputTuple,
       PaymentReceivedEvent.OutputObject
@@ -936,7 +970,7 @@ export interface OtterPadFund extends BaseContract {
       RefundedEvent.OutputObject
     >;
 
-    "TokensPurchased(address,uint256,uint256,uint256,uint256,uint256,uint256)": TypedContractEvent<
+    "TokensPurchased(address,address,uint256,uint256,uint256,uint256,uint256,uint256)": TypedContractEvent<
       TokensPurchasedEvent.InputTuple,
       TokensPurchasedEvent.OutputTuple,
       TokensPurchasedEvent.OutputObject

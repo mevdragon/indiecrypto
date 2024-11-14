@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as mockErc20Sol from "./MockERC20.sol";
+export * as presaleLockSol from "./PresaleLock.sol";
 export { Lock__factory } from "./Lock__factory";
 export { OtterPadFactory__factory } from "./OtterPadFactory__factory";
 export { OtterPadFund__factory } from "./OtterPadFund__factory";

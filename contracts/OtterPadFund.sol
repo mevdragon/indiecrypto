@@ -17,6 +17,7 @@ contract OtterPadFund is ReentrancyGuard {
         uint256 contributionAmount; // Amount towards liquidity after upfront rake, escrow rake, and otterpad fee
         uint256 tokenAmount;        // Calculated token to be received in wei
         address purchaser;          // Address of the purchaser
+        address recipient;          // Address of the recipient
         bool isRefunded;            // Whether the purchase was refunded
         bool isRedeemed;            // Whether the purchase was redeemed
         uint256 purchaseBlock;      // Block number of the purchase
@@ -66,6 +67,7 @@ contract OtterPadFund is ReentrancyGuard {
     // Tracks purchase history
     event TokensPurchased(
         address indexed purchaser,
+        address indexed recipient,
         uint256 paymentAmount, 
         uint256 contributionAmount,
         uint256 tokenAmount,
@@ -75,7 +77,7 @@ contract OtterPadFund is ReentrancyGuard {
     );
     // Tracks token redemption history
     event TokensRedeemed(
-        address indexed purchaser,
+        address indexed recipient,
         uint256 tokenAmount,
         uint256 indexed orderIndex
     );
@@ -90,6 +92,7 @@ contract OtterPadFund is ReentrancyGuard {
     // Tracks payment distribution history from buy function
     event PaymentReceived(
         address indexed purchaser,
+        address indexed recipient,
         uint256 totalAmount,
         uint256 otterpadFee,
         uint256 upfrontAmount,
@@ -222,8 +225,10 @@ contract OtterPadFund is ReentrancyGuard {
     
     // Purchase sale tokens with payment tokens
     // This will actually transfer payment tokens from buyer wallet into this contract
-    function buy(uint256 paymentAmount) external nonReentrant {
+    function buy(uint256 paymentAmount, address recipient) external nonReentrant {
         require(!isDeployedToUniswap, "Sale completed");
+        require(paymentAmount > 0, "Invalid payment amount");
+        require(recipient != address(0), "Invalid recipient");
         
         uint256 otterpadFee = (paymentAmount * OTTERPAD_FEE_BPS) / BPS_FACTOR;
         uint256 upfrontAmount = (paymentAmount * upfrontRakeBPS) / BPS_FACTOR - otterpadFee;
@@ -241,6 +246,7 @@ contract OtterPadFund is ReentrancyGuard {
         
         emit PaymentReceived(
             msg.sender,
+            recipient,
             paymentAmount,
             otterpadFee,
             upfrontAmount,
@@ -259,18 +265,19 @@ contract OtterPadFund is ReentrancyGuard {
             contributionAmount: contributionAmount,
             tokenAmount: tokenAmount,
             purchaser: msg.sender,
+            recipient: recipient,
             isRefunded: false,
             isRedeemed: false,
             purchaseBlock: block.number
         });
         
-        userOrderIndices[msg.sender].push(orderIndex);
+        userOrderIndices[recipient].push(orderIndex);
         
         totalTokensAllocated += tokenAmount;
         totalActiveContributions += contributionAmount;
         totalPaymentsIn += paymentAmount;
         
-        emit TokensPurchased(msg.sender, paymentAmount, contributionAmount, tokenAmount, orderIndex, totalActiveContributions, block.timestamp);
+        emit TokensPurchased(msg.sender, recipient, paymentAmount, contributionAmount, tokenAmount, orderIndex, totalActiveContributions, block.timestamp);
         
         if (totalActiveContributions >= targetLiquidity - wei_forgiveness_buffer) {
             targetReached = true;
@@ -289,9 +296,9 @@ contract OtterPadFund is ReentrancyGuard {
         require(purchase.tokenAmount > 0, "No tokens to redeem");
         
         purchase.isRedeemed = true;
-        require(saleToken.transfer(purchase.purchaser, purchase.tokenAmount), "Token transfer failed");
+        require(saleToken.transfer(purchase.recipient, purchase.tokenAmount), "Token transfer failed");
         
-        emit TokensRedeemed(purchase.purchaser, purchase.tokenAmount, orderIndex);
+        emit TokensRedeemed(purchase.recipient, purchase.tokenAmount, orderIndex);
     }
 
     // Refund payment tokens from purchase order
@@ -313,7 +320,7 @@ contract OtterPadFund is ReentrancyGuard {
         uint256 escrowAmount = (cashPaidInAmount * escrowRakeBPS) / BPS_FACTOR;
         uint256 refundAmount = purchase.contributionAmount + escrowAmount;
         
-        require(paymentToken.transfer(msg.sender, refundAmount), "Refund failed");
+        require(paymentToken.transfer(purchase.purchaser, refundAmount), "Refund failed");
         
         emit Refunded(msg.sender, refundAmount, orderIndex, totalActiveContributions, block.timestamp);
     }
