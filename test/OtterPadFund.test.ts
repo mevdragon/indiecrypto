@@ -176,7 +176,10 @@ describe("OtterPadFund", function () {
       );
 
       // Make purchase
-      const hash = await buyer1Fundraiser.write.buy([paymentAmount]);
+      const hash = await buyer1Fundraiser.write.buy([
+        paymentAmount,
+        buyer1.account.address,
+      ]);
       await publicClient.waitForTransactionReceipt({ hash });
 
       // Verify purchase was recorded
@@ -194,8 +197,8 @@ describe("OtterPadFund", function () {
       // }
       expect(purchase[0]).to.equal(paymentAmount);
       expect(purchase[3]).to.equal(getAddress(buyer1.account.address));
-      expect(purchase[4]).to.equal(false);
       expect(purchase[5]).to.equal(false);
+      expect(purchase[6]).to.equal(false);
     });
 
     it("Should calculate correct token amounts based on price curve", async function () {
@@ -306,7 +309,10 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      const hash = await buyer1Fundraiser.write.buy([paymentAmount]);
+      const hash = await buyer1Fundraiser.write.buy([
+        paymentAmount,
+        buyer1.account.address,
+      ]);
       await publicClient.waitForTransactionReceipt({ hash });
 
       // Check TokensPurchased event
@@ -351,7 +357,7 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      await buyer1Fundraiser.write.buy([paymentAmount]);
+      await buyer1Fundraiser.write.buy([paymentAmount, buyer1.account.address]);
 
       // Try to redeem
       await expect(buyer1Fundraiser.write.redeem([0n])).to.be.rejectedWith(
@@ -395,7 +401,10 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      await buyer1Fundraiser.write.buy([requiredPayment]);
+      await buyer1Fundraiser.write.buy([
+        requiredPayment,
+        buyer1.account.address,
+      ]);
 
       // Verify target reached but DEX not deployed
       expect(await fundraiser.read.targetReached()).to.equal(true);
@@ -446,7 +455,10 @@ describe("OtterPadFund", function () {
       );
 
       // Buy tokens
-      await buyer1Fundraiser.write.buy([requiredPayment]);
+      await buyer1Fundraiser.write.buy([
+        requiredPayment,
+        buyer1.account.address,
+      ]);
 
       // Deploy to Uniswap
       const foundersWalletFundraiser = await hre.viem.getContractAt(
@@ -503,7 +515,7 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      await buyer1Fundraiser.write.buy([paymentAmount]);
+      await buyer1Fundraiser.write.buy([paymentAmount, buyer1.account.address]);
 
       // Get initial balances
       const initialBalance = await paymentToken.read.balanceOf([
@@ -516,7 +528,7 @@ describe("OtterPadFund", function () {
 
       // Verify refund processed
       const purchase = await fundraiser.read.purchases([0n]);
-      expect(purchase[4]).to.equal(true); // isRefunded
+      expect(purchase[5]).to.equal(true); // isRefunded
 
       // Check final balance
       const finalBalance = await paymentToken.read.balanceOf([
@@ -581,7 +593,10 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      await buyer1Fundraiser.write.buy([requiredPayment]);
+      await buyer1Fundraiser.write.buy([
+        requiredPayment,
+        buyer1.account.address,
+      ]);
 
       // Verify target is reached
       expect(await fundraiser.read.targetReached()).to.equal(true);
@@ -597,7 +612,7 @@ describe("OtterPadFund", function () {
 
       // Verify refund processed
       const purchase = await fundraiser.read.purchases([0n]);
-      expect(purchase[4]).to.equal(true); // isRefunded
+      expect(purchase[5]).to.equal(true); // isRefunded
 
       // Check final balance
       const finalBalance = await paymentToken.read.balanceOf([
@@ -660,7 +675,10 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      await buyer1Fundraiser.write.buy([requiredPayment]);
+      await buyer1Fundraiser.write.buy([
+        requiredPayment,
+        buyer1.account.address,
+      ]);
 
       // Deploy to Uniswap
       const foundersWalletFundraiser = await hre.viem.getContractAt(
@@ -700,7 +718,7 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      await buyer1Fundraiser.write.buy([paymentAmount]);
+      await buyer1Fundraiser.write.buy([paymentAmount, buyer1.account.address]);
 
       // Get the purchase details to know exact contribution amount
       const purchase = await fundraiser.read.purchases([0n]);
@@ -776,7 +794,7 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      await buyer1Fundraiser.write.buy([exactPayment]);
+      await buyer1Fundraiser.write.buy([exactPayment, buyer1.account.address]);
 
       expect(await fundraiser.read.targetReached()).to.equal(true);
       expect(await fundraiser.read.totalActiveContributions()).to.equal(
@@ -820,7 +838,10 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      await buyer1Fundraiser.write.buy([almostFullPayment]);
+      await buyer1Fundraiser.write.buy([
+        almostFullPayment,
+        buyer1.account.address,
+      ]);
 
       // Try to make second purchase that would exceed target
       const smallPayment = parseEther("2");
@@ -841,7 +862,7 @@ describe("OtterPadFund", function () {
       );
 
       await expect(
-        buyer2Fundraiser.write.buy([smallPayment])
+        buyer2Fundraiser.write.buy([smallPayment, buyer2.account.address])
       ).to.be.rejectedWith("Exceeds target");
     });
 
@@ -872,7 +893,10 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      const hash1 = await buyer1Fundraiser.write.buy([payment1]);
+      const hash1 = await buyer1Fundraiser.write.buy([
+        payment1,
+        buyer1.account.address,
+      ]);
       await publicClient.waitForTransactionReceipt({ hash: hash1 });
 
       // Second buyer makes purchase
@@ -889,7 +913,10 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer2 } }
       );
 
-      const hash2 = await buyer2Fundraiser.write.buy([payment2]);
+      const hash2 = await buyer2Fundraiser.write.buy([
+        payment2,
+        buyer2.account.address,
+      ]);
       await publicClient.waitForTransactionReceipt({ hash: hash2 });
 
       // First buyer refunds
@@ -899,7 +926,7 @@ describe("OtterPadFund", function () {
       // Verify state after refund
       const totalBefore = await fundraiser.read.totalActiveContributions();
       const purchase1 = await fundraiser.read.purchases([0n]);
-      expect(purchase1[4]).to.equal(true); // isRefunded
+      expect(purchase1[5]).to.equal(true); // isRefunded
       expect(totalBefore).to.equal(
         (await fundraiser.read.purchases([1n]))[1] // contributionAmount of second purchase
       );
@@ -934,8 +961,11 @@ describe("OtterPadFund", function () {
       const payment = parseEther("10");
       await maliciousToken.write.approve([fundraiser.address, payment]);
 
-      await expect(fundraiser.write.buy([payment], { account: buyer1.account }))
-        .to.be.rejected;
+      await expect(
+        fundraiser.write.buy([payment, buyer1.account.address], {
+          account: buyer1.account,
+        })
+      ).to.be.rejected;
     });
   });
 
@@ -1196,7 +1226,10 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      await buyer1Fundraiser.write.buy([requiredPayment]);
+      await buyer1Fundraiser.write.buy([
+        requiredPayment,
+        buyer1.account.address,
+      ]);
 
       // Get initial balances
       const initialFoundersBalance = await paymentToken.read.balanceOf([
@@ -1275,7 +1308,10 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      await buyer1Fundraiser.write.buy([requiredPayment]);
+      await buyer1Fundraiser.write.buy([
+        requiredPayment,
+        buyer1.account.address,
+      ]);
 
       // Deploy to Uniswap first time
       const foundersWalletFundraiser = await hre.viem.getContractAt(
@@ -1327,7 +1363,10 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      await buyer1Fundraiser.write.buy([requiredPayment]);
+      await buyer1Fundraiser.write.buy([
+        requiredPayment,
+        buyer1.account.address,
+      ]);
 
       // Get initial balances
       const initialFoundersBalance = await paymentToken.read.balanceOf([
@@ -1401,7 +1440,10 @@ describe("OtterPadFund", function () {
         { client: { wallet: buyer1 } }
       );
 
-      await buyer1Fundraiser.write.buy([requiredPayment]);
+      await buyer1Fundraiser.write.buy([
+        requiredPayment,
+        buyer1.account.address,
+      ]);
 
       // Deploy to Uniswap
       const hash = await buyer1Fundraiser.write.deployToUniswap();
@@ -1534,7 +1576,10 @@ describe("OtterPadFund with Extreme Slopes", function () {
       );
 
       // Make purchase
-      const hash = await buyer1Fundraiser.write.buy([paymentAmount]);
+      const hash = await buyer1Fundraiser.write.buy([
+        paymentAmount,
+        buyer1.account.address,
+      ]);
       await publicClient.waitForTransactionReceipt({ hash });
 
       // Verify purchase was recorded
@@ -1552,8 +1597,8 @@ describe("OtterPadFund with Extreme Slopes", function () {
       // }
       expect(purchase[0]).to.equal(paymentAmount);
       expect(purchase[3]).to.equal(getAddress(buyer1.account.address));
-      expect(purchase[4]).to.equal(false);
       expect(purchase[5]).to.equal(false);
+      expect(purchase[6]).to.equal(false);
     });
 
     it("Should calculate correct token amounts based on price curve", async function () {
@@ -1676,7 +1721,10 @@ describe("OtterPadFund with Extreme Slopes", function () {
         { client: { wallet: buyer1 } }
       );
 
-      const hash = await buyer1Fundraiser.write.buy([paymentAmount]);
+      const hash = await buyer1Fundraiser.write.buy([
+        paymentAmount,
+        buyer1.account.address,
+      ]);
       await publicClient.waitForTransactionReceipt({ hash });
 
       // Check TokensPurchased event
@@ -1694,6 +1742,233 @@ describe("OtterPadFund with Extreme Slopes", function () {
         getAddress(buyer1.account.address)
       );
       expect(paymentEvents[0].args.totalAmount).to.equal(paymentAmount);
+    });
+  });
+});
+
+describe("Delegation scenarios", function () {
+  // We'll use the same fixture from the main tests
+  const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6";
+  const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3";
+
+  async function deployFundraiserFixture() {
+    const saleToken = await hre.viem.deployContract("MockERC20", [
+      "SaleToken",
+      "SALE",
+      18n,
+    ]);
+
+    const paymentToken = await hre.viem.deployContract("MockERC20", [
+      "PaymentToken",
+      "PAY",
+      18n,
+    ]);
+
+    const [deployer, foundersWallet, buyer1, recipient, lpLockWallet] =
+      await hre.viem.getWalletClients();
+
+    const startPrice = parseEther("0.1");
+    const endPrice = parseEther("0.3");
+    const targetLiquidity = parseEther("100");
+    const upfrontRakeBPS = 2_000_000n;
+    const escrowRakeBPS = 3_000_000n;
+
+    const fundraiser = await hre.viem.deployContract("OtterPadFund", [
+      "Delegation Test",
+      "https://example.com/info",
+      saleToken.address,
+      paymentToken.address,
+      UNISWAP_ROUTER,
+      UNISWAP_FACTORY,
+      startPrice,
+      endPrice,
+      targetLiquidity,
+      upfrontRakeBPS,
+      escrowRakeBPS,
+      getAddress(foundersWallet.account.address),
+      getAddress(lpLockWallet.account.address),
+    ]);
+
+    // Mint tokens to buyer for testing
+    const mintAmount = parseEther("1000");
+    await paymentToken.write.mint([
+      getAddress(buyer1.account.address),
+      mintAmount,
+    ]);
+
+    // Mint required sale tokens to contract
+    const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+    await saleToken.write.mint([fundraiser.address, requiredTokens]);
+
+    const publicClient = await hre.viem.getPublicClient();
+
+    return {
+      fundraiser,
+      saleToken,
+      paymentToken,
+      deployer,
+      foundersWallet,
+      buyer1,
+      recipient,
+      lpLockWallet,
+      publicClient,
+    };
+  }
+
+  describe("Delegated purchases and refunds", function () {
+    it("Should allow buying tokens on behalf of another user", async function () {
+      const { fundraiser, paymentToken, buyer1, recipient, publicClient } =
+        await loadFixture(deployFundraiserFixture);
+
+      const paymentAmount = parseEther("10");
+
+      // Approve payment token spend
+      const buyer1PaymentToken = await hre.viem.getContractAt(
+        "MockERC20",
+        paymentToken.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      await buyer1PaymentToken.write.approve([
+        fundraiser.address,
+        paymentAmount,
+      ]);
+
+      // Get fundraiser contract instance for buyer1
+      const buyer1Fundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      // Buy tokens for recipient
+      const hash = await buyer1Fundraiser.write.buy([
+        paymentAmount,
+        recipient.account.address,
+      ]);
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      // Verify purchase was recorded correctly
+      const purchase = await fundraiser.read.purchases([0n]);
+      expect(purchase[3]).to.equal(getAddress(buyer1.account.address)); // purchaser
+      expect(purchase[4]).to.equal(getAddress(recipient.account.address)); // recipient
+
+      // Verify recipient has the order in their indices
+      const recipientOrders = await fundraiser.read.getUserOrderIndices([
+        recipient.account.address,
+      ]);
+      expect(recipientOrders).to.deep.equal([0n]);
+
+      // Verify allocation is assigned to recipient
+      const recipientAllocation = await fundraiser.read.getAllocation([
+        recipient.account.address,
+      ]);
+      expect(recipientAllocation).to.equal(purchase[2]); // tokenAmount
+    });
+
+    it("Should allow purchaser to refund tokens they bought for someone else", async function () {
+      const { fundraiser, paymentToken, buyer1, recipient, publicClient } =
+        await loadFixture(deployFundraiserFixture);
+
+      const paymentAmount = parseEther("10");
+
+      // Buy tokens for recipient first
+      const buyer1PaymentToken = await hre.viem.getContractAt(
+        "MockERC20",
+        paymentToken.address,
+        { client: { wallet: buyer1 } }
+      );
+      await buyer1PaymentToken.write.approve([
+        fundraiser.address,
+        paymentAmount,
+      ]);
+
+      const buyer1Fundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      await buyer1Fundraiser.write.buy([
+        paymentAmount,
+        recipient.account.address,
+      ]);
+
+      // Get initial balance
+      const initialBalance = await paymentToken.read.balanceOf([
+        getAddress(buyer1.account.address),
+      ]);
+
+      // Purchaser (buyer1) requests refund
+      const refundHash = await buyer1Fundraiser.write.refund([0n]);
+      await publicClient.waitForTransactionReceipt({ hash: refundHash });
+
+      // Verify refund was processed
+      const purchase = await fundraiser.read.purchases([0n]);
+      expect(purchase[5]).to.equal(true); // isRefunded
+
+      // Verify refund was sent to original purchaser
+      const finalBalance = await paymentToken.read.balanceOf([
+        getAddress(buyer1.account.address),
+      ]);
+      expect(finalBalance).to.be.gt(initialBalance);
+
+      // Verify allocation is removed from recipient
+      const recipientAllocation = await fundraiser.read.getAllocation([
+        recipient.account.address,
+      ]);
+      expect(recipientAllocation).to.equal(0n);
+    });
+
+    it("Should not allow recipient to refund tokens that someone else bought for them", async function () {
+      const { fundraiser, paymentToken, buyer1, recipient, publicClient } =
+        await loadFixture(deployFundraiserFixture);
+
+      const paymentAmount = parseEther("10");
+
+      // Buy tokens for recipient first
+      const buyer1PaymentToken = await hre.viem.getContractAt(
+        "MockERC20",
+        paymentToken.address,
+        { client: { wallet: buyer1 } }
+      );
+      await buyer1PaymentToken.write.approve([
+        fundraiser.address,
+        paymentAmount,
+      ]);
+
+      const buyer1Fundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      await buyer1Fundraiser.write.buy([
+        paymentAmount,
+        recipient.account.address,
+      ]);
+
+      // Recipient tries to refund
+      const recipientFundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: recipient } }
+      );
+
+      // Should fail because recipient is not the purchaser
+      await expect(recipientFundraiser.write.refund([0n])).to.be.rejectedWith(
+        "Not the purchaser"
+      );
+
+      // Verify purchase remains unrefunded
+      const purchase = await fundraiser.read.purchases([0n]);
+      expect(purchase[5]).to.equal(false); // isRefunded
+
+      // Verify allocation remains with recipient
+      const recipientAllocation = await fundraiser.read.getAllocation([
+        recipient.account.address,
+      ]);
+      expect(recipientAllocation).to.equal(purchase[2]); // tokenAmount
     });
   });
 });

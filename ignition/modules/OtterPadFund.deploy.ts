@@ -41,14 +41,14 @@ export default buildModule("OtterPadFundraiserModule", (m) => {
   const useMockTokens = m.getParameter("useMockTokens", true);
   const saleTokenAddress = m.getParameter<string>(
     "saleToken",
-    // "0xa9A1fA4f13f58E38AF86E7EC4669cfb7f85e7704" // polygon $WINGS
     // "0xa7E044179fB5143DF0Bd408599dBa37E275D9917" // sepolia $WINGS
+    // "0xa9A1fA4f13f58E38AF86E7EC4669cfb7f85e7704" // polygon $WINGS
     "0xea0D03c0aBc36a1Ca7864e03f2E40333D6F4D0F4" // base $BEANS
   );
   const paymentTokenAddress = m.getParameter<string>(
     "paymentToken",
-    // "0xc0f1fDc19F557b8A35ac6d3e58B6a4fee6E874CE" // polygon $USDT
     // "0x385Bcb72e579C7A7D4c9C42DC089733c1675EDE6" // sepolia $USDT
+    // "0xc0f1fDc19F557b8A35ac6d3e58B6a4fee6E874CE" // polygon $USDT
     "0xE18f4828148dBDAdD17de6528042bD5CD9262B7d" // base $BEANS
   );
   const foundersWallet = m.getParameter<string>(

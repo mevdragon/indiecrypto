@@ -336,14 +336,14 @@ describe("OtterPadFactory", function () {
       );
 
       // Make purchase
-      await user1Fund.write.buy([userPaymentAmount]);
+      await user1Fund.write.buy([userPaymentAmount, user1.account.address]);
 
       // Verify purchase was recorded
       expect(await fund.read.orderCounter()).to.equal(1n);
       const purchase = await fund.read.purchases([0n]);
       expect(purchase[0]).to.equal(userPaymentAmount); // paymentAmount
       expect(purchase[3]).to.equal(getAddress(user1.account.address)); // purchaser
-      expect(purchase[4]).to.equal(false); // isRefunded
+      expect(purchase[5]).to.equal(false); // isRefunded
     });
   });
 });

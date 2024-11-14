@@ -80,6 +80,7 @@ interface Purchase {
   contributionAmount: bigint;
   tokenAmount: bigint;
   purchaser: string;
+  recipient: string;
   isRefunded: boolean;
   isRedeemed: boolean;
   purchaseBlock: bigint;
@@ -90,6 +91,7 @@ type PurchaseResponse = readonly [
   contributionAmount: bigint,
   tokenAmount: bigint,
   purchaser: `0x${string}`,
+  recipient: `0x${string}`,
   isRefunded: boolean,
   isRedeemed: boolean,
   purchaseBlock: bigint
@@ -121,9 +123,11 @@ const BuyPanel = ({
     sale: { symbol: "", decimals: 0 },
     payment: { symbol: "", decimals: 0 },
   });
-  const [buyAmount, setBuyAmount] = useState("");
-  const [api, contextHolder] = notification.useNotification();
   const { address: userAddress, isConnected } = useAccount();
+  const [buyAmount, setBuyAmount] = useState("");
+  const [recipientAddress, setRecipientAddress] = useState(userAddress || "");
+  const [showRecipientInput, setShowRecipientInput] = useState(false);
+  const [api, contextHolder] = notification.useNotification();
   const [estimatedTokens, setEstimatedTokens] = useState<string>("0");
   const publicClient = usePublicClient();
   const chainName = getChainName(chainIdDecimal);
@@ -146,6 +150,10 @@ const BuyPanel = ({
 
   const [refundTxs, setRefundTxs] = useState<Record<number, `0x${string}`>>({});
   const [isRefundLocking, setIsRefundLocking] = useState(false);
+
+  useEffect(() => {
+    setRecipientAddress(userAddress || "");
+  }, [userAddress]);
 
   // Single waitForTransactionReceipt hook that watches the latest refund tx
   const { isLoading: isRefundLoading, isSuccess: isRefundSuccess } =
@@ -200,6 +208,7 @@ const BuyPanel = ({
       contributionAmount,
       tokenAmount,
       purchaser,
+      recipient,
       isRefunded,
       isRedeemed,
       purchaseBlock,
@@ -210,6 +219,7 @@ const BuyPanel = ({
       contributionAmount,
       tokenAmount,
       purchaser,
+      recipient,
       isRefunded,
       isRedeemed,
       purchaseBlock,
@@ -423,6 +433,7 @@ const BuyPanel = ({
       });
       message.success("Purchase Successful");
       refetchContractDetails();
+      setRecipientAddress(userAddress || "");
     }
   }, [isApprovalSuccess, isPurchaseSuccess]);
 
@@ -789,7 +800,10 @@ const BuyPanel = ({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "buy",
-        args: [parseUnits(buyAmount, contractData.paymentTokenDecimals)],
+        args: [
+          parseUnits(buyAmount, contractData.paymentTokenDecimals),
+          recipientAddress as `0x${string}`,
+        ],
       });
 
       setTransactionState((prev) => ({
@@ -1450,7 +1464,10 @@ const BuyPanel = ({
                       </Text>
                     </div>
 
-                    <div className="flex gap-2 w-full">
+                    <div
+                      className="flex gap-2 w-full"
+                      style={{ marginBottom: "5px" }}
+                    >
                       <Input
                         size="large"
                         placeholder="Enter amount"
@@ -1536,9 +1553,16 @@ const BuyPanel = ({
                       width: "100%",
                     }}
                   >
-                    Make sure you have enough {tokenInfo.payment?.symbol} tokens
-                    in your wallet. Transaction will require approval from your
-                    wallet.{" "}
+                    You can also buy tokens on{" "}
+                    <span
+                      onClick={() => setShowRecipientInput(true)}
+                      style={{ color: "rgb(22, 119, 255)", cursor: "pointer" }}
+                    >
+                      behalf of others
+                    </span>
+                    . Make sure you have enough {tokenInfo.payment?.symbol}{" "}
+                    tokens in your wallet. Transaction will require approval
+                    from your wallet.{" "}
                     <span
                       onClick={() => setHelpModalOpen(true)}
                       style={{ color: "rgb(22, 119, 255)", cursor: "pointer" }}
@@ -1546,6 +1570,19 @@ const BuyPanel = ({
                       How It Works
                     </span>
                   </Text>
+
+                  {showRecipientInput && (
+                    <div className="flex gap-2 w-full">
+                      <Input
+                        size="large"
+                        placeholder="Recipient Wallet Address"
+                        value={recipientAddress}
+                        onChange={(e) => setRecipientAddress(e.target.value)}
+                        addonBefore="Recipient"
+                        className="flex-1"
+                      />
+                    </div>
+                  )}
                 </div>
               </TabPane>
 
@@ -1597,6 +1634,7 @@ const BuyPanel = ({
                       const purchase = purchaseData[Number(orderIndex)];
                       if (!purchase) return null;
                       const isRefunding = Number(orderIndex) in refundTxs;
+                      console.log(`purchase`, purchase);
                       return (
                         <Card
                           style={{
@@ -1688,7 +1726,8 @@ const BuyPanel = ({
                                 disabled={
                                   contractData.isDeployedToUniswap ||
                                   purchase.isRefunded ||
-                                  isRefunding
+                                  isRefunding ||
+                                  purchase.purchaser !== userAddress
                                 }
                               >
                                 Refund

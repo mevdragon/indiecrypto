@@ -20,6 +20,8 @@ export type { IERC20Metadata } from "./@openzeppelin/contracts/token/ERC20/exten
 export { IERC20Metadata__factory } from "./factories/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata__factory";
 export type { IERC20 } from "./@openzeppelin/contracts/token/ERC20/IERC20";
 export { IERC20__factory } from "./factories/@openzeppelin/contracts/token/ERC20/IERC20__factory";
+export type { SafeCast } from "./@openzeppelin/contracts/utils/math/SafeCast";
+export { SafeCast__factory } from "./factories/@openzeppelin/contracts/utils/math/SafeCast__factory";
 export type { ReentrancyGuard } from "./@openzeppelin/contracts/utils/ReentrancyGuard";
 export { ReentrancyGuard__factory } from "./factories/@openzeppelin/contracts/utils/ReentrancyGuard__factory";
 export type { IUniswapV2Factory } from "./@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory";
@@ -40,5 +42,9 @@ export type { OtterPadFactory } from "./contracts/OtterPadFactory";
 export { OtterPadFactory__factory } from "./factories/contracts/OtterPadFactory__factory";
 export type { OtterPadFund } from "./contracts/OtterPadFund";
 export { OtterPadFund__factory } from "./factories/contracts/OtterPadFund__factory";
+export type { IOtterpadFund } from "./contracts/PresaleLock.sol/IOtterpadFund";
+export { IOtterpadFund__factory } from "./factories/contracts/PresaleLock.sol/IOtterpadFund__factory";
+export type { PresaleLock } from "./contracts/PresaleLock.sol/PresaleLock";
+export { PresaleLock__factory } from "./factories/contracts/PresaleLock.sol/PresaleLock__factory";
 export type { ReentrantToken } from "./contracts/ReentrantToken";
 export { ReentrantToken__factory } from "./factories/contracts/ReentrantToken__factory";

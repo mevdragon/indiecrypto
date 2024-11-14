@@ -16,7 +16,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Sepolia",
     chainIdDecimal: "11155111",
-    factoryAddress: "0xb2ffdA77a0DfC309e7d0c14E9A1f93759ac15963",
+    factoryAddress: "0xD818eB3215fB5c68540967e7615B3dE48c4Df55d",
     isDisabled: false,
     explorerUrl: "https://sepolia.etherscan.io",
     uniswapV2Factory: "0xF62c03E08ada871A0bEb309762E260a7a6a880E6",

@@ -38,6 +38,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC20__factory>;
     getContractFactory(
+      name: "SafeCast",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.SafeCast__factory>;
+    getContractFactory(
       name: "ReentrancyGuard",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ReentrancyGuard__factory>;
@@ -78,6 +82,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.OtterPadFund__factory>;
     getContractFactory(
+      name: "IOtterpadFund",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IOtterpadFund__factory>;
+    getContractFactory(
+      name: "PresaleLock",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.PresaleLock__factory>;
+    getContractFactory(
       name: "ReentrantToken",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ReentrantToken__factory>;
@@ -113,6 +125,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IERC20>;
     getContractAt(
+      name: "SafeCast",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.SafeCast>;
+    getContractAt(
       name: "ReentrancyGuard",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -162,6 +179,16 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.OtterPadFund>;
+    getContractAt(
+      name: "IOtterpadFund",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IOtterpadFund>;
+    getContractAt(
+      name: "PresaleLock",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.PresaleLock>;
     getContractAt(
       name: "ReentrantToken",
       address: string | ethers.Addressable,
@@ -193,6 +220,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC20>;
     deployContract(
+      name: "SafeCast",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SafeCast>;
+    deployContract(
       name: "ReentrancyGuard",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ReentrancyGuard>;
@@ -232,6 +263,14 @@ declare module "hardhat/types/runtime" {
       name: "OtterPadFund",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.OtterPadFund>;
+    deployContract(
+      name: "IOtterpadFund",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IOtterpadFund>;
+    deployContract(
+      name: "PresaleLock",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.PresaleLock>;
     deployContract(
       name: "ReentrantToken",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -268,6 +307,11 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC20>;
     deployContract(
+      name: "SafeCast",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SafeCast>;
+    deployContract(
       name: "ReentrancyGuard",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -317,6 +361,16 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.OtterPadFund>;
+    deployContract(
+      name: "IOtterpadFund",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IOtterpadFund>;
+    deployContract(
+      name: "PresaleLock",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.PresaleLock>;
     deployContract(
       name: "ReentrantToken",
       args: any[],
