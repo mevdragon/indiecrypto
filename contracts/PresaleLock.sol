@@ -22,6 +22,7 @@ contract PresaleLock is ReentrancyGuard {
         uint256 unlockUnixTime;
         uint256 depositId;
         bool isRedeemed;
+        bool isCanceled;
         bytes32 txHash;
     }
 
@@ -52,6 +53,13 @@ contract PresaleLock is ReentrancyGuard {
         uint256 timestamp,
         bytes32 txHash
     );
+
+    event DepositCanceled(
+        uint256 indexed depositId,
+        address indexed recipient,
+        uint256 amount,
+        uint256 timestamp
+    );
     
     event RedeemUnlocked(
         uint256 indexed depositId,
@@ -75,6 +83,7 @@ contract PresaleLock is ReentrancyGuard {
 
     function setFundraiser(address _otterpadFund) external nonReentrant {
         require(_otterpadFund != address(0), "Invalid OtterPad fund address");
+        require(msg.sender == foundersWallet, "Only founders can set OtterPad fund");
         
         otterpadFund = _otterpadFund;
         saleToken = address(IOtterpadFund(_otterpadFund).saleToken());
@@ -90,6 +99,7 @@ contract PresaleLock is ReentrancyGuard {
         require(saleToken != address(0), "Sale token not set yet");
         require(amount > 0, "Amount must be greater than 0");
         require(recipient != address(0), "Invalid recipient address");
+        require(msg.sender == foundersWallet, "Only founders can set OtterPad fund");
         
         // Approve and transfer tokens to this contract
         require(
@@ -109,6 +119,7 @@ contract PresaleLock is ReentrancyGuard {
             unlockUnixTime: unlockUnixTime,
             depositId: currentDepositId,
             isRedeemed: false,
+            isCanceled: false,
             txHash: txHash
         });
         
@@ -130,12 +141,40 @@ contract PresaleLock is ReentrancyGuard {
             txHash
         );
     }
+
+    function cancelDeposit(uint256 depositId) external nonReentrant {
+        require(msg.sender == foundersWallet, "Only founders can cancel deposits");
+        require(otterpadFund != address(0), "OtterPad fund not set yet");
+        require(saleToken != address(0), "Sale token not set yet");
+        
+        Deposit storage dep = deposits[depositId];
+        require(dep.recipient != address(0), "Deposit does not exist");
+        require(dep.amount > 0, "Invalid deposit amount");
+        require(!dep.isRedeemed, "Already redeemed");
+        require(!dep.isCanceled, "Already canceled");
+        
+        dep.isCanceled = true;
+        
+        require(
+            IERC20(saleToken).transfer(foundersWallet, dep.amount),
+            "Token transfer failed"
+        );
+        
+        emit DepositCanceled(
+            depositId,
+            dep.recipient,
+            dep.amount,
+            block.timestamp
+        );
+    }
     
     function redeem(uint256 depositId) external nonReentrant {
         require(otterpadFund != address(0), "OtterPad fund not set yet");
         require(saleToken != address(0), "Sale token not set yet");
         Deposit storage dep = deposits[depositId];
+        require(dep.recipient != address(0), "Deposit does not exist");
         require(!dep.isRedeemed, "Already redeemed");
+        require(!dep.isCanceled, "Deposit was canceled");
         
         // Check if OtterPad sale is complete
         require(

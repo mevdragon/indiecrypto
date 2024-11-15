@@ -41,7 +41,7 @@ describe("PresaleLockFactory", function () {
         deployFactoryFixture
       );
 
-      const createLockTx = await factory.write.createLock([
+      const createLockTx = await factory.write.createPresaleLock([
         defaultParams.title,
         defaultParams.foundersWallet,
       ]);
@@ -71,15 +71,16 @@ describe("PresaleLockFactory", function () {
 
       // Test zero address for founders wallet
       await expect(
-        factory.write.createLock([
+        factory.write.createPresaleLock([
           defaultParams.title,
           "0x0000000000000000000000000000000000000000",
         ])
       ).to.be.rejected;
 
       // Test empty title
-      await expect(factory.write.createLock(["", defaultParams.foundersWallet]))
-        .to.be.rejected;
+      await expect(
+        factory.write.createPresaleLock(["", defaultParams.foundersWallet])
+      ).to.be.rejected;
     });
 
     it("Should create multiple locks correctly", async function () {
@@ -88,13 +89,13 @@ describe("PresaleLockFactory", function () {
       );
 
       // Create first lock
-      await factory.write.createLock([
+      await factory.write.createPresaleLock([
         defaultParams.title,
         defaultParams.foundersWallet,
       ]);
 
       // Create second lock with different title
-      await factory.write.createLock([
+      await factory.write.createPresaleLock([
         "Second Lock",
         defaultParams.foundersWallet,
       ]);
@@ -116,7 +117,7 @@ describe("PresaleLockFactory", function () {
         deployFactoryFixture
       );
 
-      await factory.write.createLock([
+      await factory.write.createPresaleLock([
         defaultParams.title,
         defaultParams.foundersWallet,
       ]);

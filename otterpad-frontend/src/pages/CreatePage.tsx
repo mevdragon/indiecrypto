@@ -32,6 +32,7 @@ import { OtterpadInfo } from "../components/Charts";
 import {
   getExplorerUrl,
   getFactoryAddress,
+  getPresaleFactory,
   getUniswapV2Factory,
   SUPPORTED_CHAINS,
 } from "../config";
@@ -286,6 +287,7 @@ const CreatePage: React.FC = () => {
 
   const explorerUrl = getExplorerUrl(selectedChain);
   const uniswapV2Factory = getUniswapV2Factory(selectedChain);
+  const presaleFactory = getPresaleFactory(selectedChain);
 
   return (
     <AppLayout>
@@ -306,7 +308,27 @@ const CreatePage: React.FC = () => {
           {fundCounter ? fundCounter.toString() : "Loading..."}
         </p> */}
         <Card
-          title="Create Crypto Fundraiser"
+          title={
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <h1 style={{ fontSize: "1.1rem", color: "#646cff" }}>
+                Create Crypto Fundraiser
+              </h1>
+              <a
+                href={`${explorerUrl}/address/${presaleFactory}#writeContract`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button size="small">Or Presale</Button>
+              </a>
+            </div>
+          }
           style={{
             width: isDesktop ? "600px" : "100%",
             maxWidth: "100%",

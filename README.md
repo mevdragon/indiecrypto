@@ -1,29 +1,30 @@
-# Otterpad Finance
+# IndieCrypto
 
-Aka IndieCrypto.Club
+Aka Otterpad
+Watch [YouTube Tutorials](https://www.youtube.com/playlist?list=PLGmDXGv6ObCUthaDmPnU9Fe6cmN_yCS1b)
 
 ## Deployed Addresses:
 
 ### Base Mainnet:
 
-- Fund Factory: `0x7F83c2550322341a561F8c8C31143a6B0d594994`
-- [View Sample Fund](https://basescan.org/address/0xABE3dA25816E4fE5a7675fB77B2A3ac61af69e4f#code)
-- [PresaleLock Factory](https://basescan.org/address/0x9A8059791de3DD54f3F337bDDf0f16E35c3881bb#code)
-- [View Sample PreSaleLock](https://basescan.org/address/0x69d023351e242238acb924c02123BA75E66CdF95#code)
+- [Fund Factory](https://basescan.org/address/0x4296ac43F23EA581FBFCA2550740AFB652AD4655#code) `0x4296ac43F23EA581FBFCA2550740AFB652AD4655`
+- [View Sample Fund](https://basescan.org/address/0xCB23FD7E92a3778D59EDf1B45801d2140A4020F3#code)
+- [PresaleLock Factory](https://basescan.org/address/0xaC1136fB4C60A0604252d870c72E20Aca60749fc#code) `0xaC1136fB4C60A0604252d870c72E20Aca60749fc`
+- [View Sample PreSaleLock](https://basescan.org/address/0x132BC6E0447495C01Ad184019FceEA99572064ba#code)
 
 ### Polygon Mainnet:
 
-- Factory: `0x88C9C5a812ca68a20DEc56CFc7C36b5D5B31689f`
-- [View Sample Fund](https://polygonscan.com/address/0x137d2908A3992830F639d3Ea74b0eD10AD6Ad63E#code)
-- [PresaleLock Factory](https://polygonscan.com/address/0x02d1316EeD812016746BeFfCbcDc6E0f2a9eCfd4#code)
-- [View Sample PreSaleLock](https://polygonscan.com/address/0x73532D63b38e935E89Df5Bd9Eb28a99F527Efa08#code)
+- [Factory](https://polygonscan.com/address/0x8D7ee9Ae4170BE5B98f6d5a6A4a1fc595eAeF414#code) `0x8D7ee9Ae4170BE5B98f6d5a6A4a1fc595eAeF414`
+- [View Sample Fund](https://polygonscan.com/address/0x7741f935416d8FfA3c5B2B52616A34F9F5f57222#code)
+- [PresaleLock Factory](https://polygonscan.com/address/0x7cf0aA18e413ed98B0983A7567cfB95303D279EA#code) `0x7cf0aA18e413ed98B0983A7567cfB95303D279EA`
+- [View Sample PreSaleLock](https://polygonscan.com/address/0x66F318d571Bd70071d33887D8a60211764484859#code)
 
 ### Sepolia Testnet:
 
-- Factory: `0xD818eB3215fB5c68540967e7615B3dE48c4Df55d`
-- [View Sample Fund](https://sepolia.etherscan.io/address/0xBC285Fcc79523B2fef192ec1Fa4A2c12a33b03C1#code)
-- [PresaleLock Factory](https://sepolia.etherscan.io/address/0xc464b255D4F1Dd95d33749702632A3E6812ABF13#code)
-- [View Sample PreSaleLock](https://sepolia.etherscan.io/address/0xc0147F3C59D07FeD9025A47f62d7E5F31eA1E6Ef#code)
+- [Factory](https://sepolia.etherscan.io/address/0x7D46d5b37bD2515ED9c39c45B267342f3dd47b9a#code) `0x7D46d5b37bD2515ED9c39c45B267342f3dd47b9a`
+- [View Sample Fundraiser](https://sepolia.etherscan.io/address/0xF8Dd09423D5938b8aFECCd1F09fa294bc05e2bef#code)
+- [PresaleLock Factory](https://sepolia.etherscan.io/address/0x5d79401D1e0310235399F5293aeca0524BF83136#code) `0x5d79401D1e0310235399F5293aeca0524BF83136`
+- [View Sample PreSaleLock](https://sepolia.etherscan.io/address/0x64F90dDB79327c9EB2185Cc059d86Eadb1747Df5#code)
 
 ## Posters
 

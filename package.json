@@ -1,5 +1,5 @@
 {
-  "name": "otterpad-contracts",
+  "name": "indiecrypto",
   "scripts": {
     "build": "npx hardhat compile",
     "types": "npx hardhat typechain",

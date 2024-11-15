@@ -290,6 +290,7 @@ contract OtterPadFund is ReentrancyGuard {
         require(targetReached, "Target not reached yet");
         require(isDeployedToUniswap, "Not yet deployed to DEX");
         Purchase storage purchase = purchases[orderIndex];
+        require(purchase.purchaser != address(0), "Order does not exist");
         require(!purchase.isRefunded, "Order was refunded");
         require(!purchase.isRedeemed, "Already redeemed");
         
@@ -307,6 +308,7 @@ contract OtterPadFund is ReentrancyGuard {
     function refund(uint256 orderIndex) external nonReentrant {
         require(!isDeployedToUniswap, "Sale completed");
         Purchase storage purchase = purchases[orderIndex];
+        require(purchase.purchaser != address(0), "Order does not exist");
         require(purchase.purchaser == msg.sender, "Not the purchaser");
         require(!purchase.isRefunded, "Already refunded");
         require(!purchase.isRedeemed, "Already redeemed");
