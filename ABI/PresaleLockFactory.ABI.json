@@ -54,7 +54,7 @@
         "type": "address"
       }
     ],
-    "name": "createLock",
+    "name": "createPresaleLock",
     "outputs": [
       {
         "internalType": "address",

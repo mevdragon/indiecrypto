@@ -5,6 +5,7 @@ export interface ChainConfig {
   chain: string;
   chainIdDecimal: string;
   factoryAddress: string;
+  presaleFactory: string;
   isDisabled: boolean;
   explorerUrl: string;
   uniswapV2Factory: Address;
@@ -16,7 +17,8 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Sepolia",
     chainIdDecimal: "11155111",
-    factoryAddress: "0xD818eB3215fB5c68540967e7615B3dE48c4Df55d",
+    factoryAddress: "0x7D46d5b37bD2515ED9c39c45B267342f3dd47b9a",
+    presaleFactory: "0x5d79401D1e0310235399F5293aeca0524BF83136",
     isDisabled: false,
     explorerUrl: "https://sepolia.etherscan.io",
     uniswapV2Factory: "0xF62c03E08ada871A0bEb309762E260a7a6a880E6",
@@ -26,7 +28,8 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Polygon",
     chainIdDecimal: "137",
-    factoryAddress: "0xEe2D1300f15723F2fAB51512445AfF2F39B60234",
+    factoryAddress: "0x8D7ee9Ae4170BE5B98f6d5a6A4a1fc595eAeF414",
+    presaleFactory: "0x7cf0aA18e413ed98B0983A7567cfB95303D279EA",
     isDisabled: false,
     explorerUrl: "https://polygonscan.com",
     uniswapV2Factory: "0x9e5A52f57b3038F1B8EeE45F28b3C1967e22799C",
@@ -36,7 +39,8 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Base",
     chainIdDecimal: "8453",
-    factoryAddress: "0xC4B86556E68E6A6B98f72DaD15B0273883e45489",
+    factoryAddress: "0x4296ac43F23EA581FBFCA2550740AFB652AD4655",
+    presaleFactory: "0xaC1136fB4C60A0604252d870c72E20Aca60749fc",
     isDisabled: false,
     explorerUrl: "https://basescan.org/",
     uniswapV2Factory: "0x8909Dc15e40173Ff4699343b6eB8132c65e18eC6",
@@ -59,6 +63,12 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   //   explorerUrl: "https://basescan.org",
   // },
 ];
+
+export const getPresaleFactory = (chainId: string): string => {
+  const chain = SUPPORTED_CHAINS.find((c) => c.chainIdDecimal === chainId);
+  if (!chain) throw new Error(`Unsupported chain ID: ${chainId}`);
+  return chain.presaleFactory;
+};
 
 export const getFactoryAddress = (chainId: string): string => {
   const chain = SUPPORTED_CHAINS.find((c) => c.chainIdDecimal === chainId);

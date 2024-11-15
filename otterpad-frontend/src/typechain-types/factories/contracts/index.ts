@@ -6,4 +6,5 @@ export * as presaleLockSol from "./PresaleLock.sol";
 export { Lock__factory } from "./Lock__factory";
 export { OtterPadFactory__factory } from "./OtterPadFactory__factory";
 export { OtterPadFund__factory } from "./OtterPadFund__factory";
+export { PresaleLockFactory__factory } from "./PresaleLockFactory__factory";
 export { ReentrantToken__factory } from "./ReentrantToken__factory";

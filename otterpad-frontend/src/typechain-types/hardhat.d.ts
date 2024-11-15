@@ -90,6 +90,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.PresaleLock__factory>;
     getContractFactory(
+      name: "PresaleLockFactory",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.PresaleLockFactory__factory>;
+    getContractFactory(
       name: "ReentrantToken",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ReentrantToken__factory>;
@@ -190,6 +194,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.PresaleLock>;
     getContractAt(
+      name: "PresaleLockFactory",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.PresaleLockFactory>;
+    getContractAt(
       name: "ReentrantToken",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -272,6 +281,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.PresaleLock>;
     deployContract(
+      name: "PresaleLockFactory",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.PresaleLockFactory>;
+    deployContract(
       name: "ReentrantToken",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ReentrantToken>;
@@ -371,6 +384,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.PresaleLock>;
+    deployContract(
+      name: "PresaleLockFactory",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.PresaleLockFactory>;
     deployContract(
       name: "ReentrantToken",
       args: any[],

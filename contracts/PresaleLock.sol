@@ -83,6 +83,7 @@ contract PresaleLock is ReentrancyGuard {
 
     function setFundraiser(address _otterpadFund) external nonReentrant {
         require(_otterpadFund != address(0), "Invalid OtterPad fund address");
+        require(msg.sender == foundersWallet, "Only founders can set OtterPad fund");
         
         otterpadFund = _otterpadFund;
         saleToken = address(IOtterpadFund(_otterpadFund).saleToken());
@@ -98,6 +99,7 @@ contract PresaleLock is ReentrancyGuard {
         require(saleToken != address(0), "Sale token not set yet");
         require(amount > 0, "Amount must be greater than 0");
         require(recipient != address(0), "Invalid recipient address");
+        require(msg.sender == foundersWallet, "Only founders can set OtterPad fund");
         
         // Approve and transfer tokens to this contract
         require(

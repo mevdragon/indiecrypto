@@ -22,7 +22,7 @@ contract PresaleLockFactory {
         lockCounterIndex = 0;
     }
     
-    function createLock(
+    function createPresaleLock(
         string memory title,
         address foundersWallet
     ) external returns (address) {

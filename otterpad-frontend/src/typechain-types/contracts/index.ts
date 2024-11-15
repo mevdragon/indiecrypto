@@ -8,4 +8,5 @@ export type { presaleLockSol };
 export type { Lock } from "./Lock";
 export type { OtterPadFactory } from "./OtterPadFactory";
 export type { OtterPadFund } from "./OtterPadFund";
+export type { PresaleLockFactory } from "./PresaleLockFactory";
 export type { ReentrantToken } from "./ReentrantToken";

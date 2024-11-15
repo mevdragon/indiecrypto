@@ -46,5 +46,7 @@ export type { IOtterpadFund } from "./contracts/PresaleLock.sol/IOtterpadFund";
 export { IOtterpadFund__factory } from "./factories/contracts/PresaleLock.sol/IOtterpadFund__factory";
 export type { PresaleLock } from "./contracts/PresaleLock.sol/PresaleLock";
 export { PresaleLock__factory } from "./factories/contracts/PresaleLock.sol/PresaleLock__factory";
+export type { PresaleLockFactory } from "./contracts/PresaleLockFactory";
+export { PresaleLockFactory__factory } from "./factories/contracts/PresaleLockFactory__factory";
 export type { ReentrantToken } from "./contracts/ReentrantToken";
 export { ReentrantToken__factory } from "./factories/contracts/ReentrantToken__factory";

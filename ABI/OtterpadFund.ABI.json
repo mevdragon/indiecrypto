@@ -123,6 +123,12 @@
         "type": "address"
       },
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
         "indexed": false,
         "internalType": "uint256",
         "name": "totalAmount",
@@ -203,6 +209,12 @@
         "type": "address"
       },
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
         "indexed": false,
         "internalType": "uint256",
         "name": "paymentAmount",
@@ -248,7 +260,7 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "purchaser",
+        "name": "recipient",
         "type": "address"
       },
       {
@@ -312,6 +324,11 @@
         "internalType": "uint256",
         "name": "paymentAmount",
         "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
       }
     ],
     "name": "buy",
@@ -625,6 +642,11 @@
       {
         "internalType": "address",
         "name": "purchaser",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
         "type": "address"
       },
       {
