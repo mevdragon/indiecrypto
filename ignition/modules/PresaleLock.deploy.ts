@@ -1,5 +1,7 @@
 // npx hardhat ignition deploy ./ignition/modules/PresaleLock.deploy.ts
 // npx hardhat ignition deploy ./ignition/modules/PresaleLock.deploy.ts --network sepolia  --verify
+// npx hardhat ignition deploy ./ignition/modules/PresaleLock.deploy.ts --network polygon  --verify
+// npx hardhat ignition deploy ./ignition/modules/PresaleLock.deploy.ts --network base  --verify
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { zeroAddress } from "viem";

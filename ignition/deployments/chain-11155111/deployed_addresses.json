@@ -1,4 +1,4 @@
 {
-  "PresaleLockModule#PresaleLock": "0x64F90dDB79327c9EB2185Cc059d86Eadb1747Df5",
-  "OtterPadFactoryModule#PresaleLockFactory": "0x5d79401D1e0310235399F5293aeca0524BF83136"
+  "TokenDeploymentModule#CoffeeBeans": "0x398b7674fdC207579C5c1367E0111D53049F402A",
+  "TokenDeploymentModule#TetherUSD": "0xdf1F03D1D30439DfdE56b7ddD44d916B5DA3Eed2"
 }

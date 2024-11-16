@@ -7,6 +7,7 @@ import {
   usePublicClient,
   useAccount,
 } from "wagmi";
+import { estimateGas } from "@wagmi/core";
 import {
   UserOutlined,
   LinkOutlined,
@@ -25,6 +26,9 @@ import {
   SUPPORTED_CHAINS,
 } from "../config";
 import { Address, formatUnits } from "viem";
+import { OtterPadFund__factory } from "../typechain-types";
+import { wagmiConfig } from "../App";
+import { Interface } from "ethers";
 
 interface DexTabPaneProps {
   address: Address;
@@ -221,11 +225,34 @@ const DexTabPane: React.FC<DexTabPaneProps> = ({
         isTransferring: true,
       }));
 
+      const erc20Interface = new Interface([
+        "function transfer(address to, uint256 amount)",
+      ]);
+
+      console.log(
+        `contractData.requiredSaleTokens`,
+        contractData.requiredSaleTokens
+      );
+
+      // Get the encoded function data for ERC20 transfer
+      const data = erc20Interface.encodeFunctionData("transfer", [
+        contractAddress as `0x${string}`,
+        contractData.requiredSaleTokens,
+      ]) as `0x${string}`;
+
+      // Estimate gas using wagmi's estimateGas
+      const estimatedGasLimit = await estimateGas(wagmiConfig, {
+        to: contractData.saleTokenAddress,
+        data,
+        value: 0n,
+      });
+
       transferSaleToken({
         address: contractData.saleTokenAddress,
         abi: ERC20_ABI,
         functionName: "transfer",
         args: [contractAddress, contractData.requiredSaleTokens],
+        gas: (estimatedGasLimit * BigInt(120)) / BigInt(100), // Add 20% buffer
       });
 
       setTransactionState((prev) => ({
@@ -265,10 +292,29 @@ const DexTabPane: React.FC<DexTabPaneProps> = ({
     }
     try {
       console.log("About to DEX");
+      // Create interface directly from ABI for the specific function
+
+      // Get the encoded function data from Typechain's factory
+      const data = OtterPadFund__factory.createInterface().encodeFunctionData(
+        // @ts-ignore
+        "deployToUniswap",
+        []
+      ) as `0x${string}`;
+
+      // Estimate gas using wagmi's estimateGas
+      const estimatedGasLimit = await estimateGas(wagmiConfig, {
+        to: contractAddress,
+        data,
+        value: 0n,
+      });
+
+      console.log("estimatedGasLimit", estimatedGasLimit);
+
       deployToUniswap({
         address: contractAddress,
         abi: CONTRACT_ABI,
         functionName: "deployToUniswap",
+        gas: (estimatedGasLimit * BigInt(120)) / BigInt(100), // Add 20% buffer
       });
       message.info(
         "Deployment to DEX initiated. Please wait for confirmation."

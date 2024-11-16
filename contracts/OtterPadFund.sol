@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+// import "hardhat/console.sol";
 
 
 // github@mevdragon
@@ -21,6 +22,7 @@ contract OtterPadFund is ReentrancyGuard {
         bool isRefunded;            // Whether the purchase was refunded
         bool isRedeemed;            // Whether the purchase was redeemed
         uint256 purchaseBlock;      // Block number of the purchase
+        uint256 orderIndex;
     }
 
     IERC20Metadata public immutable saleToken;  // The token being sold
@@ -42,7 +44,7 @@ contract OtterPadFund is ReentrancyGuard {
     uint256 public constant OTTERPAD_FEE_BPS = 2_000_000;   // 2% in 6 decimals
     uint256 public immutable upfrontRakeBPS;                // Percentage of payment tokens immediately sent to founders and OtterPad fee
     uint256 public immutable escrowRakeBPS;                 // Percentage of payment tokens held in escrow for founders, released at DEX deployment
-    uint256 public immutable slopeScalingFactor = 10**18;   // Scaling factor for slope calculation
+    uint256 public immutable slopeScalingFactor = 10**12;   // Scaling factor for slope calculation
     uint256 private immutable wei_forgiveness_buffer = 100; // 100 wei allowed difference for deployment
     
     address public immutable foundersWallet;                // Wallet of founders receive upfront rake & escrow rake
@@ -168,17 +170,29 @@ contract OtterPadFund is ReentrancyGuard {
     }
     // Slope of the sale token bonding curve
     function getSlope () public view returns (uint256) {
+        
         uint256 totalCashInflows = targetLiquidity * BPS_FACTOR / (BPS_FACTOR - upfrontRakeBPS - escrowRakeBPS);
+        
         uint256 avgPrice = ((startPrice + endPrice) / 2);
+        
         uint256 proratedPayChunksForSale = totalCashInflows * (10**paymentTokenDecimals) / avgPrice;
+        
         uint256 salesTokensForSale = proratedPayChunksForSale * (10**saleTokenDecimals) / 10**paymentTokenDecimals;
-        return (endPrice - startPrice) * (10**saleTokenDecimals) * slopeScalingFactor / salesTokensForSale;
+        
+        uint256 slope = (endPrice - startPrice) * (10**saleTokenDecimals) * slopeScalingFactor / salesTokensForSale;
+        
+        return slope;
     }
     // Current payment token wei price of the sale token on bonding curve
     function getCurrentPrice() public view returns (uint256) {
+        
         uint256 netCashInflows = totalActiveContributions * BPS_FACTOR / (BPS_FACTOR - upfrontRakeBPS - escrowRakeBPS);
+        
         uint256 tokensIssuedSoFar = _calculateTokensReceived(netCashInflows);
-        return startPrice + (tokensIssuedSoFar * getSlope() / (10**saleTokenDecimals)) / slopeScalingFactor;
+        
+        uint256 currentPrice = startPrice + (tokensIssuedSoFar * getSlope() / (10**saleTokenDecimals)) / slopeScalingFactor;
+        
+        return currentPrice;
     }
     // internal function to calculate the exact amount of sale tokens received for a given payment amount
     // uses the quadratic formula to solve for the integral of a linear price curve
@@ -194,6 +208,7 @@ contract OtterPadFund is ReentrancyGuard {
         // (m/2)X² + bX - PAY = 0
         // X = (-b ± √(b^2 + 4((m/2))(PAY))) / (2(m/2))
         // X = (-b + √(b^2 + 4((m/2))(PAY))) / (2(m/2))
+        
         uint256 b = startPrice * slopeScalingFactor;
         int256 m = int256(getSlope());
         int256 a = m / 2;
@@ -205,39 +220,57 @@ contract OtterPadFund is ReentrancyGuard {
         ));
         int256 twoA = (2*a);
         int256 saleTokensReceived = (negB + squareRootPortion) * int256(10**saleTokenDecimals) / twoA;
+        
         return uint256(saleTokensReceived);
     }
     
     // Calculate the amount of sale tokens received for a given payment amount, at the current price
     // Eg. If theres already been P payment tokens contributed, how many sale tokens would be received for a new p payment?
     function calculateTokensReceived(uint256 paymentAmount) public view returns (uint256) {
+
+        
         uint256 otterpadFee = (paymentAmount * OTTERPAD_FEE_BPS) / BPS_FACTOR;
+        
         uint256 upfrontAmount = (paymentAmount * upfrontRakeBPS) / BPS_FACTOR - otterpadFee;
+        
         uint256 escrowAmount = (paymentAmount * escrowRakeBPS) / BPS_FACTOR;
+        
         uint256 contributionAmount = paymentAmount - upfrontAmount - escrowAmount - otterpadFee;
+        
         require(totalActiveContributions + contributionAmount <= targetLiquidity, "Exceeds target");
         uint256 netCashInflows = totalActiveContributions * BPS_FACTOR / (BPS_FACTOR - upfrontRakeBPS - escrowRakeBPS);
+        
         uint256 salesTokensIssuedThusFar = _calculateTokensReceived(netCashInflows);
+        
         uint256 salesTokensIssuedAfterThisPurchase = _calculateTokensReceived(netCashInflows + paymentAmount);
+        
         uint256 netNewSalesTokensIssued = salesTokensIssuedAfterThisPurchase - salesTokensIssuedThusFar;
+        
         return netNewSalesTokensIssued;
     }
     
     // Purchase sale tokens with payment tokens
     // This will actually transfer payment tokens from buyer wallet into this contract
     function buy(uint256 paymentAmount, address recipient) external nonReentrant {
+        
+        
         require(!isDeployedToUniswap, "Sale completed");
         require(paymentAmount > 0, "Invalid payment amount");
         require(recipient != address(0), "Invalid recipient");
         
         uint256 otterpadFee = (paymentAmount * OTTERPAD_FEE_BPS) / BPS_FACTOR;
+        
         uint256 upfrontAmount = (paymentAmount * upfrontRakeBPS) / BPS_FACTOR - otterpadFee;
+        
         uint256 escrowAmount = (paymentAmount * escrowRakeBPS) / BPS_FACTOR;
+        
         uint256 contributionAmount = paymentAmount - otterpadFee - upfrontAmount - escrowAmount;
+        
         
         require(totalActiveContributions + contributionAmount <= targetLiquidity, "Exceeds target");
         
         uint256 tokenAmount = calculateTokensReceived(paymentAmount);
+        
         
         require(
             paymentToken.transferFrom(msg.sender, address(this), paymentAmount),
@@ -258,6 +291,7 @@ contract OtterPadFund is ReentrancyGuard {
         require(paymentToken.transfer(foundersWallet, upfrontAmount), "Upfront transfer failed");
 
         uint256 orderIndex = orderCounter;
+        
         orderCounter++;
         
         purchases[orderIndex] = Purchase({
@@ -268,14 +302,19 @@ contract OtterPadFund is ReentrancyGuard {
             recipient: recipient,
             isRefunded: false,
             isRedeemed: false,
-            purchaseBlock: block.number
+            purchaseBlock: block.number,
+            orderIndex: orderIndex
         });
+        
         
         userOrderIndices[recipient].push(orderIndex);
         
         totalTokensAllocated += tokenAmount;
+        
         totalActiveContributions += contributionAmount;
+        
         totalPaymentsIn += paymentAmount;
+        
         
         emit TokensPurchased(msg.sender, recipient, paymentAmount, contributionAmount, tokenAmount, orderIndex, totalActiveContributions, block.timestamp);
         
@@ -316,24 +355,31 @@ contract OtterPadFund is ReentrancyGuard {
         purchase.isRefunded = true;
         
         totalTokensAllocated -= purchase.tokenAmount;
+        
         totalActiveContributions -= purchase.contributionAmount;
+        
 
         uint256 cashPaidInAmount = purchase.contributionAmount * BPS_FACTOR / (BPS_FACTOR - upfrontRakeBPS - escrowRakeBPS);
+        
         uint256 escrowAmount = (cashPaidInAmount * escrowRakeBPS) / BPS_FACTOR;
+        
         uint256 refundAmount = purchase.contributionAmount + escrowAmount;
+        
         
         require(paymentToken.transfer(purchase.purchaser, refundAmount), "Refund failed");
         
         emit Refunded(msg.sender, refundAmount, orderIndex, totalActiveContributions, block.timestamp);
+
+        targetReached = false;
     }
 
     // Check if the contract has sufficient sale tokens to deploy to Uniswap
     function hasSufficientSaleTokens() external view returns (bool) {
-        return saleToken.balanceOf(address(this)) >= checkSaleTokensRequired();
+        return saleToken.balanceOf(address(this)) >= checkSaleTokensRequired()[0];
     }
     // Internal function to check if the contract has sufficient sale tokens to deploy to Uniswap
     function _hasSufficientSaleTokens() internal view returns (bool) {
-        return saleToken.balanceOf(address(this)) >= checkSaleTokensRequired();
+        return saleToken.balanceOf(address(this)) >= checkSaleTokensRequired()[0];
     }
 
     // Deploy the contract to UniswapV2 pool
@@ -346,7 +392,6 @@ contract OtterPadFund is ReentrancyGuard {
         
         uint256 escrowAmount = getEscrowedAmount();
         
-        
         require(_hasSufficientSaleTokens(), "Insufficient sale tokens");
         
         uint256 saleTokenBase = 10 ** saleTokenDecimals;
@@ -354,13 +399,12 @@ contract OtterPadFund is ReentrancyGuard {
         uint256 complimentarySalesTokensLiquidity = (targetLiquidity * saleTokenBase) / endPrice;
 
 
-        
         require(saleToken.balanceOf(address(this)) >= complimentarySalesTokensLiquidity, "Insufficient sale tokens");
         require(paymentToken.balanceOf(address(this)) >= targetLiquidity + escrowAmount - wei_forgiveness_buffer, 
             "Insufficient payment tokens");
 
-        uint256 actualPaymentTokenAmount = targetLiquidity < paymentToken.balanceOf(address(this)) ? targetLiquidity : paymentToken.balanceOf(address(this));
-
+        uint256 actualPaymentTokenAmount = (targetLiquidity < paymentToken.balanceOf(address(this)) ? targetLiquidity : paymentToken.balanceOf(address(this))) - wei_forgiveness_buffer;
+        
         
         
         require(saleToken.approve(address(uniswapRouter), complimentarySalesTokensLiquidity), "Token approve failed");
@@ -376,6 +420,7 @@ contract OtterPadFund is ReentrancyGuard {
             lockLPTokenWallet,
             block.timestamp + 2 minutes
         );
+
         
         if (escrowAmount > 0) {
             require(paymentToken.transfer(foundersWallet, escrowAmount), "Escrow release failed");
@@ -430,7 +475,7 @@ contract OtterPadFund is ReentrancyGuard {
     }
 
     // Check the amount of sale tokens required to deploy to Uniswap plus what is owed to buyers for redeem()
-    function checkSaleTokensRequired() public view returns (uint256) {
+    function checkSaleTokensRequired() public view returns (uint256[3] memory) {
         
         uint256 proratedLiquidity = (targetLiquidity * 10 ** paymentTokenDecimals) / endPrice;
         uint256 salesTokensForLiquidity = proratedLiquidity * (10**saleTokenDecimals) / 10**paymentTokenDecimals;
@@ -440,6 +485,7 @@ contract OtterPadFund is ReentrancyGuard {
         uint256 proratedTokensForSale = totalCashInflows * (10**paymentTokenDecimals) / avgPrice;
         uint256 salesTokensForSale = proratedTokensForSale * (10**saleTokenDecimals) / 10**paymentTokenDecimals;
         
-        return salesTokensForLiquidity + salesTokensForSale;
+        uint256 totalSalesTokens = salesTokensForLiquidity + salesTokensForSale;
+        return [totalSalesTokens, salesTokensForLiquidity, salesTokensForSale];
     }
 }

@@ -1,7 +1,13 @@
 // npx hardhat ignition deploy ./ignition/modules/OtterPadFactory.deploy.ts
 // npx hardhat ignition deploy ./ignition/modules/OtterPadFactory.deploy.ts --network sepolia  --verify
+// npx hardhat ignition deploy ./ignition/modules/OtterPadFactory.deploy.ts --network polygon  --verify
+// npx hardhat ignition deploy ./ignition/modules/OtterPadFactory.deploy.ts --network base  --verify
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+
+// Hardhat
+// const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3"; // Mainnet V2 Router
+// const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6"; // Mainnet V2 Factory
 
 // Sepolia
 const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3"; // Mainnet V2 Router

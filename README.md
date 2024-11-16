@@ -21,10 +21,10 @@ Watch [YouTube Tutorials](https://www.youtube.com/playlist?list=PLGmDXGv6ObCUtha
 
 ### Sepolia Testnet:
 
-- [Factory](https://sepolia.etherscan.io/address/0x7D46d5b37bD2515ED9c39c45B267342f3dd47b9a#code) `0x7D46d5b37bD2515ED9c39c45B267342f3dd47b9a`
-- [View Sample Fundraiser](https://sepolia.etherscan.io/address/0xF8Dd09423D5938b8aFECCd1F09fa294bc05e2bef#code)
-- [PresaleLock Factory](https://sepolia.etherscan.io/address/0x5d79401D1e0310235399F5293aeca0524BF83136#code) `0x5d79401D1e0310235399F5293aeca0524BF83136`
-- [View Sample PreSaleLock](https://sepolia.etherscan.io/address/0x64F90dDB79327c9EB2185Cc059d86Eadb1747Df5#code)
+- [Factory](https://sepolia.etherscan.io/address/0xe42C4AaEeB66eb3A678095824614034ea92C1e14#code) `0xe42C4AaEeB66eb3A678095824614034ea92C1e14`
+- [View Sample Fundraiser](https://sepolia.etherscan.io/address/0xeDe7DBcE147389ab842bc081dbF46683132d6EF9#code)
+- [PresaleLock Factory](https://sepolia.etherscan.io/address/0x868BCEeF7ad84790c888cD7C96301C40Dac6f637#code) `0x868BCEeF7ad84790c888cD7C96301C40Dac6f637`
+- [View Sample PreSaleLock](https://sepolia.etherscan.io/address/0x5C6e523AEB34e111f4B48D87AfEb7e73B78f3Bf8#code)
 
 ## Posters
 

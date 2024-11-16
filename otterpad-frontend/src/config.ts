@@ -17,8 +17,8 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Sepolia",
     chainIdDecimal: "11155111",
-    factoryAddress: "0x7D46d5b37bD2515ED9c39c45B267342f3dd47b9a",
-    presaleFactory: "0x5d79401D1e0310235399F5293aeca0524BF83136",
+    factoryAddress: "0xC850e1f73eb057400e333e68596aeB745C925B5E",
+    presaleFactory: "0x868BCEeF7ad84790c888cD7C96301C40Dac6f637",
     isDisabled: false,
     explorerUrl: "https://sepolia.etherscan.io",
     uniswapV2Factory: "0xF62c03E08ada871A0bEb309762E260a7a6a880E6",

@@ -3,7 +3,8 @@
   "scripts": {
     "build": "npx hardhat compile",
     "types": "npx hardhat typechain",
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "local": "npx hardhat node"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
@@ -12,6 +13,7 @@
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
     "hardhat": "^2.22.15",
+    "hardhat-preprocessor": "^0.1.5",
     "typechain": "^8.3.2"
   },
   "dependencies": {

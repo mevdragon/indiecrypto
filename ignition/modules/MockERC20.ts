@@ -1,9 +1,11 @@
+// npx hardhat ignition deploy ./ignition/modules/MockERC20.ts --network hardhat
 // npx hardhat ignition deploy ./ignition/modules/MockERC20.ts --network sepolia --verify
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { parseEther } from "viem";
 
 const RECIPIENT_ADDRESS = "0x1e8133a74C3Ed3669210860451BF4db2b9c25887";
+// const RECIPIENT_ADDRESS = "___________________"; // founders multisig
 const INITIAL_SUPPLY = parseEther("210000000"); // 210 million tokens with 18 decimals
 const INITIAL_SUPPLY_PAY = 100_000_000_000_000; // 100 million tokens with 6 decimals
 

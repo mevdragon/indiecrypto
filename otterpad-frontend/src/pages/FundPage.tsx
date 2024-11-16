@@ -265,6 +265,8 @@ const FundPage = () => {
       result.status === "success" ? result.result : undefined
     );
 
+    console.log(`successResults`, successResults);
+
     return {
       currentPrice: successResults[0] as bigint,
       startPrice: successResults[1] as bigint,
@@ -285,7 +287,8 @@ const FundPage = () => {
       totalPaymentsIn: successResults[16] as bigint,
       title: successResults[17] as string,
       richInfoUrl: successResults[18] as string,
-      requiredSaleTokens: successResults[19] as bigint,
+      // @ts-ignore
+      requiredSaleTokens: successResults[19][0] as bigint,
       uniswapPool: successResults[20] as Address | undefined,
       saleTokenDecimals: Number(successResults[21]),
       paymentTokenDecimals: Number(successResults[22]),

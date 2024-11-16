@@ -2,8 +2,10 @@
  * 
  * 
 # Using mock tokens (default)
-npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts
+npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --network hardhat
 npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --network sepolia  --verify
+npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --network polygon  --verify
+npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --network base  --verify
 
 # Using existing tokens
 npx hardhat ignition deploy ./ignition/modules/OtterPadFund.deploy.ts --parameters '{
@@ -24,6 +26,10 @@ const DEFAULT_TARGET = parseUnits("1333333", 6); // 1.3M PAY
 const DEFAULT_UPFRONT_RAKE_BPS = 30_000_000n; // 30%
 const DEFAULT_ESCROW_RAKE_BPS = 0n; // 0%
 
+// Hardhat Sepolia Fork
+// const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3"; // Mainnet V2 Router
+// const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6"; // Mainnet V2 Factory
+
 // Sepolia
 const UNISWAP_ROUTER = "0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3"; // Mainnet V2 Router
 const UNISWAP_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6"; // Mainnet V2 Factory
@@ -41,12 +47,14 @@ export default buildModule("OtterPadFundraiserModule", (m) => {
   const useMockTokens = m.getParameter("useMockTokens", true);
   const saleTokenAddress = m.getParameter<string>(
     "saleToken",
+    // "0xb39abe0fB525Fc930a67d7B8D6Ea849162cac87C" // hardhat $BEANS
     "0xa7E044179fB5143DF0Bd408599dBa37E275D9917" // sepolia $WINGS
     // "0xa9A1fA4f13f58E38AF86E7EC4669cfb7f85e7704" // polygon $WINGS
     // "0xea0D03c0aBc36a1Ca7864e03f2E40333D6F4D0F4" // base $BEANS
   );
   const paymentTokenAddress = m.getParameter<string>(
     "paymentToken",
+    // "0xdb537E5Be1786b66962C3ceA537bA48c11EF427E" // hardhat $BEANS
     "0x385Bcb72e579C7A7D4c9C42DC089733c1675EDE6" // sepolia $USDT
     // "0xc0f1fDc19F557b8A35ac6d3e58B6a4fee6E874CE" // polygon $USDT
     // "0xE18f4828148dBDAdD17de6528042bD5CD9262B7d" // base $BEANS

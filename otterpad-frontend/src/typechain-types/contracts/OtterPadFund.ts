@@ -612,7 +612,11 @@ export interface OtterPadFund extends BaseContract {
     "view"
   >;
 
-  checkSaleTokensRequired: TypedContractMethod<[], [bigint], "view">;
+  checkSaleTokensRequired: TypedContractMethod<
+    [],
+    [[bigint, bigint, bigint]],
+    "view"
+  >;
 
   deployToUniswap: TypedContractMethod<[], [string], "nonpayable">;
 
@@ -657,7 +661,17 @@ export interface OtterPadFund extends BaseContract {
   purchases: TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [bigint, bigint, bigint, string, string, boolean, boolean, bigint] & {
+      [
+        bigint,
+        bigint,
+        bigint,
+        string,
+        string,
+        boolean,
+        boolean,
+        bigint,
+        bigint
+      ] & {
         paymentAmount: bigint;
         contributionAmount: bigint;
         tokenAmount: bigint;
@@ -666,6 +680,7 @@ export interface OtterPadFund extends BaseContract {
         isRefunded: boolean;
         isRedeemed: boolean;
         purchaseBlock: bigint;
+        orderIndex: bigint;
       }
     ],
     "view"
@@ -744,7 +759,7 @@ export interface OtterPadFund extends BaseContract {
   ): TypedContractMethod<[paymentAmount: BigNumberish], [bigint], "view">;
   getFunction(
     nameOrSignature: "checkSaleTokensRequired"
-  ): TypedContractMethod<[], [bigint], "view">;
+  ): TypedContractMethod<[], [[bigint, bigint, bigint]], "view">;
   getFunction(
     nameOrSignature: "deployToUniswap"
   ): TypedContractMethod<[], [string], "nonpayable">;
@@ -804,7 +819,17 @@ export interface OtterPadFund extends BaseContract {
   ): TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [bigint, bigint, bigint, string, string, boolean, boolean, bigint] & {
+      [
+        bigint,
+        bigint,
+        bigint,
+        string,
+        string,
+        boolean,
+        boolean,
+        bigint,
+        bigint
+      ] & {
         paymentAmount: bigint;
         contributionAmount: bigint;
         tokenAmount: bigint;
@@ -813,6 +838,7 @@ export interface OtterPadFund extends BaseContract {
         isRefunded: boolean;
         isRedeemed: boolean;
         purchaseBlock: bigint;
+        orderIndex: bigint;
       }
     ],
     "view"
