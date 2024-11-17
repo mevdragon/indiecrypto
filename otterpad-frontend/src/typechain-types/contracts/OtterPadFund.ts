@@ -30,6 +30,7 @@ export interface OtterPadFundInterface extends Interface {
       | "OTTERPAD_DAO"
       | "OTTERPAD_FEE_BPS"
       | "buy"
+      | "calculateRemainingAmount"
       | "calculateTokensReceived"
       | "checkSaleTokensRequired"
       | "deployToUniswap"
@@ -98,6 +99,10 @@ export interface OtterPadFundInterface extends Interface {
   encodeFunctionData(
     functionFragment: "buy",
     values: [BigNumberish, AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "calculateRemainingAmount",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "calculateTokensReceived",
@@ -262,6 +267,10 @@ export interface OtterPadFundInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "buy", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "calculateRemainingAmount",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "calculateTokensReceived",
     data: BytesLike
@@ -606,13 +615,19 @@ export interface OtterPadFund extends BaseContract {
     "nonpayable"
   >;
 
+  calculateRemainingAmount: TypedContractMethod<[], [bigint], "view">;
+
   calculateTokensReceived: TypedContractMethod<
     [paymentAmount: BigNumberish],
     [bigint],
     "view"
   >;
 
-  checkSaleTokensRequired: TypedContractMethod<[], [bigint], "view">;
+  checkSaleTokensRequired: TypedContractMethod<
+    [],
+    [[bigint, bigint, bigint]],
+    "view"
+  >;
 
   deployToUniswap: TypedContractMethod<[], [string], "nonpayable">;
 
@@ -657,7 +672,17 @@ export interface OtterPadFund extends BaseContract {
   purchases: TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [bigint, bigint, bigint, string, string, boolean, boolean, bigint] & {
+      [
+        bigint,
+        bigint,
+        bigint,
+        string,
+        string,
+        boolean,
+        boolean,
+        bigint,
+        bigint
+      ] & {
         paymentAmount: bigint;
         contributionAmount: bigint;
         tokenAmount: bigint;
@@ -666,6 +691,7 @@ export interface OtterPadFund extends BaseContract {
         isRefunded: boolean;
         isRedeemed: boolean;
         purchaseBlock: bigint;
+        orderIndex: bigint;
       }
     ],
     "view"
@@ -740,11 +766,14 @@ export interface OtterPadFund extends BaseContract {
     "nonpayable"
   >;
   getFunction(
+    nameOrSignature: "calculateRemainingAmount"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
     nameOrSignature: "calculateTokensReceived"
   ): TypedContractMethod<[paymentAmount: BigNumberish], [bigint], "view">;
   getFunction(
     nameOrSignature: "checkSaleTokensRequired"
-  ): TypedContractMethod<[], [bigint], "view">;
+  ): TypedContractMethod<[], [[bigint, bigint, bigint]], "view">;
   getFunction(
     nameOrSignature: "deployToUniswap"
   ): TypedContractMethod<[], [string], "nonpayable">;
@@ -804,7 +833,17 @@ export interface OtterPadFund extends BaseContract {
   ): TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [bigint, bigint, bigint, string, string, boolean, boolean, bigint] & {
+      [
+        bigint,
+        bigint,
+        bigint,
+        string,
+        string,
+        boolean,
+        boolean,
+        bigint,
+        bigint
+      ] & {
         paymentAmount: bigint;
         contributionAmount: bigint;
         tokenAmount: bigint;
@@ -813,6 +852,7 @@ export interface OtterPadFund extends BaseContract {
         isRefunded: boolean;
         isRedeemed: boolean;
         purchaseBlock: bigint;
+        orderIndex: bigint;
       }
     ],
     "view"

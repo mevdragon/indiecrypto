@@ -99,7 +99,7 @@ contract PresaleLock is ReentrancyGuard {
         require(saleToken != address(0), "Sale token not set yet");
         require(amount > 0, "Amount must be greater than 0");
         require(recipient != address(0), "Invalid recipient address");
-        require(msg.sender == foundersWallet, "Only founders can set OtterPad fund");
+        require(msg.sender == foundersWallet, "Only founders can deposit into the lock");
         
         // Approve and transfer tokens to this contract
         require(

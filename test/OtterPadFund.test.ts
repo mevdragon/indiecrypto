@@ -76,7 +76,7 @@ describe("OtterPadFund", function () {
     ]);
 
     // Calculate required token amount using the contract's helper function
-    const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+    const requiredTokens = (await fundraiser.read.checkSaleTokensRequired())[0];
     await saleToken.write.mint([fundraiser.address, requiredTokens]);
 
     const publicClient = await hre.viem.getPublicClient();
@@ -468,7 +468,9 @@ describe("OtterPadFund", function () {
       );
 
       // Ensure contract has sufficient tokens
-      const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+      const requiredTokens = (
+        await fundraiser.read.checkSaleTokensRequired()
+      )[0];
       await saleToken.write.mint([fundraiser.address, requiredTokens * 2n]); // Mint extra tokens to be safe
 
       await foundersWalletFundraiser.write.deployToUniswap();
@@ -974,7 +976,9 @@ describe("OtterPadFund", function () {
       const { fundraiser, saleToken, targetLiquidity, startPrice, endPrice } =
         await loadFixture(deployFundraiserFixture);
 
-      const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+      const requiredTokens = (
+        await fundraiser.read.checkSaleTokensRequired()
+      )[0];
 
       // Get parameters
       const upfrontRakeBPS = await fundraiser.read.upfrontRakeBPS();
@@ -992,7 +996,8 @@ describe("OtterPadFund", function () {
       const avgPrice = (startPrice + endPrice) / 2n;
       const tokensForSale = (totalCashInflows * parseEther("1")) / avgPrice;
 
-      const expectedTotal = liquidityTokens + tokensForSale;
+      const expectedTotal =
+        liquidityTokens + tokensForSale + parseUnits("1", 18);
       expect(requiredTokens).to.equal(expectedTotal);
     });
 
@@ -1047,8 +1052,8 @@ describe("OtterPadFund", function () {
         getAddress(lpLockWallet.account.address),
       ]);
 
-      const required1 = await fundraiser1.read.checkSaleTokensRequired();
-      const required2 = await fundraiser2.read.checkSaleTokensRequired();
+      const required1 = (await fundraiser1.read.checkSaleTokensRequired())[0];
+      const required2 = (await fundraiser2.read.checkSaleTokensRequired())[0];
 
       // Higher rake should require more tokens due to more total inflows needed
       expect(required2).to.be.gt(required1);
@@ -1090,7 +1095,9 @@ describe("OtterPadFund", function () {
         getAddress(lpLockWallet.account.address),
       ]);
 
-      const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+      const requiredTokens = (
+        await fundraiser.read.checkSaleTokensRequired()
+      )[0];
 
       // Calculate with proper decimal handling
       const saleTokenBase = 10n ** 6n;
@@ -1106,7 +1113,8 @@ describe("OtterPadFund", function () {
       const avgPrice = (startPrice + endPrice) / 2n;
       const tokensForSale = (totalCashInflows * saleTokenBase) / avgPrice;
 
-      const expectedTotal = liquidityTokens + tokensForSale;
+      const expectedTotal =
+        liquidityTokens + tokensForSale + parseUnits("1", 6);
       expect(requiredTokens).to.equal(expectedTotal);
     });
 
@@ -1145,7 +1153,9 @@ describe("OtterPadFund", function () {
         getAddress(lpLockWallet.account.address),
       ]);
 
-      const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+      const requiredTokens = (
+        await fundraiser.read.checkSaleTokensRequired()
+      )[0];
 
       // With steep curve, liquidity tokens should be significantly less than sale tokens
       const liquidityTokens =
@@ -1158,7 +1168,9 @@ describe("OtterPadFund", function () {
         deployFundraiserFixture
       );
 
-      const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+      const requiredTokens = (
+        await fundraiser.read.checkSaleTokensRequired()
+      )[0];
 
       // Calculate just the liquidity tokens portion
       const targetLiquidity = await fundraiser.read.targetLiquidity();
@@ -1526,7 +1538,7 @@ describe("OtterPadFund with Extreme Slopes", function () {
     ]);
 
     // Calculate required token amount using the contract's helper function
-    const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+    const requiredTokens = (await fundraiser.read.checkSaleTokensRequired())[0];
     await saleToken.write.mint([fundraiser.address, requiredTokens]);
 
     const publicClient = await hre.viem.getPublicClient();
@@ -1797,7 +1809,7 @@ describe("Delegation scenarios", function () {
     ]);
 
     // Mint required sale tokens to contract
-    const requiredTokens = await fundraiser.read.checkSaleTokensRequired();
+    const requiredTokens = (await fundraiser.read.checkSaleTokensRequired())[0];
     await saleToken.write.mint([fundraiser.address, requiredTokens]);
 
     const publicClient = await hre.viem.getPublicClient();

@@ -52,6 +52,7 @@ import {
   useWriteContract,
   usePublicClient,
 } from "wagmi";
+import { estimateGas } from "@wagmi/core";
 import { Address, formatUnits, parseUnits } from "viem";
 import { Content } from "antd/es/layout/layout";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
@@ -62,6 +63,7 @@ import { useMediaQuery } from "react-responsive";
 import { ERC20_ABI, getChainName, SUPPORTED_CHAINS } from "../config";
 import { token } from "../typechain-types/@openzeppelin/contracts";
 import HowItWorksModal from "./HowItWorks";
+import { wagmiConfig } from "../App";
 
 const { Title, Text } = Typography;
 
@@ -94,7 +96,8 @@ type PurchaseResponse = readonly [
   recipient: `0x${string}`,
   isRefunded: boolean,
   isRedeemed: boolean,
-  purchaseBlock: bigint
+  purchaseBlock: bigint,
+  orderIndex: bigint
 ];
 
 interface RefundState {
@@ -788,13 +791,41 @@ const BuyPanel = ({
 
   // Update handle buy function
   const handleBuy = async () => {
-    if (!buyAmount || !contractData || !userAddress || !buyTokens) return;
+    if (
+      !buyAmount ||
+      !contractData ||
+      !userAddress ||
+      !buyTokens ||
+      !publicClient
+    )
+      return;
 
     try {
       setTransactionState((prev) => ({
         ...prev,
         isPurchasing: true,
       }));
+
+      // Get the encoded function data from Typechain's factory
+      const data = OtterPadFund__factory.createInterface().encodeFunctionData(
+        "buy",
+        [
+          parseUnits(buyAmount, contractData.paymentTokenDecimals), // Payment amount in the correct units
+          recipientAddress as `0x${string}`, // Recipient address
+        ]
+      ) as `0x${string}`;
+
+      // Estimate gas using wagmi's estimateGas
+      const estimatedGasLimit = await estimateGas(
+        wagmiConfig, // Chain configuration
+        {
+          to: CONTRACT_ADDRESS, // Contract address
+          data, // Encoded function data
+          value: 0n, // No ETH sent directly
+        }
+      );
+
+      console.log(`estimatedGasLimit`, estimatedGasLimit);
 
       buyTokens({
         address: CONTRACT_ADDRESS,
@@ -804,6 +835,7 @@ const BuyPanel = ({
           parseUnits(buyAmount, contractData.paymentTokenDecimals),
           recipientAddress as `0x${string}`,
         ],
+        gas: (estimatedGasLimit * BigInt(120)) / BigInt(100), // Add 20% buffer
       });
 
       setTransactionState((prev) => ({
@@ -1657,6 +1689,17 @@ const BuyPanel = ({
                                 minWidth: 0,
                               }}
                             >
+                              <span
+                                style={{
+                                  fontSize: "0.8rem",
+                                  position: "absolute",
+                                  top: 5,
+                                  left: 8,
+                                  color: "rgba(0,0,0,0.2)",
+                                }}
+                              >
+                                Invoice#{orderIndex.toString()}
+                              </span>
                               <Title
                                 level={5}
                                 style={{
@@ -1711,7 +1754,7 @@ const BuyPanel = ({
                                   purchase.isRefunded
                                 }
                               >
-                                Redeem
+                                {purchase.isRefunded ? "Refunded" : "Redeem"}
                               </Button>
                               <Button
                                 type="default"

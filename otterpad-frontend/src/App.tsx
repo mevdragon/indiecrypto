@@ -24,7 +24,7 @@ import Marquee from "react-fast-marquee";
 import TrendingPage from "./pages/TrendingPage";
 
 // Create wagmi config
-const config = createConfig({
+export const wagmiConfig = createConfig({
   chains: [
     base,
     // bsc,
@@ -70,7 +70,7 @@ const { wallets } = getDefaultWallets({
 
 function App() {
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
           <ConfigProvider>
