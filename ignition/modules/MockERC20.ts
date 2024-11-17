@@ -1,5 +1,7 @@
 // npx hardhat ignition deploy ./ignition/modules/MockERC20.ts --network hardhat
 // npx hardhat ignition deploy ./ignition/modules/MockERC20.ts --network sepolia --verify
+// npx hardhat ignition deploy ./ignition/modules/MockERC20.ts --network polygon --verify
+// npx hardhat ignition deploy ./ignition/modules/MockERC20.ts --network base --verify
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { parseEther } from "viem";

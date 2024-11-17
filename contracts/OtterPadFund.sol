@@ -46,7 +46,8 @@ contract OtterPadFund is ReentrancyGuard {
     uint256 public immutable escrowRakeBPS;                 // Percentage of payment tokens held in escrow for founders, released at DEX deployment
     uint256 public immutable slopeScalingFactor = 10**12;   // Scaling factor for slope calculation
     uint256 private immutable wei_forgiveness_buffer = 100; // 100 wei allowed difference for deployment
-    
+    uint256 private immutable buffer_sale_token_amount = 1; // 1 token allowed difference for deployment
+
     address public immutable foundersWallet;                // Wallet of founders receive upfront rake & escrow rake
     address public constant OTTERPAD_DAO = 0xC6F778fb08f40c0305c3c056c42406614492de44; // OtterPad DAO address
     address public immutable lockLPTokenWallet;             // Address to receive LP tokens from Uniswap deployment
@@ -483,9 +484,26 @@ contract OtterPadFund is ReentrancyGuard {
         uint256 totalCashInflows = targetLiquidity * BPS_FACTOR / (BPS_FACTOR - upfrontRakeBPS - escrowRakeBPS);
         uint256 avgPrice = ((startPrice + endPrice) / 2);
         uint256 proratedTokensForSale = totalCashInflows * (10**paymentTokenDecimals) / avgPrice;
-        uint256 salesTokensForSale = proratedTokensForSale * (10**saleTokenDecimals) / 10**paymentTokenDecimals;
+        uint256 buffer_sale_token = buffer_sale_token_amount*10**saleTokenDecimals;
+        uint256 salesTokensForSale = proratedTokensForSale * (10**saleTokenDecimals) / 10**paymentTokenDecimals + buffer_sale_token;
         
         uint256 totalSalesTokens = salesTokensForLiquidity + salesTokensForSale;
         return [totalSalesTokens, salesTokensForLiquidity, salesTokensForSale];
+    }
+
+    // helper function to calculate the remaining amount of sale tokens required to deploy to Uniswap
+    function calculateRemainingAmount() public view returns (uint256) {
+        uint256 netContributionBPS = BPS_FACTOR - upfrontRakeBPS - escrowRakeBPS;
+        uint256 totalGrossRequired = (targetLiquidity * BPS_FACTOR) / netContributionBPS;
+        
+        uint256 currentGross = (totalActiveContributions * BPS_FACTOR) / netContributionBPS;
+        uint256 remainingGross = totalGrossRequired - currentGross;
+        
+        if (remainingGross <= 0) {
+            return 0;
+        }
+        
+        // Subtract 1 wei to account for rounding
+        return remainingGross - 1;
     }
 }

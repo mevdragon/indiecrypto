@@ -452,7 +452,7 @@ describe("PresaleLock", function () {
         { client: { wallet: foundersWallet } }
       );
 
-      const requiredTokens = await fund.read.checkSaleTokensRequired();
+      const requiredTokens = (await fund.read.checkSaleTokensRequired())[0];
       await saleToken.write.mint([fund.address, requiredTokens * 2n]);
 
       await founderFund.write.deployToUniswap();

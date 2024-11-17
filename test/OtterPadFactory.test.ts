@@ -310,7 +310,7 @@ describe("OtterPadFactory", function () {
       const fund = await hre.viem.getContractAt("OtterPadFund", fundAddress);
 
       // Mint tokens to fund and user
-      const requiredTokens = await fund.read.checkSaleTokensRequired();
+      const requiredTokens = (await fund.read.checkSaleTokensRequired())[0];
       await saleToken.write.mint([fundAddress, requiredTokens]);
 
       const userPaymentAmount = parseEther("10");

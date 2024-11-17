@@ -30,6 +30,7 @@ export interface OtterPadFundInterface extends Interface {
       | "OTTERPAD_DAO"
       | "OTTERPAD_FEE_BPS"
       | "buy"
+      | "calculateRemainingAmount"
       | "calculateTokensReceived"
       | "checkSaleTokensRequired"
       | "deployToUniswap"
@@ -98,6 +99,10 @@ export interface OtterPadFundInterface extends Interface {
   encodeFunctionData(
     functionFragment: "buy",
     values: [BigNumberish, AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "calculateRemainingAmount",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "calculateTokensReceived",
@@ -262,6 +267,10 @@ export interface OtterPadFundInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "buy", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "calculateRemainingAmount",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "calculateTokensReceived",
     data: BytesLike
@@ -606,6 +615,8 @@ export interface OtterPadFund extends BaseContract {
     "nonpayable"
   >;
 
+  calculateRemainingAmount: TypedContractMethod<[], [bigint], "view">;
+
   calculateTokensReceived: TypedContractMethod<
     [paymentAmount: BigNumberish],
     [bigint],
@@ -754,6 +765,9 @@ export interface OtterPadFund extends BaseContract {
     [void],
     "nonpayable"
   >;
+  getFunction(
+    nameOrSignature: "calculateRemainingAmount"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "calculateTokensReceived"
   ): TypedContractMethod<[paymentAmount: BigNumberish], [bigint], "view">;
