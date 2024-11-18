@@ -22,6 +22,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import CreatePage from "./pages/CreatePage";
 import Marquee from "react-fast-marquee";
 import TrendingPage from "./pages/TrendingPage";
+import TermsOfServicePage from "./pages/TermsOfService";
+import AltPayDisclaimerPage from "./pages/AltPayDisclaimerPage";
 
 // Create wagmi config
 export const wagmiConfig = createConfig({
@@ -95,6 +97,8 @@ function App() {
                   element={<FundPage />}
                 />
 
+                <Route path="/terms" element={<TermsOfServicePage />} />
+                <Route path="/altpay" element={<AltPayDisclaimerPage />} />
                 {/* Catch all route - optional */}
                 <Route path="*" element={<Navigate to="/trending" replace />} />
               </Routes>

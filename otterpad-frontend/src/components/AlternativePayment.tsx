@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { OtterpadInfo } from "../pages/TrendingPage";
 import { ContractDataResult } from "../pages/FundPage";
 import { getExplorerUrl } from "../config";
+import { Link } from "react-router-dom";
 
 const AlternativePayment = ({
   contractData,
@@ -102,12 +103,9 @@ const AlternativePayment = ({
             Accepts {contractData?.paymentTokenSymbol} on Ethereum, Polygon PoS,
             BaseL2, Binance Smart Chain, Arbitrum, Optimism. 2% fee applies. Up
             to 24 hours to verify onchain.{" "}
-            <a
-              href="https://buy.indiecrypto.club/alternative-payments"
-              target="_blank"
-            >
+            <Link to="/altpay" target="_blank" style={{ color: "#1677ff" }}>
               Learn more
-            </a>
+            </Link>
           </span>
         </>
       ),
