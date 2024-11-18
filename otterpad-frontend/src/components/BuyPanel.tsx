@@ -1138,6 +1138,16 @@ const BuyPanel = ({
             Total Historical: {totalPayments.toFixed(2)}{" "}
             {tokenInfo.payment.symbol}
           </li>
+          <li>
+            Total Liquidity Goal:{" "}
+            {parseFloat(
+              formatUnits(
+                contractData.targetLiquidity,
+                contractData.paymentTokenDecimals
+              )
+            ).toFixed(2)}{" "}
+            {tokenInfo.payment.symbol}
+          </li>
         </ul>
       </>
     );
