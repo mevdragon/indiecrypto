@@ -147,7 +147,13 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             fontWeight: 500,
           }}
         >
-          Copyright 2024 Indie Crypto Club | admin@otterpad.cc
+          Copyright 2024 Indie Crypto Club | admin@otterpad.cc |
+          <Link
+            to="/terms"
+            style={{ marginLeft: "8px", color: "rgba(0, 0, 0, 0.3)" }}
+          >
+            Terms & Privacy
+          </Link>
         </div>
       </Layout>
     </div>
