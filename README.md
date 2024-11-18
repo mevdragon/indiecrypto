@@ -5,19 +5,19 @@ Watch [YouTube Tutorials](https://www.youtube.com/playlist?list=PLGmDXGv6ObCUtha
 
 ## Deployed Addresses:
 
+### Polygon Mainnet:
+
+- [Factory](https://polygonscan.com/address/0x67584351491CaD1c9915e2727fa6665737364Ff4#code) `0x67584351491CaD1c9915e2727fa6665737364Ff4`
+- [View Sample Fund](https://polygonscan.com/address/0xA48F4714d62b9C03BE9D1f9f834c09B6FC6FAEf2#code)
+- [PresaleLock Factory](https://polygonscan.com/address/0xC26DEf27c021107D4240F140C6040f6010872780#code) `0xC26DEf27c021107D4240F140C6040f6010872780`
+- [View Sample PreSaleLock](https://polygonscan.com/address/0xD52231eC565d9ff4049332bdF9297A1830dfC83f#code)
+
 ### Base Mainnet:
 
 - [Fund Factory](https://basescan.org/address/0x50F43Fc609F1fA87050F40cd1f3D6a37D86575ce#code) `0x50F43Fc609F1fA87050F40cd1f3D6a37D86575ce`
 - [View Sample Fund](https://basescan.org/address/0x3ef223869146779725D72eeaF21722ab29dc0529#code)
 - [PresaleLock Factory](https://basescan.org/address/0x450159dAD95f898ad5b13640445Ef2353D2509d2#code) `0x450159dAD95f898ad5b13640445Ef2353D2509d2`
 - [View Sample PreSaleLock](https://basescan.org/address/0x4BaC8705e5029a028ee67fDbC6767598fB1E6fEc#code)
-
-### Polygon Mainnet:
-
-- [Factory](https://polygonscan.com/address/0xCFEd741beefbb3D0aBFf052Acd1Dcf2bADE4f73F#code) `0xCFEd741beefbb3D0aBFf052Acd1Dcf2bADE4f73F`
-- [View Sample Fund](https://polygonscan.com/address/0xE4761b2cDe4035DCac8FBbDA1fe9071f3D77880e#code)
-- [PresaleLock Factory](https://polygonscan.com/address/0x20500031477a9e29CA4659c00bbd55F33a714FCA#code) `0x20500031477a9e29CA4659c00bbd55F33a714FCA`
-- [View Sample PreSaleLock](https://polygonscan.com/address/0x15D0AFf6703606F3DEb8d85978c43A59168bD621#code)
 
 ### Sepolia Testnet:
 

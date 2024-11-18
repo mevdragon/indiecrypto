@@ -8,8 +8,9 @@ import { useAccount, useContractReads, useSwitchChain } from "wagmi";
 import { useMediaQuery } from "react-responsive";
 import { useParams } from "react-router-dom";
 import { getFactoryAddress } from "../config";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import ChainWarning from "../components/ChainWarning";
+import { OtterpadInfo } from "./TrendingPage";
 
 export const CONTRACT_ABI = OtterPadFund__factory.abi;
 
@@ -57,10 +58,12 @@ const FundPage = () => {
       setFinishedChainSetup(true);
     }
   }, [chainIdDecimal, switchChain]);
+  const [otterpadInfo, setOtterpadInfo] = useState<OtterpadInfo | null>(null);
 
   const CONTRACT_ADDRESS = contractAddress as Address;
   const { address: userAddress, isConnected } = useAccount();
   const isDesktop = useMediaQuery({ minWidth: 1024 });
+
   // Batch contract reads with proper configuration
   const {
     data: contractResults,
@@ -302,6 +305,41 @@ const FundPage = () => {
   const contractData = processContractData();
   console.log(contractData);
 
+  useEffect(() => {
+    fetchOtterpadInfo();
+  }, [contractData?.richInfoUrl]);
+
+  async function fetchOtterpadInfo(): Promise<OtterpadInfo | undefined> {
+    const url = contractData?.richInfoUrl;
+    // const url = `https://api.legions.bot/api/w/officex/capture_u/f/officex/otterpad_rest_api?fund=${"a837fc4a-fdf2-4646-b682-68439ea59e0d"}"`;
+    console.log(url);
+    if (!url) return;
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = (await response.json()) as OtterpadInfo;
+      console.log("metadata", data);
+      setOtterpadInfo(data);
+      return data;
+    } catch (error) {
+      throw new Error(
+        `Failed to fetch Otterpad info: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  }
+
   if (!finishedChainSetup) {
     return null;
   }
@@ -326,12 +364,14 @@ const FundPage = () => {
       >
         <BuyPanel
           address={CONTRACT_ADDRESS}
+          otterpadInfo={otterpadInfo}
           chainIdDecimal={chainIdDecimal || ""}
           contractData={contractData}
           refetchContractDetails={refetchContractDetails}
         />
         <Charts
           address={CONTRACT_ADDRESS}
+          otterpadInfo={otterpadInfo}
           chainIdDecimal={chainIdDecimal || ""}
           contractData={contractData}
           refetchContractDetails={refetchContractDetails}

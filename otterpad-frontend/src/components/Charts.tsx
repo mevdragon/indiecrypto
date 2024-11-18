@@ -30,6 +30,7 @@ import { useEffect, useState } from "react";
 import { useBlockNumber, usePublicClient } from "wagmi";
 import DexTabPane from "./DexTabPane";
 import { SUPPORTED_CHAINS } from "../config";
+import { OtterpadInfo } from "../pages/TrendingPage";
 
 const { Title, Paragraph } = Typography;
 
@@ -53,20 +54,6 @@ const carouselSettings: CarouselProps = {
   effect: "fade",
 };
 
-export interface OtterpadInfo {
-  title: string;
-  description: string;
-  media: string[];
-  website: string;
-  twitter: string;
-  chain_id_decimals: string;
-  contract_address: string;
-  otterpad_url: string;
-  safety_badge?: boolean;
-  priority?: number;
-  CreatedAt?: string;
-}
-
 interface ChartData {
   series: { name: string; data: any[] }[];
   options: any;
@@ -74,16 +61,17 @@ interface ChartData {
 
 const Charts = ({
   address,
+  otterpadInfo,
   chainIdDecimal,
   contractData,
   refetchContractDetails,
 }: {
   address: Address;
+  otterpadInfo: OtterpadInfo | null;
   chainIdDecimal: string;
   contractData: ContractDataResult | null;
   refetchContractDetails: () => void;
 }) => {
-  const [otterpadInfo, setOtterpadInfo] = useState<OtterpadInfo | null>(null);
   const [isFetchingHistory, setIsFetchingHistory] = useState(true);
   const publicClient = usePublicClient();
   const isDesktop = window.innerWidth >= 1024; // You can also use your useMediaQuery hook here
@@ -204,9 +192,9 @@ const Charts = ({
 
       setIsFetchingHistory(true);
 
-      const timeInterval = INTERVAL.MINUTE;
-      const blocksPerDay = (24 * 60 * 60) / 12;
-      const startBlock = currentBlock - BigInt(Math.floor(blocksPerDay * 7));
+      const timeInterval = INTERVAL.DAY;
+      const blocksPerDay = (24 * 60 * 60) / 2;
+      const startBlock = currentBlock - BigInt(Math.floor(blocksPerDay * 30));
 
       try {
         // Get payment token decimals
@@ -232,6 +220,7 @@ const Charts = ({
               name: "TokensPurchased",
               inputs: [
                 { type: "address", name: "purchaser", indexed: true },
+                { type: "address", name: "recipient", indexed: true },
                 { type: "uint256", name: "paymentAmount" },
                 { type: "uint256", name: "contributionAmount" },
                 { type: "uint256", name: "tokenAmount" },
@@ -260,6 +249,9 @@ const Charts = ({
             toBlock: currentBlock,
           }),
         ]);
+
+        console.log(`purchaseEvents`, purchaseEvents);
+        console.log(`refundEvents`, refundEvents);
 
         // Process events
         const allEvents = [
@@ -472,6 +464,16 @@ const Charts = ({
           }
         }
 
+        const candleSticksMinMax = priceData.reduce(
+          (acc, val) => {
+            return {
+              min: Math.min(acc.min, val.y[0]),
+              max: Math.max(acc.max, val.y[0]),
+            };
+          },
+          { min: Infinity, max: -Infinity }
+        );
+
         // Update both charts simultaneously
         setChartData((prev) => ({
           tvl: {
@@ -517,6 +519,8 @@ const Charts = ({
                 min: firstTimestamp * 1000,
                 max: lastTimestamp * 1000,
               },
+              min: candleSticksMinMax.min,
+              max: candleSticksMinMax.max,
             },
           },
         }));
@@ -530,44 +534,6 @@ const Charts = ({
 
     fetchAndProcessData();
   }, [address, currentBlock, publicClient, contractData]);
-
-  async function fetchOtterpadInfo(
-    address: Address
-  ): Promise<OtterpadInfo | undefined> {
-    const url = contractData?.richInfoUrl;
-    // const url = `https://api.legions.bot/api/w/officex/capture_u/f/officex/otterpad_rest_api?fund=${"a837fc4a-fdf2-4646-b682-68439ea59e0d"}"`;
-    console.log(url);
-    console.log(address);
-    if (!url) return;
-
-    try {
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = (await response.json()) as OtterpadInfo;
-      console.log("metadata", data);
-      setOtterpadInfo(data);
-      return data;
-    } catch (error) {
-      throw new Error(
-        `Failed to fetch Otterpad info: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
-    }
-  }
-
-  useEffect(() => {
-    fetchOtterpadInfo(address);
-  }, [address, contractData?.richInfoUrl]);
 
   const getExplorerUrl = () => {
     const chain = SUPPORTED_CHAINS.find(

@@ -28,7 +28,6 @@ import AppLayout from "../AppLayout";
 import { useMediaQuery } from "react-responsive";
 import { OtterPadFactory__factory } from "../typechain-types";
 import { v4 as uuidv4 } from "uuid";
-import { OtterpadInfo } from "../components/Charts";
 import {
   getExplorerUrl,
   getFactoryAddress,
@@ -37,6 +36,7 @@ import {
   SUPPORTED_CHAINS,
 } from "../config";
 import ChainWarning from "../components/ChainWarning";
+import { OtterpadInfo } from "./TrendingPage";
 
 interface FundForm {
   title: string;

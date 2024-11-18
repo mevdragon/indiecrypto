@@ -64,6 +64,7 @@ import { ERC20_ABI, getChainName, SUPPORTED_CHAINS } from "../config";
 import { token } from "../typechain-types/@openzeppelin/contracts";
 import HowItWorksModal from "./HowItWorks";
 import { wagmiConfig } from "../App";
+import { OtterpadInfo } from "../pages/TrendingPage";
 
 const { Title, Text } = Typography;
 
@@ -110,11 +111,13 @@ interface RefundState {
 
 const BuyPanel = ({
   address,
+  otterpadInfo,
   chainIdDecimal,
   contractData,
   refetchContractDetails,
 }: {
   address: Address;
+  otterpadInfo: OtterpadInfo | null;
   chainIdDecimal: string;
   contractData: ContractDataResult | null;
   refetchContractDetails: () => void;
@@ -1212,7 +1215,7 @@ const BuyPanel = ({
     return <Tag color="processing">In Progress</Tag>;
   };
 
-  const getLiquidityProgress = () => {
+  const getLiquidityProgress = (goal: bigint) => {
     if (!contractData) return 0;
 
     // totalActiveContributions is already net of all fees and ready for liquidity
@@ -1226,10 +1229,7 @@ const BuyPanel = ({
       )
     );
     const targetNet = Number(
-      formatUnits(
-        contractData.targetLiquidity || 0n,
-        contractData.paymentTokenDecimals
-      )
+      formatUnits(goal || 0n, contractData.paymentTokenDecimals)
     );
 
     if (targetNet === 0) return 0;
@@ -1239,7 +1239,7 @@ const BuyPanel = ({
     return Math.min(Math.max(progress, 0), 100);
   };
 
-  const formatProgressDisplay = () => {
+  const formatProgressDisplay = (goal: bigint) => {
     if (!contractData || !tokenInfo.payment) return "";
 
     // totalActiveContributions is already the amount for liquidity
@@ -1249,16 +1249,102 @@ const BuyPanel = ({
         contractData.paymentTokenDecimals
       )
     ).toFixed(1)} / ${parseFloat(
-      formatUnits(
-        contractData.targetLiquidity || 0n,
-        contractData.paymentTokenDecimals
-      )
+      formatUnits(goal || 0n, contractData.paymentTokenDecimals)
     ).toFixed(1)} ${tokenInfo.payment?.symbol}`;
   };
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     message.success("URL copied to clipboard!");
+  };
+
+  const renderProgressBar = () => {
+    const totalActiveContributions = contractData.totalActiveContributions;
+    const milestones = (otterpadInfo?.milestones || "")
+      .split(",")
+      .map((milestone) => BigInt(milestone))
+      .sort((a, b) => {
+        if (a < b) return -1;
+        if (a > b) return 1;
+        return 0;
+      });
+    console.log(`milestones`, milestones);
+    for (const milestone of milestones) {
+      if (totalActiveContributions < milestone) {
+        console.log("milestone-->", milestone);
+        return (
+          <Card style={{ height: "100%", width: "100%", textAlign: "left" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+                width: "100%",
+                textAlign: "left",
+              }}
+            >
+              <Text strong style={{ flex: "1" }}>
+                {`${getLiquidityProgress(milestone).toFixed(
+                  2
+                )}% Progress to Milestone`}
+              </Text>
+              <Tooltip title={getEscrowInfo()}>
+                <InfoCircleOutlined
+                  style={{
+                    color: "#8c8c8c",
+                    cursor: "help",
+                    flexShrink: 0,
+                  }}
+                />
+              </Tooltip>
+            </div>
+            <Progress
+              percent={getLiquidityProgress(milestone)}
+              status="active"
+              format={() => formatProgressDisplay(milestone)}
+              style={{ marginBottom: 0 }}
+            />
+          </Card>
+        );
+      }
+    }
+
+    return (
+      <Card style={{ height: "100%", width: "100%" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "16px",
+            width: "100%",
+            textAlign: "left",
+          }}
+        >
+          <Text strong style={{ flex: "1" }}>
+            {`${getLiquidityProgress(contractData.targetLiquidity).toFixed(
+              2
+            )}% Progress to Liquidity Goal`}
+          </Text>
+          <Tooltip title={getEscrowInfo()}>
+            <InfoCircleOutlined
+              style={{
+                color: "#8c8c8c",
+                cursor: "help",
+                flexShrink: 0,
+              }}
+            />
+          </Tooltip>
+        </div>
+        <Progress
+          percent={getLiquidityProgress(contractData.targetLiquidity)}
+          status="active"
+          format={() => formatProgressDisplay(contractData.targetLiquidity)}
+          style={{ marginBottom: 0 }}
+        />
+      </Card>
+    );
   };
 
   return (
@@ -1398,39 +1484,7 @@ const BuyPanel = ({
                 </Card>
               </Col>
               <Col xs={24} md={16} style={{ width: "100%" }}>
-                <Card style={{ height: "100%", width: "100%" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "16px",
-                      width: "100%",
-                      textAlign: "left",
-                    }}
-                  >
-                    <Text strong style={{ flex: "1" }}>
-                      {`${getLiquidityProgress().toFixed(
-                        2
-                      )}% Progress to Liquidity Goal`}
-                    </Text>
-                    <Tooltip title={getEscrowInfo()}>
-                      <InfoCircleOutlined
-                        style={{
-                          color: "#8c8c8c",
-                          cursor: "help",
-                          flexShrink: 0,
-                        }}
-                      />
-                    </Tooltip>
-                  </div>
-                  <Progress
-                    percent={getLiquidityProgress()}
-                    status="active"
-                    format={() => formatProgressDisplay()}
-                    style={{ marginBottom: 0 }}
-                  />
-                </Card>
+                {renderProgressBar()}
               </Col>
             </Row>
 

@@ -28,8 +28,8 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Polygon",
     chainIdDecimal: "137",
-    factoryAddress: "0xCFEd741beefbb3D0aBFf052Acd1Dcf2bADE4f73F",
-    presaleFactory: "0x20500031477a9e29CA4659c00bbd55F33a714FCA",
+    factoryAddress: "0x67584351491CaD1c9915e2727fa6665737364Ff4",
+    presaleFactory: "0xC26DEf27c021107D4240F140C6040f6010872780",
     isDisabled: false,
     explorerUrl: "https://polygonscan.com",
     uniswapV2Factory: "0x9e5A52f57b3038F1B8EeE45F28b3C1967e22799C",
