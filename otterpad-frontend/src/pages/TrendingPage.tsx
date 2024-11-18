@@ -6,7 +6,7 @@ import AppLayout from "../AppLayout";
 export const DEFAULT_PROJECT_IMAGE =
   "https://firebasestorage.googleapis.com/v0/b/arbitrage-bot-ea10c.appspot.com/o/generic-sharing%2Fotterpad%2FOtterpad%20(4).png?alt=media&token=ac6b946c-f4ec-4fbc-b247-93e1ed6c1d30";
 
-interface OtterpadInfo {
+export interface OtterpadInfo {
   title: string;
   description: string;
   media: string[];
@@ -15,6 +15,7 @@ interface OtterpadInfo {
   chain_id_decimals: string;
   contract_address: string;
   otterpad_url: string;
+  milestones?: string;
   safety_badge?: boolean;
   priority?: number;
   CreatedAt?: string;
