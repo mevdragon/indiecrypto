@@ -11,6 +11,7 @@ import { getFactoryAddress } from "../config";
 import React, { useEffect, useState } from "react";
 import ChainWarning from "../components/ChainWarning";
 import { OtterpadInfo } from "./TrendingPage";
+import AlternativePayment from "../components/AlternativePayment";
 
 export const CONTRACT_ABI = OtterPadFund__factory.abi;
 
@@ -375,6 +376,11 @@ const FundPage = () => {
           chainIdDecimal={chainIdDecimal || ""}
           contractData={contractData}
           refetchContractDetails={refetchContractDetails}
+        />
+        <AlternativePayment
+          contractData={contractData}
+          otterpadInfo={otterpadInfo}
+          chainIdDecimal={chainIdDecimal || ""}
         />
       </Layout>
     </AppLayout>

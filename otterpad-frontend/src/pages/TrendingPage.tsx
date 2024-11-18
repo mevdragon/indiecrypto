@@ -16,6 +16,8 @@ export interface OtterpadInfo {
   contract_address: string;
   otterpad_url: string;
   milestones?: string;
+  alternative_payment_url?: string;
+  alternative_payment_address?: string;
   safety_badge?: boolean;
   priority?: number;
   CreatedAt?: string;
