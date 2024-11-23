@@ -65,6 +65,7 @@ import { token } from "../typechain-types/@openzeppelin/contracts";
 import HowItWorksModal from "./HowItWorks";
 import { wagmiConfig } from "../App";
 import { OtterpadInfo } from "../pages/TrendingPage";
+import mixpanel from "mixpanel-browser";
 
 const { Title, Text } = Typography;
 
@@ -259,6 +260,12 @@ const BuyPanel = ({
     if (!contractData || !refundOrder) return;
     try {
       setIsRefundLocking(true);
+      mixpanel.track("Request Refund", {
+        Fundraiser: address,
+        Chain: chainIdDecimal,
+        "Order ID": orderIndex,
+        "Payment Token": contractData?.saleTokenAddress,
+      });
       refundOrder(
         {
           address: CONTRACT_ADDRESS,
@@ -750,6 +757,13 @@ const BuyPanel = ({
     if (!buyAmount || !contractData || !userAddress || !approveToken) return;
 
     try {
+      mixpanel.track("Add to Cart", {
+        Fundraiser: address,
+        Chain: chainIdDecimal,
+        Amount: buyAmount,
+        "Payment Token": contractData.paymentTokenAddress,
+      });
+
       setTransactionState((prev) => ({
         ...prev,
         isApproving: true,
@@ -804,6 +818,12 @@ const BuyPanel = ({
       return;
 
     try {
+      mixpanel.track("Initiate Checkout", {
+        Fundraiser: address,
+        Chain: chainIdDecimal,
+        "Payment Token": contractData.paymentTokenAddress,
+        Amount: buyAmount,
+      });
       setTransactionState((prev) => ({
         ...prev,
         isPurchasing: true,
@@ -918,6 +938,13 @@ const BuyPanel = ({
   // Handle redeem action
   const handleRedeem = (orderIndex: number) => {
     try {
+      mixpanel.track("Redeem Tokens", {
+        Fundraiser: address,
+        Chain: chainIdDecimal,
+        Amount: buyAmount,
+        "Order ID": orderIndex,
+        "Sale Token": contractData?.saleTokenAddress,
+      });
       redeemTokens({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,

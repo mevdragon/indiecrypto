@@ -12,6 +12,7 @@ import React, { useEffect, useState } from "react";
 import ChainWarning from "../components/ChainWarning";
 import { OtterpadInfo } from "./TrendingPage";
 import AlternativePayment from "../components/AlternativePayment";
+import mixpanel from "mixpanel-browser";
 
 export const CONTRACT_ABI = OtterPadFund__factory.abi;
 
@@ -64,6 +65,13 @@ const FundPage = () => {
   const CONTRACT_ADDRESS = contractAddress as Address;
   const { address: userAddress, isConnected } = useAccount();
   const isDesktop = useMediaQuery({ minWidth: 1024 });
+
+  useEffect(() => {
+    mixpanel.track("View Item", {
+      Fundraiser: contractAddress,
+      Chain: chainIdDecimal,
+    });
+  }, [contractAddress]);
 
   // Batch contract reads with proper configuration
   const {
