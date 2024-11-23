@@ -37,6 +37,7 @@ import {
 } from "../config";
 import ChainWarning from "../components/ChainWarning";
 import { OtterpadInfo } from "./TrendingPage";
+import mixpanel from "mixpanel-browser";
 
 interface FundForm {
   title: string;
@@ -150,6 +151,12 @@ const CreatePage: React.FC = () => {
 
         // Use the complete URL with fund parameter
         richInfoUrl = `https://app.legions.bot/webhook/0c5cc860-244a-477c-a264-5a4602681d18?fund=${fundId}`;
+
+        mixpanel.track("Create Fund", {
+          Fundraiser: fundId,
+          Chain: selectedChain,
+          Title: values.title,
+        });
       }
 
       console.log(`richInfoUrl`, richInfoUrl);

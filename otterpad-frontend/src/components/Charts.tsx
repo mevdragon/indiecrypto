@@ -31,6 +31,7 @@ import { useBlockNumber, usePublicClient } from "wagmi";
 import DexTabPane from "./DexTabPane";
 import { SUPPORTED_CHAINS } from "../config";
 import { OtterpadInfo } from "../pages/TrendingPage";
+import mixpanel from "mixpanel-browser";
 
 const { Title, Paragraph } = Typography;
 
@@ -78,11 +79,11 @@ const Charts = ({
   const { data: currentBlock } = useBlockNumber();
   const [activeTab, setActiveTab] = useState("dex");
 
-  const defaultTabPane = contractData?.isDeployedToUniswap ? "dex" : "price";
+  const defaultTabPane = contractData?.isDeployedToUniswap ? "dex" : "tvl";
 
   useEffect(() => {
     if (contractData?.isDeployedToUniswap) {
-      setActiveTab("dex");
+      setActiveTab("tvl");
     }
   }, [contractData?.isDeployedToUniswap]);
 
@@ -567,7 +568,14 @@ const Charts = ({
     >
       <Tabs
         defaultActiveKey={defaultTabPane}
-        onTabClick={(key) => setActiveTab(key)}
+        onTabClick={(key) => {
+          setActiveTab(key);
+          mixpanel.track("Review Analytics", {
+            Fundraiser: address,
+            Chain: chainIdDecimal,
+            "Tab Name": key,
+          });
+        }}
         style={{
           background: "white",
           borderRadius: "8px",
