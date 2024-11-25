@@ -1,8 +1,0 @@
-{
-  "PresaleLockModule#PresaleLock": "0x541e2d0B2A5aaE4d6567979F328CAFC6c83fdbdC",
-  "OtterPadFactoryModule#PresaleLockFactory": "0xEC6EF62E6F07e2D30fDd0b99c483E6Fa3389d942",
-  "OtterPadFundraiserModule#OtterPadFund": "0x6b0589781B19B6Ba8f3dfCe25B20800d9d52F088",
-  "OtterPadFactoryModule#OtterPadFactory": "0x865F59093a8C29dEF3021B5998Bf6cA10337D167",
-  "TokenDeploymentModule#CoffeeBeans": "0xa8E5E61201993A2E2BE274016f56450722A57219",
-  "TokenDeploymentModule#TetherUSD": "0x482fADaF511fB3Bc02F3CB83B25Ca8a654ddef89"
-}
