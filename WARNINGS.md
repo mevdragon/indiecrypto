@@ -1,4 +1,6 @@
-# Warning - Orphaned Tokens Investor Protection
+# Warning
+
+## Orphaned Tokens Investor Protection
 
 The fundraiser has a risk of leaving 1%-30% orphaned SALE tokens (your token for sale) stuck in the contract forever. This is a feature not a bug. It is meant to protect all investors from refund rugs.
 
@@ -45,3 +47,23 @@ Here is the suggested range of setup params:
 This will keep your orphaned token rates ~15%.
 
 If you decide that you want higher orphan token rates, just be aware that later investors end up paying higher price (but no more than your end price). This can be good for liquidity but bad for ease of sale getting the last chunk of tokens sold. We do not recommend you tailor your fundraising strategy around orphaned tokens, and try to minimize your refund rates. Orphan tokens are just another investor protection.
+
+## Premature DEX Deployment
+
+You may encounter difficulty reaching your fundraising goal, if it was set too high. Otterpad offers the ability to prematurely deploy liquidity to DEX so that your investors don't have to wait forever.
+
+What happens:
+
+- DEX price goes out with same full allocation of SALE tokens but less PAY liquidity, thus landing on DEX at much lower price
+- All existing token buyers get a prorated share of the unsold tokens, increasing their tokens owned.
+
+The implications are:
+
+- The "market cap" of tokens going out will be much lower, since DEX price is lower than expected
+- While DEX price might be lower, investors also get a lower effective price on their tokens (due to the bonus prorated tokens). From their ROI point of view, there is no difference.
+- While liquidity on DEX ends up being lower, this is complimented by increased gains potential (much higher multiples)
+- Founders still hold the same allocation of tokens as before (Whereas if the unsold tokens were burned, the founders would have too big of a share). This prevents an avenue of founder rug
+- This setup is very favorable to investors and can create accidental whales as they receive prorated unsold tokens. Investors may pressure founders for earlier premature DEX deployment.
+- Orphaned tokens from refunds are still locked forever
+
+Overall premature DEX deployment is not a bad or scary thing. It's actually a fair safety mechanism that gives optionality to founders & reassurance to investors. Just beware of creating accidental whales.

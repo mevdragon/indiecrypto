@@ -11,7 +11,7 @@
  *
  */
 
-import { parseUnits } from "viem";
+import { parseUnits, zeroAddress } from "viem";
 import hre from "hardhat";
 
 async function main() {
@@ -84,6 +84,7 @@ async function main() {
     11111111n, // escrowRakeBPS
     deployer.account.address, // foundersWallet
     deployer.account.address, // lpLockWallet
+    zeroAddress, // factory mock
   ]);
 
   console.log("Fundraiser deployed at:", fundraiser.address);
