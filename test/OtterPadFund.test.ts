@@ -1725,7 +1725,7 @@ describe("OtterPadFund", function () {
         expect(finalBalance - initialBalance).to.equal(received[5]);
       });
 
-      it("Should distribute prorated tokens proportionally to contribution", async function () {
+      it("Should distribute prorated tokens proportionally by contribution", async function () {
         const {
           fundraiser,
           paymentToken,
