@@ -85,6 +85,7 @@ export default buildModule("OtterPadFundraiserModule", (m) => {
   // });
 
   // Deploy the fundraiser
+  const factoryAddress = zeroAddress;
   const fundraiser = m.contract("OtterPadFund", [
     "Crypto Project", // title
     "https://api.legions.bot/api/w/officex/capture_u/f/officex/otterpad_rest_api", // richInfoUrl
@@ -99,6 +100,7 @@ export default buildModule("OtterPadFundraiserModule", (m) => {
     escrowRakeBPS,
     foundersWallet,
     zeroAddress,
+    factoryAddress,
   ]);
 
   // If using mock tokens, mint initial supply

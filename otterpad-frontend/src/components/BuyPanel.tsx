@@ -1839,7 +1839,6 @@ const BuyPanel = ({
                                 onClick={() => handleRedeem(Number(orderIndex))}
                                 loading={loadingRedeem}
                                 disabled={
-                                  !contractData.targetReached ||
                                   !contractData.isDeployedToUniswap ||
                                   purchase.isRedeemed ||
                                   purchase.isRefunded

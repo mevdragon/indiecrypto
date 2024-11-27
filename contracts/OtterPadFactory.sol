@@ -80,7 +80,8 @@ contract OtterPadFactory {
             upfrontRakeBPS,
             escrowRakeBPS,
             foundersWallet,
-            lockLPTokenWallet
+            lockLPTokenWallet,
+            address(this)
         );
         
         uint256 currentIndex = fundCounterIndex;

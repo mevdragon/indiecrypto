@@ -11,6 +11,7 @@ import {
   parseUnits,
   getAddress,
   ContractFunctionRevertedError,
+  zeroAddress,
 } from "viem";
 
 const title = "Crypto Project";
@@ -62,6 +63,7 @@ describe("OtterPadFund", function () {
       escrowRakeBPS,
       getAddress(foundersWallet.account.address),
       getAddress(lpLockWallet.account.address),
+      zeroAddress, // mock factory
     ]);
 
     // Mint some tokens to buyers for testing
@@ -361,7 +363,7 @@ describe("OtterPadFund", function () {
 
       // Try to redeem
       await expect(buyer1Fundraiser.write.redeem([0n])).to.be.rejectedWith(
-        "Target not reached yet"
+        "Not yet deployed to DEX"
       );
     });
 
@@ -1033,6 +1035,7 @@ describe("OtterPadFund", function () {
         3_000_000n, // escrowRakeBPS (3%)
         getAddress(foundersWallet.account.address),
         getAddress(lpLockWallet.account.address),
+        zeroAddress, // mock factory
       ]);
 
       // Second fundraiser with 10% total rake
@@ -1050,6 +1053,7 @@ describe("OtterPadFund", function () {
         6_000_000n, // escrowRakeBPS (6%)
         getAddress(foundersWallet.account.address),
         getAddress(lpLockWallet.account.address),
+        zeroAddress, // mock factory
       ]);
 
       const required1 = (await fundraiser1.read.checkSaleTokensRequired())[0];
@@ -1093,6 +1097,7 @@ describe("OtterPadFund", function () {
         10_000_000n, // escrowRakeBPS
         getAddress(foundersWallet.account.address),
         getAddress(lpLockWallet.account.address),
+        zeroAddress, // mock factory
       ]);
 
       const requiredTokens = (
@@ -1151,6 +1156,7 @@ describe("OtterPadFund", function () {
         3_000_000n, // escrowRakeBPS
         getAddress(foundersWallet.account.address),
         getAddress(lpLockWallet.account.address),
+        zeroAddress, // mock factory
       ]);
 
       const requiredTokens = (
@@ -1477,6 +1483,331 @@ describe("OtterPadFund", function () {
       expect(deployEvents[0].args.pair).to.equal(expectedPoolAddress);
     });
   });
+
+  describe("Premature Deployment", function () {
+    it("Should allow founders to deploy before target is reached", async function () {
+      const {
+        fundraiser,
+        paymentToken,
+        saleToken,
+        buyer1,
+        foundersWallet,
+        publicClient,
+        targetLiquidity,
+        upfrontRakeBPS,
+        escrowRakeBPS,
+        lpLockWallet,
+      } = await loadFixture(deployFundraiserFixture);
+
+      // Make purchase for 50% of target
+      const OTTERPAD_FEE_BPS = 2_000_000n;
+      const remainingBPS =
+        100_000_000n -
+        (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
+      const halfTargetPayment = (targetLiquidity * 50_000_000n) / remainingBPS;
+
+      const buyer1PaymentToken = await hre.viem.getContractAt(
+        "MockERC20",
+        paymentToken.address,
+        { client: { wallet: buyer1 } }
+      );
+      await buyer1PaymentToken.write.approve([
+        fundraiser.address,
+        halfTargetPayment,
+      ]);
+
+      const buyer1Fundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      await buyer1Fundraiser.write.buy([
+        halfTargetPayment,
+        buyer1.account.address,
+      ]);
+
+      // Verify target not reached
+      expect(await fundraiser.read.targetReached()).to.equal(false);
+
+      // Get initial balances before deployment
+      const initialFoundersBalance = await paymentToken.read.balanceOf([
+        getAddress(foundersWallet.account.address),
+      ]);
+
+      // Deploy to Uniswap prematurely
+      const foundersWalletFundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: foundersWallet } }
+      );
+
+      const hash =
+        await foundersWalletFundraiser.write.prematureDeployToUniswap();
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      // Verify DEX deployed
+      expect(await fundraiser.read.isDeployedToUniswap()).to.equal(true);
+
+      // Verify Uniswap pair exists
+      const factory = await hre.viem.getContractAt(
+        "IUniswapV2Factory",
+        UNISWAP_FACTORY
+      );
+      const pairAddress = await factory.read.getPair([
+        saleToken.address,
+        paymentToken.address,
+      ]);
+      expect(pairAddress).to.not.equal(zeroAddress);
+    });
+
+    it("Should not allow non-founders to deploy prematurely", async function () {
+      const { fundraiser, paymentToken, buyer1, buyer2 } = await loadFixture(
+        deployFundraiserFixture
+      );
+
+      // Make partial purchase
+      const paymentAmount = parseEther("10");
+      const buyer1PaymentToken = await hre.viem.getContractAt(
+        "MockERC20",
+        paymentToken.address,
+        { client: { wallet: buyer1 } }
+      );
+      await buyer1PaymentToken.write.approve([
+        fundraiser.address,
+        paymentAmount,
+      ]);
+
+      const buyer1Fundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      await buyer1Fundraiser.write.buy([paymentAmount, buyer1.account.address]);
+
+      // Try to deploy prematurely as non-founder
+      const buyer2Fundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: buyer2 } }
+      );
+
+      await expect(
+        buyer2Fundraiser.write.prematureDeployToUniswap()
+      ).to.be.rejectedWith("Only founders can premature deploy");
+    });
+
+    it("Should not allow premature deployment if target is already reached", async function () {
+      const {
+        fundraiser,
+        paymentToken,
+        buyer1,
+        foundersWallet,
+        targetLiquidity,
+        upfrontRakeBPS,
+        escrowRakeBPS,
+      } = await loadFixture(deployFundraiserFixture);
+
+      // Make purchase that reaches target
+      const OTTERPAD_FEE_BPS = 2_000_000n;
+      const remainingBPS =
+        100_000_000n -
+        (upfrontRakeBPS - OTTERPAD_FEE_BPS + escrowRakeBPS + OTTERPAD_FEE_BPS);
+      const requiredPayment = (targetLiquidity * 100_000_000n) / remainingBPS;
+
+      const buyer1PaymentToken = await hre.viem.getContractAt(
+        "MockERC20",
+        paymentToken.address,
+        { client: { wallet: buyer1 } }
+      );
+      await buyer1PaymentToken.write.approve([
+        fundraiser.address,
+        requiredPayment,
+      ]);
+
+      const buyer1Fundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: buyer1 } }
+      );
+
+      await buyer1Fundraiser.write.buy([
+        requiredPayment,
+        buyer1.account.address,
+      ]);
+
+      // Try to deploy prematurely after target reached
+      const foundersWalletFundraiser = await hre.viem.getContractAt(
+        "OtterPadFund",
+        fundraiser.address,
+        { client: { wallet: foundersWallet } }
+      );
+
+      await expect(foundersWalletFundraiser.write.prematureDeployToUniswap()).to
+        .be.rejected;
+    });
+
+    describe("Prorated token distribution", function () {
+      it("Should give users extra tokens when deployed prematurely", async function () {
+        const {
+          fundraiser,
+          paymentToken,
+          saleToken,
+          buyer1,
+          foundersWallet,
+          publicClient,
+          targetLiquidity,
+          upfrontRakeBPS,
+          escrowRakeBPS,
+        } = await loadFixture(deployFundraiserFixture);
+
+        // Make purchase for 70% of target
+        const OTTERPAD_FEE_BPS = 2_000_000n;
+        const remainingBPS =
+          100_000_000n -
+          (upfrontRakeBPS -
+            OTTERPAD_FEE_BPS +
+            escrowRakeBPS +
+            OTTERPAD_FEE_BPS);
+        const partialTargetPayment =
+          (targetLiquidity * 70_000_000n) / remainingBPS;
+
+        const buyer1PaymentToken = await hre.viem.getContractAt(
+          "MockERC20",
+          paymentToken.address,
+          { client: { wallet: buyer1 } }
+        );
+        await buyer1PaymentToken.write.approve([
+          fundraiser.address,
+          partialTargetPayment,
+        ]);
+
+        const buyer1Fundraiser = await hre.viem.getContractAt(
+          "OtterPadFund",
+          fundraiser.address,
+          { client: { wallet: buyer1 } }
+        );
+
+        await buyer1Fundraiser.write.buy([
+          partialTargetPayment,
+          buyer1.account.address,
+        ]);
+
+        // Deploy prematurely
+        const foundersWalletFundraiser = await hre.viem.getContractAt(
+          "OtterPadFund",
+          fundraiser.address,
+          { client: { wallet: foundersWallet } }
+        );
+
+        await foundersWalletFundraiser.write.prematureDeployToUniswap();
+
+        // Get initial token balance
+        const initialBalance = await saleToken.read.balanceOf([
+          buyer1.account.address,
+        ]);
+
+        // Redeem tokens
+        await buyer1Fundraiser.write.redeem([0n]);
+
+        // Get final balance
+        const finalBalance = await saleToken.read.balanceOf([
+          buyer1.account.address,
+        ]);
+
+        // Get redemption details
+        const received = await fundraiser.read.received([0n]);
+
+        // Verify bonus tokens were received
+        expect(received[4]).to.be.gt(0n);
+        expect(received[5]).to.be.gt(received[3]);
+        expect(finalBalance - initialBalance).to.equal(received[5]);
+      });
+
+      it("Should distribute prorated tokens proportionally by contribution", async function () {
+        const {
+          fundraiser,
+          paymentToken,
+          saleToken,
+          buyer1,
+          buyer2,
+          foundersWallet,
+          publicClient,
+          targetLiquidity,
+          upfrontRakeBPS,
+          escrowRakeBPS,
+        } = await loadFixture(deployFundraiserFixture);
+
+        // Calculate payments for two buyers (40% and 20% of target)
+        const OTTERPAD_FEE_BPS = 2_000_000n;
+        const remainingBPS =
+          100_000_000n -
+          (upfrontRakeBPS -
+            OTTERPAD_FEE_BPS +
+            escrowRakeBPS +
+            OTTERPAD_FEE_BPS);
+        const payment1 = (targetLiquidity * 40_000_000n) / remainingBPS;
+        const payment2 = (targetLiquidity * 20_000_000n) / remainingBPS;
+
+        // First buyer purchase
+        const buyer1PaymentToken = await hre.viem.getContractAt(
+          "MockERC20",
+          paymentToken.address,
+          { client: { wallet: buyer1 } }
+        );
+        await buyer1PaymentToken.write.approve([fundraiser.address, payment1]);
+
+        const buyer1Fundraiser = await hre.viem.getContractAt(
+          "OtterPadFund",
+          fundraiser.address,
+          { client: { wallet: buyer1 } }
+        );
+
+        await buyer1Fundraiser.write.buy([payment1, buyer1.account.address]);
+
+        // Second buyer purchase
+        const buyer2PaymentToken = await hre.viem.getContractAt(
+          "MockERC20",
+          paymentToken.address,
+          { client: { wallet: buyer2 } }
+        );
+        await buyer2PaymentToken.write.approve([fundraiser.address, payment2]);
+
+        const buyer2Fundraiser = await hre.viem.getContractAt(
+          "OtterPadFund",
+          fundraiser.address,
+          { client: { wallet: buyer2 } }
+        );
+
+        await buyer2Fundraiser.write.buy([payment2, buyer2.account.address]);
+
+        // Deploy prematurely
+        const foundersWalletFundraiser = await hre.viem.getContractAt(
+          "OtterPadFund",
+          fundraiser.address,
+          { client: { wallet: foundersWallet } }
+        );
+
+        await foundersWalletFundraiser.write.prematureDeployToUniswap();
+
+        // Both buyers redeem
+        await buyer1Fundraiser.write.redeem([0n]);
+        await buyer2Fundraiser.write.redeem([1n]);
+
+        // Get redemption details
+        const received1 = await fundraiser.read.received([0n]);
+        const received2 = await fundraiser.read.received([1n]);
+
+        // Calculate ratios of bonus tokens to original tokens
+        const ratio1 = (received1[4] * 100_000n) / received1[3];
+        const ratio2 = (received2[4] * 100_000n) / received2[3];
+
+        // Verify ratios are approximately equal (within 0.1%)
+        expect(ratio1).to.be.closeTo(ratio2, 100n);
+      });
+    });
+  });
 });
 
 describe("OtterPadFund with Extreme Slopes", function () {
@@ -1524,6 +1855,7 @@ describe("OtterPadFund with Extreme Slopes", function () {
       escrowRakeBPS,
       getAddress(foundersWallet.account.address),
       getAddress(lpLockWallet.account.address),
+      zeroAddress, // mock factory
     ]);
 
     // Mint some tokens to buyers for testing
@@ -1799,6 +2131,7 @@ describe("Delegation scenarios", function () {
       escrowRakeBPS,
       getAddress(foundersWallet.account.address),
       getAddress(lpLockWallet.account.address),
+      zeroAddress, // mock factory
     ]);
 
     // Mint tokens to buyer for testing

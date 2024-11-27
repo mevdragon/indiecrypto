@@ -4,7 +4,7 @@ import {
 } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { expect } from "chai";
 import hre from "hardhat";
-import { parseEther, parseUnits, getAddress } from "viem";
+import { parseEther, parseUnits, getAddress, zeroAddress } from "viem";
 
 describe("OtterPadFactory", function () {
   this.timeout(60000); // 60 seconds

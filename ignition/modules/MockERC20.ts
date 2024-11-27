@@ -31,6 +31,9 @@ const TokenDeploymentModule = buildModule("TokenDeploymentModule", (m) => {
   const payToken = m.contract("MockERC20", ["Tether", "USDT", 6n], {
     id: "TetherUSD",
   });
+  const payToken2 = m.contract("MockERC20", ["USDC", "USDC", 6n], {
+    id: "CircleUSD",
+  });
 
   // Mint SALE tokens after deployment
   m.call(saleToken, "mint", [RECIPIENT_ADDRESS, INITIAL_SUPPLY], {
@@ -41,11 +44,16 @@ const TokenDeploymentModule = buildModule("TokenDeploymentModule", (m) => {
   m.call(payToken, "mint", [RECIPIENT_ADDRESS, INITIAL_SUPPLY_PAY], {
     id: "mintPayTokens",
   });
+  // Mint PAY tokens after deployment
+  m.call(payToken2, "mint", [RECIPIENT_ADDRESS, INITIAL_SUPPLY_PAY], {
+    id: "mintPayTokens",
+  });
 
   // Return only the contract deployments
   return {
     saleToken,
     payToken,
+    payToken2,
   };
 });
 

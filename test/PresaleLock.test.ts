@@ -6,7 +6,7 @@ import {
 } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { expect } from "chai";
 import hre from "hardhat";
-import { parseEther, parseUnits, getAddress } from "viem";
+import { parseEther, parseUnits, getAddress, zeroAddress } from "viem";
 
 describe("PresaleLock", function () {
   async function deployFixture() {
@@ -64,6 +64,7 @@ describe("PresaleLock", function () {
       escrowRakeBPS,
       getAddress(foundersWallet.account.address),
       getAddress(lpLockWallet.account.address),
+      zeroAddress, // mock factory
     ]);
 
     const publicClient = await hre.viem.getPublicClient();

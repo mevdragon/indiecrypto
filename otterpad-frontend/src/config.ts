@@ -17,7 +17,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Sepolia",
     chainIdDecimal: "11155111",
-    factoryAddress: "0x865F59093a8C29dEF3021B5998Bf6cA10337D167",
+    factoryAddress: "0x6Bfbdb6D7Bc5F923d81F3501243D1c375fFfB80d",
     presaleFactory: "0xEC6EF62E6F07e2D30fDd0b99c483E6Fa3389d942",
     isDisabled: false,
     explorerUrl: "https://sepolia.etherscan.io",
@@ -28,7 +28,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Polygon",
     chainIdDecimal: "137",
-    factoryAddress: "0x67584351491CaD1c9915e2727fa6665737364Ff4",
+    factoryAddress: "0x856E050a0D19e373B30C0B0b42d3426d1A5B7DDa",
     presaleFactory: "0xC26DEf27c021107D4240F140C6040f6010872780",
     isDisabled: false,
     explorerUrl: "https://polygonscan.com",
@@ -39,7 +39,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     chain: "Base",
     chainIdDecimal: "8453",
-    factoryAddress: "0x50F43Fc609F1fA87050F40cd1f3D6a37D86575ce",
+    factoryAddress: "0xa4bc58E6B12BaaD14bcc4624809f2BED554b38c7",
     presaleFactory: "0x450159dAD95f898ad5b13640445Ef2353D2509d2",
     isDisabled: false,
     explorerUrl: "https://basescan.org/",
