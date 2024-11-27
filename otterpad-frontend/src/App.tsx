@@ -42,7 +42,7 @@ export const wagmiConfig = createConfig({
     base,
     // bsc,
     // optimism,
-    // polygon,
+    polygon,
     // arbitrum,
     // mainnet,
     sepolia,
